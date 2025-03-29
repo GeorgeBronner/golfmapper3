@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from starlette import status
 from pydantic import BaseModel, Field, field_validator
-from database import SessionLocal
+from app.database import SessionLocal
 from sqlalchemy.orm import Session, joinedload
 from typing import Annotated
-from models import Courses, UserCourses
-from routers.auth import get_current_user
+from app.models import Courses, UserCourses
+from app.routers.auth import get_current_user
 
 import geopy.geocoders
 import certifi

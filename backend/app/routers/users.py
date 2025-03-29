@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from database import SessionLocal
+from app.database import SessionLocal
 from sqlalchemy.orm import Session
 from typing import Annotated
-from models import Users
+from app.models import Users
 from .auth import get_current_user
 from passlib.context import CryptContext
 

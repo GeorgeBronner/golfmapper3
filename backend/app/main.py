@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from fastapi_pagination import add_pagination
-from database import engine
-from routers import garmin_courses, garmin_courses_no_auth, auth, admin, users, user_courses, user_courses_no_auth, map
-from models import Base
+from app.database import engine
+from app.routers import garmin_courses, garmin_courses_no_auth, auth, admin, users, user_courses, user_courses_no_auth, map
+from app.models import Base
 import sentry_sdk
 
 # Load environment variables

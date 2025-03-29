@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from starlette import status
-from database import SessionLocal
+from app.database import SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import Annotated
-from models import Courses
-from routers.auth import get_current_user
+from app.models import Courses
+from app.routers.auth import get_current_user
 from sqlalchemy import func
 from geopy.distance import geodesic
 import geopy.geocoders

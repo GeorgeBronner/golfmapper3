@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
-from database import SessionLocal
+from app.database import SessionLocal
 from sqlalchemy.orm import Session
 from typing import Annotated
-from routers.auth import get_current_user
+from app.routers.auth import get_current_user
 from fastapi.responses import FileResponse
 import folium
 import geopy.geocoders
 import certifi
 import ssl
 
-from routers.user_courses import readall
-from routers.users import user_info
+from app.routers.user_courses import readall
+from app.routers.users import user_info
 
 ctx = ssl._create_unverified_context(cafile=certifi.where())
 geopy.geocoders.options.default_ssl_context = ctx

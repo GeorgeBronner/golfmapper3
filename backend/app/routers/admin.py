@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from database import SessionLocal
+from app.database import SessionLocal
 from sqlalchemy.orm import Session
 from typing import Annotated
-from models import Courses
+from app.models import Courses
 from .auth import get_current_user
 
 router = APIRouter(prefix="/admin", tags=["admin"])
