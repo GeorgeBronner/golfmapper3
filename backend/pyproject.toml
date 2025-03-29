@@ -12,11 +12,26 @@ dependencies = [
     "uvicorn>=0.23.2",
     "pydantic>=2.3.0",
     "httpx>=0.28.1",
+    "geopy",
+    "python-jose",
+    "SQLAlchemy>=1.4.0",
+    "starlette",
+    "requests",
+    "bcrypt",
+    "passlib",
+    "folium",
+    "sentry-sdk[fastapi]",
+    "python-dotenv>=0.19.0",
+    "fastapi-pagination>=0.8.0",
+    "psycopg2-binary",
+    "python-multipart",
+    "certifi",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
+    "pytest-asyncio",
     "ruff>=0.2.0",
 ]
 
