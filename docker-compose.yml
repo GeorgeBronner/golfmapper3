@@ -16,7 +16,7 @@ services:
     build: ./frontend
     container_name: gm3-frontend
     ports:
-      - "8083:80"
+      - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
