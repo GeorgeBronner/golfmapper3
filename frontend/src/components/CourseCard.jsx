@@ -1,17 +1,19 @@
 import React from 'react';
 
-function courseCard(props) {
+function CourseCard(props) {
     function handleClick() {
         props.onDelete(props.id);
     }
 
     return (
-        <card className={"courseCard"}>
+        <div className={"courseCard"}>
             <h1>{props.g_course}</h1>
-            <p>{props.g_city}</p>
-            <p>{props.year}</p>
+            <div className="info-container">
+                <p>{props.g_city}</p>
+                <p>{props.year}</p>
+            </div>
             <button onClick={handleClick}>DELETE</button>
-        </card>);
+        </div>);
 }
 
-export default courseCard;
+export default CourseCard;
