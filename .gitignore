@@ -162,7 +162,7 @@ cython_debug/
 keys.py
 garmin.db
 testdb.db
-backend/static/user_maps/
+backend/app/static/user_maps/
 
 # Python virtual environment
 backend/.venv/

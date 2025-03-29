@@ -34,7 +34,7 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 async def root(user: user_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return FileResponse(f"static/user_maps/user_map_{user['username']}_{user['id']}.html")
+    return FileResponse(f"app/static/user_maps/user_map_{user['username']}_{user['id']}.html")
 
 
 # @router.get("/usermap1")
@@ -58,6 +58,6 @@ async def user_map_generate(user: user_dependency, db: db_dependency):
                                 radius=7))
     user_map.add_child(fg)
 
-    user_map.save(f"static/user_maps/user_map_{user['username']}_{user['id']}.html")
+    user_map.save(f"app/static/user_maps/user_map_{user['username']}_{user['id']}.html")
 
     return {"message": "Map generated"}

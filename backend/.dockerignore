@@ -1,0 +1,5 @@
+# Add this to your .dockerignore file
+.venv/
+__pycache__/
+*.pyc
+.idea
