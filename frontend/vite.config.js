@@ -6,12 +6,17 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      jsxRuntime: 'automatic',
+      babel: {
+        plugins: [
+          ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
+        ]
+      }
+    }),
     sentryVitePlugin({
       org: "your-org",
       project: "your-project",
-      // Auth tokens can be obtained from https://sentry.io/settings/account/api/auth-tokens/
-      // and needs the `project:releases` and `org:read` scopes
       authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
@@ -19,15 +24,27 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    extensions: ['.js', '.jsx', '.json']
   },
   server: {
     port: 3000,
+    host: true // Add this to enable all host addresses
   },
   define: {
     'process.env.REACT_APP_SENTRY_DSN': JSON.stringify(process.env.VITE_SENTRY_DSN),
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: {
+        '.js': 'jsx',
+        '.ts': 'tsx'
+      }
+    }
+  },
   esbuild: {
     loader: 'jsx',
-    include: /src\/.*\.js$/,
-  },
+    jsxFactory: 'React.createElement',
+    jsxFragment: 'React.Fragment',
+    include: '**/*.{jsx,js}'
+  }
 });
