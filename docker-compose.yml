@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    container_name: gm3-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: gm3-frontend
+    ports:
+      - "8083:80"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
