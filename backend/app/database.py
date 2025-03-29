@@ -24,7 +24,7 @@ if USE_SQLITE_DB.lower() == 'true':
     if SQLITE_DB_URL:
         SQLALCHEMY_DATABASE_URL = f'sqlite:///{SQLITE_DB_URL}'
     else:
-        SQLALCHEMY_DATABASE_URL = "sqlite:///./garmin.db"
+        SQLALCHEMY_DATABASE_URL = "sqlite:////garmin.db"
     engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     SQLALCHEMY_DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/golfmapper2?options=-csearch_path%3Dmain'
