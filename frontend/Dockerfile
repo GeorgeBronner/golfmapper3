@@ -1,4 +1,3 @@
-
 FROM node:21-alpine
 
 # Add necessary build tools for potential native dependencies
@@ -15,6 +14,10 @@ RUN npm install --save-dev @babel/core @babel/preset-env @babel/preset-react @ba
 
 # Copy the rest of the app
 COPY . .
+
+# Build the app with environment variables
+ARG VITE_SERVER_IP
+ENV VITE_SERVER_IP=$VITE_SERVER_IP
 
 # Expose port
 EXPOSE 3000

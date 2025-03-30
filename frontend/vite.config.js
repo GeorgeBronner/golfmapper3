@@ -27,11 +27,15 @@ export default defineConfig({
     extensions: ['.js', '.jsx', '.json']
   },
   server: {
+    host: '0.0.0.0',
     port: 3000,
-    host: true // Add this to enable all host addresses
+    watch: {
+      usePolling: true
+    }
   },
   define: {
     'process.env.REACT_APP_SENTRY_DSN': JSON.stringify(process.env.VITE_SENTRY_DSN),
+    'process.env.VITE_SERVER_IP': JSON.stringify(process.env.VITE_SERVER_IP || '127.0.0.1')
   },
   optimizeDeps: {
     esbuildOptions: {

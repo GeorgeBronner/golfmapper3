@@ -10,13 +10,19 @@ services:
         target: /garmin.db
     environment:
       - ENVIRONMENT=development
+      - SERVER_IP=10.9.8.221
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+        - VITE_SERVER_IP=${SERVER_IP:-127.0.0.1}
     container_name: gm3-frontend
     ports:
       - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped
+    environment:
+      - VITE_SERVER_IP=${SERVER_IP:-127.0.0.1}
