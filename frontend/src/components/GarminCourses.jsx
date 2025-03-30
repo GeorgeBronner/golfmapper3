@@ -1,16 +1,17 @@
 import React from 'react';
 import axios from 'axios';
-import CourseCard from "./CourseCard";
+import GarminCourseRow from "./GarminCourseRow";
 
 export default class GarminCourses extends React.Component {
-
-
     state = {
         courses: []
     }
 
     componentDidMount() {
+        this.fetchCourses();
+    }
 
+    fetchCourses = () => {
         axios.get(`http://127.0.0.1:8000/readall`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -28,8 +29,7 @@ export default class GarminCourses extends React.Component {
             }})
             .then(response => {
                 console.log(response);
-                // After deleting the course, fetch the updated list of courses
-                this.componentDidMount();
+                this.fetchCourses();
             })
             .catch(error => {
                 console.error(error);
@@ -39,13 +39,30 @@ export default class GarminCourses extends React.Component {
     render() {
         return (
             <div className="course-list-container">
-                {
-                    this.state.courses.map(course =>
-                        <div key={course.id} className="courseCard">
-                            <CourseCard g_course={course.g_course} g_city={course.g_city} year={course.year} onDelete={() => this.deleteUserCourse(course.id)}/>
-                        </div>
-                    )
-                }
+                <table className="course-table">
+                    <thead>
+                        <tr>
+                            <th>Course Name</th>
+                            <th>City</th>
+                            <th>State</th>
+                            <th>Country</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {this.state.courses.slice(1).map(course =>
+                            <GarminCourseRow 
+                                key={course.id}
+                                id={course.id}
+                                g_course={course.g_course} 
+                                g_city={course.g_city}
+                                g_state={course.g_state}
+                                g_country={course.g_country}
+                                onDelete={() => this.deleteUserCourse(course.id)}
+                            />
+                        )}
+                    </tbody>
+                </table>
             </div>
         )
     }

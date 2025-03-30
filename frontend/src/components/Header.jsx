@@ -22,7 +22,7 @@ function Header() {
                 <Nav className="me-auto">
                     <Nav.Link href="/course_list">Home</Nav.Link>
                     <Nav.Link href="/add_course_by_id">Add Course</Nav.Link>
-                    <Nav.Link href="/garmin_course_list">Course List</Nav.Link>
+                    <Nav.Link href="/garmin_course_list">All Course List</Nav.Link>
                     <Nav.Link href="/course_search">Course Search</Nav.Link>
                     <Nav.Link href="/map">Map</Nav.Link>
                     <Button onClick={handleLogout}>Logout</Button>
