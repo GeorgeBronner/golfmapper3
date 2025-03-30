@@ -1,6 +1,6 @@
 import React from 'react';
 
-function CourseCard(props) {
+function GarminCourseRow(props) {
     function handleClick() {
         props.onDelete(props.id);
     }
@@ -9,7 +9,8 @@ function CourseCard(props) {
         <tr className="course-row">
             <td>{props.g_course}</td>
             <td>{props.g_city}</td>
-            <td>{props.year}</td>
+            <td>{props.g_state}</td>
+            <td>{props.g_country}</td>
             <td>
                 <button onClick={handleClick}>DELETE</button>
             </td>
@@ -17,4 +18,4 @@ function CourseCard(props) {
     );
 }
 
-export default CourseCard;
+export default GarminCourseRow; 

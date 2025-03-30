@@ -39,50 +39,64 @@
 
 /* Course List Styles */
 .course-list-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
     padding: 1rem;
     max-width: 1400px;
     margin: 0 auto;
 }
 
-.courseCard {
-    transition: transform 0.2s ease-in-out;
-    border-radius: 8px;
-    overflow: hidden;
+.course-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
 }
 
-.courseCard h1 {
-    color: black;
-    margin: 0;
-    font-size: 1.1rem;
-    flex: 1;
+.course-table th,
+.course-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
 }
 
-.courseCard .info-container {
-    display: flex;
-    flex-direction: column;
-    margin: 0 0.5rem;
-    flex: 0.5;
+.course-table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
 }
 
-.courseCard p {
-    color: black;
-    margin: 0;
+.course-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 1.5rem;
 }
 
-.courseCard p:first-of-type {
-    margin-bottom: 0.25rem;
+.course-table th.sortable:hover {
+    background-color: #e9e9e9;
 }
 
-.courseCard button {
-    margin-left: 0.5rem;
+.course-table th.sortable::after {
+    content: '↕';
+    position: absolute;
+    right: 0.5rem;
+    opacity: 0.3;
+}
+
+.course-table th.sortable[data-sort="asc"]::after {
+    content: '↑';
+    opacity: 1;
+}
+
+.course-table th.sortable[data-sort="desc"]::after {
+    content: '↓';
+    opacity: 1;
+}
+
+.course-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.course-table button {
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     border: none;
@@ -92,33 +106,18 @@
     transition: background-color 0.2s;
 }
 
-.courseCard button:hover {
+.course-table button:hover {
     background-color: #cc0000;
 }
 
-.courseCard:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
 @media (max-width: 768px) {
-    .course-list-container {
-        grid-template-columns: 1fr;
+    .course-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .course-table th,
+    .course-table td {
         padding: 0.5rem;
-    }
-    
-    .courseCard {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-    }
-    
-    .courseCard p {
-        margin: 0;
-    }
-    
-    .courseCard button {
-        margin-left: 0;
-        width: 100%;
     }
 }
