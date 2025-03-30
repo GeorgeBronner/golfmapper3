@@ -16,7 +16,7 @@ export default class CourseList extends React.Component {
     }
 
     fetchCourses = () => {
-        axios.get(`http://127.0.0.1:8000/user_courses/readall_ids_w_year`, {
+        axios.get(`http://127.0.0.1:8005/user_courses/readall_ids_w_year`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }})
@@ -27,7 +27,7 @@ export default class CourseList extends React.Component {
     }
 
     deleteUserCourse = (id) => {
-        axios.delete(`http://127.0.0.1:8000/user_courses/delete/${id}`, {
+        axios.delete(`http://127.0.0.1:8005/user_courses/delete/${id}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }})

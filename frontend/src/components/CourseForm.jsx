@@ -15,7 +15,7 @@ function CourseForm() {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        axios.post('http://127.0.0.1:8000/user_courses/add_course', {
+        axios.post('http://127.0.0.1:8005/user_courses/add_course', {
             garmin_id: courseId,
             year: year,
         }, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
@@ -30,7 +30,7 @@ function CourseForm() {
     };
 
     const generateUserMap = () => {
-        axios.get('http://127.0.0.1:8000/map/user_map_generate', {
+        axios.get('http://127.0.0.1:8005/map/user_map_generate', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }

@@ -9,7 +9,7 @@ function LoginPage() {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        axios.post('http://127.0.0.1:8000/auth/token', {
+        axios.post('http://127.0.0.1:8005/auth/token', {
             username: username,
             password: password,
         }, {

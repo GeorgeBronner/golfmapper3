@@ -3,10 +3,8 @@ services:
     build: ./backend
     container_name: gm3-backend
     ports:
-      - "8000:8000"
+      - "8005:8000"
     volumes:
-      - ./backend/app:/app/app
-          # add something like (DB_PATH=D:\garmin.db) to docker compose environment variables
       - ${DB_PATH:-./backend/garmin.db}:/garmin.db
     environment:
       - ENVIRONMENT=development
@@ -17,9 +15,6 @@ services:
     container_name: gm3-frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     depends_on:
       - backend
     restart: unless-stopped

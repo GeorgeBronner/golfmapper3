@@ -8,7 +8,7 @@ export default class PageAfterAuth extends React.Component {
     }
 
     componentDidMount() {
-        axios.get(`http://127.0.0.1:8000/user_courses_no_auth/readall`)
+        axios.get(`http://127.0.0.1:8005/user_courses_no_auth/readall`)
             .then(res => {
                 const courses = res.data;
                 this.setState({ courses });
@@ -16,7 +16,7 @@ export default class PageAfterAuth extends React.Component {
     }
 
     deleteUserCourse = (id) => {
-        axios.delete(`http://127.0.0.1:8000/user_courses_no_auth/delete/${id}`)
+        axios.delete(`http://127.0.0.1:8005/user_courses_no_auth/delete/${id}`)
             .then(response => {
                 console.log(response);
                 // After deleting the course, fetch the updated list of courses
