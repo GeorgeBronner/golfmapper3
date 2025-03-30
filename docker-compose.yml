@@ -7,7 +7,7 @@ services:
     volumes:
       - ./backend/app:/app/app
           # add something like (DB_PATH=D:\garmin.db) to docker compose environment variables
-      - ${DB_PATH:-./garmin.db}:/garmin.db
+      - ${DB_PATH:-./backend/garmin.db}:/garmin.db
     environment:
       - ENVIRONMENT=development
     restart: unless-stopped
