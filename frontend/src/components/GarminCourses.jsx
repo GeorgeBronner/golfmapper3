@@ -1,6 +1,7 @@
 import React from 'react';
 import axios from 'axios';
 import GarminCourseRow from "./GarminCourseRow";
+import { API_BASE_URL } from '../config';
 
 export default class GarminCourses extends React.Component {
     state = {
@@ -12,7 +13,7 @@ export default class GarminCourses extends React.Component {
     }
 
     fetchCourses = () => {
-        axios.get(`http://127.0.0.1:8005/readall`, {
+        axios.get(`${API_BASE_URL}/readall`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }})
@@ -23,7 +24,7 @@ export default class GarminCourses extends React.Component {
     }
 
     deleteUserCourse = (id) => {
-        axios.delete(`http://127.0.0.1:8005/user_courses/delete/${id}`, {
+        axios.delete(`${API_BASE_URL}/user_courses/delete/${id}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }})

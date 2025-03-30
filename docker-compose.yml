@@ -5,7 +5,9 @@ services:
     ports:
       - "8005:8000"
     volumes:
-      - ${DB_PATH:-./backend/garmin.db}:/garmin.db
+      - type: bind
+        source: ${DB_PATH:-./backend/garmin.db}
+        target: /garmin.db
     environment:
       - ENVIRONMENT=development
     restart: unless-stopped

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 import {
     flexRender,
     getCoreRowModel,
@@ -64,7 +65,7 @@ function CourseSearch() {
 
     const refreshData = useCallback(async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8005/readall', {
+            const response = await axios.get(`${API_BASE_URL}/readall`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
