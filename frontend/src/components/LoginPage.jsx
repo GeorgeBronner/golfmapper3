@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
+import { generateUserMap } from '../utils/mapUtils';
 
 function LoginPage() {
     const [username, setUsername] = useState('');
@@ -20,6 +21,7 @@ function LoginPage() {
         })
             .then(response => {
                 localStorage.setItem('token', response.data.access_token);
+                generateUserMap();
                 navigate('/course_list');
             })
             .catch(error => {
