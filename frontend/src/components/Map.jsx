@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { API_BASE_URL } from '../config';
 
 function Map() {
     const iframeRef = useRef(null);
@@ -6,7 +7,7 @@ function Map() {
     const token = localStorage.getItem("token")
 
     useEffect(() => {
-        fetch('http://localhost:8000/map/usermap?rand=' + new Date(), {
+        fetch(`${API_BASE_URL}/map/usermap?rand=` + new Date(), {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 // Add more headers as needed

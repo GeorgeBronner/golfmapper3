@@ -29,7 +29,12 @@ add_pagination(app)
 Base.metadata.create_all(bind=engine)
 
 origins = [
-  "*"
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://localhost:3000",
+  "https://127.0.0.1:3000",
+  "https://10.9.8.221:3000",
+  "https://10.9.8.223:3000",
 ]
 
 app.add_middleware(
