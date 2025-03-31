@@ -18,7 +18,7 @@ function Header() {
 
         <Navbar bg="light" data-bs-theme="light">
             <Container>
-                <Navbar.Brand href="#home">Golf Mapper 2</Navbar.Brand>
+                <Navbar.Brand href="#home">Golf Mapper 3</Navbar.Brand>
                 <Nav className="me-auto">
                     <Nav.Link href="/register">Register</Nav.Link>
                     {/*<Button onClick={handleLogout}>Logout</Button>*/}

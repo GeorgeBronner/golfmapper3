@@ -18,7 +18,7 @@ function Header() {
 
         <Navbar bg="light" data-bs-theme="light">
             <Container>
-                <Navbar.Brand href="#home">Golf Mapper 2</Navbar.Brand>
+                <Navbar.Brand href="#home">Golf Mapper 3</Navbar.Brand>
                 <Nav className="me-auto">
                     <Nav.Link href="/course_list">Home</Nav.Link>
                     <Nav.Link href="/add_course_by_id">Add Course</Nav.Link>

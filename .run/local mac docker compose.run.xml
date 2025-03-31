@@ -7,7 +7,7 @@
           <list>
             <DockerEnvVarImpl>
               <option name="name" value="DB_PATH" />
-              <option name="value" value="$PROJECT_DIR$/backend/app/garmin.db" />
+              <option name="value" value="$PROJECT_DIR$/../keys/golfMapperDB/garmin.db" />
             </DockerEnvVarImpl>
           </list>
         </option>

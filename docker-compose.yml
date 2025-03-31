@@ -10,7 +10,6 @@ services:
         target: /garmin.db
     environment:
       - ENVIRONMENT=development
-      - SERVER_IP=10.9.8.221
     restart: unless-stopped
 
   frontend:
