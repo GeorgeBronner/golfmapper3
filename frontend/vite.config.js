@@ -31,7 +31,8 @@ export default defineConfig({
     port: 3000,
     watch: {
       usePolling: true
-    }
+    },
+    allowedHosts: true
   },
   define: {
     'process.env.REACT_APP_SENTRY_DSN': JSON.stringify(process.env.VITE_SENTRY_DSN),
