@@ -15,8 +15,6 @@ services:
   frontend:
     build: 
       context: ./frontend
-      args:
-        - VITE_SERVER_IP=${SERVER_IP:-127.0.0.1}
     container_name: gm3-frontend
     ports:
       - "3000:3000"
@@ -24,4 +22,6 @@ services:
       - backend
     restart: unless-stopped
     environment:
-      - VITE_SERVER_IP=${SERVER_IP:-127.0.0.1}
+      - VITE_SERVER_IP=${VITE_SERVER_IP:-127.0.0.1}
+      - BACKEND_SERVER_IP=${BACKEND_SERVER_IP:-127.0.0.1}
+      - BACKEND_PORT=${BACKEND_PORT:-8005}
