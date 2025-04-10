@@ -29,23 +29,22 @@ add_pagination(app)
 Base.metadata.create_all(bind=engine)
 
 origins = [
-  '*'
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://localhost:3000",
+  "https://127.0.0.1:3000",
+  "https://10.9.8.221:3000",
+  "http://10.9.8.221:3000",
+  "https://golf.bronnerapp.com:3000",
+  "http://golf.bronnerapp.com:3000",
+  "https://golf.bronnerapp.com:80",
+  "http://golf.bronnerapp.com:80",
+  "https://132.145.156.224:3000",
+  "http://132.145.156.224:3000",
+  "https://backend.bronnerapp.com",
+  "http://backend.bronnerapp.com"
 ]
 
-# origins = [
-#   "http://localhost:3000",
-#   "http://127.0.0.1:3000",
-#   "https://localhost:3000",
-#   "https://127.0.0.1:3000",
-#   "https://10.9.8.221:3000",
-#   "http://10.9.8.221:3000",
-#   "https://golf.bronnerapp.com:3000",
-#   "http://golf.bronnerapp.com:3000",
-#   "https://golf.bronnerapp.com:80",
-#   "http://golf.bronnerapp.com:80",
-#   "https://132.145.156.224:3000",
-#   "http://132.145.156.224:3000",
-# ]
 
 app.add_middleware(
     CORSMiddleware,
