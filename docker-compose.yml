@@ -11,6 +11,9 @@ services:
     environment:
       - ENVIRONMENT=development
     restart: unless-stopped
+    networks:
+      - nginx-proxy
+
 
   frontend:
     build: 
@@ -25,3 +28,10 @@ services:
       - VITE_SERVER_IP=${VITE_SERVER_IP:-127.0.0.1}
       - BACKEND_SERVER_IP=${BACKEND_SERVER_IP:-127.0.0.1}
       - BACKEND_PORT=${BACKEND_PORT:-8005}
+    networks:
+      - nginx-proxy
+
+networks:
+  nginx-proxy:
+    external: true
+    name: nginx-proxy
