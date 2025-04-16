@@ -176,3 +176,19 @@ frontend/dist/
 .venv/
 
 garmin.db
+
+# Exclude Python virtual environment
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/env/
+**/pip-log.txt
+**/pip-delete-this-directory.txt
+
+# Node modules
+**/node_modules/
+**/npm-debug.log

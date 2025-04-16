@@ -17,11 +17,6 @@ geopy.geocoders.options.default_ssl_context = ctx
 
 router = APIRouter(prefix="/user_courses", tags=["user_courses"])
 
-@router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
 def get_db():
     db = SessionLocal()
     try:
