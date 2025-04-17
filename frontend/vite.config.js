@@ -48,9 +48,9 @@ export default defineConfig({
   },
   define: {
     'process.env.REACT_APP_SENTRY_DSN': JSON.stringify(process.env.VITE_SENTRY_DSN),
-    'process.env.VITE_SERVER_IP': JSON.stringify(process.env.VITE_SERVER_IP || '127.0.0.1'),
-    'process.env.BACKEND_SERVER_IP': JSON.stringify(process.env.BACKEND_SERVER_IP || '127.0.0.1'),
-    'process.env.BACKEND_PORT': JSON.stringify(process.env.BACKEND_PORT || '8005')
+    'process.env.VITE_SERVER_IP': JSON.stringify(process.env.VITE_SERVER_IP || 'golf.bronnerapp.com'),
+    'process.env.BACKEND_SERVER_IP': JSON.stringify(process.env.BACKEND_SERVER_IP || 'golf.bronnerapp.com'),
+    'process.env.BACKEND_PORT': JSON.stringify(process.env.BACKEND_PORT || '80')
   },
   optimizeDeps: {
     esbuildOptions: {
