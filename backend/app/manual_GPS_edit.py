@@ -14,11 +14,11 @@ DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '5432')
 
 # use with postgres
-SQLALCHEMY_DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/golfmapper2?options=-csearch_path%3Dmain'
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# SQLALCHEMY_DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/golfmapper2?options=-csearch_path%3Dmain'
+# engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # old sqlite connection
-engine_sqlite = create_engine('sqlite:///garmin.db', echo=True)
+engine_sqlite = create_engine('sqlite:////Users/george/Code/keys/golfMapperDB/garmin.db', echo=True)
 Base = declarative_base()
 
 class courses(Base):
@@ -32,15 +32,15 @@ class courses(Base):
     g_latitude = Column(Float)
     g_longitude = Column(Float)
 
-Session = sessionmaker(bind=engine)
-session = Session()
+# Session = sessionmaker(bind=engine)
+# session = Session()
 Session_sqlite = sessionmaker(bind=engine_sqlite)
 session_sqlite = Session_sqlite()
 
 result = int(input(f"Which course id to you want to edit? "))
-i = session.get(courses, result)
-j = session_sqlite.get(courses, result)
-    
+i = session_sqlite.get(courses, result)
+# j = session.get(courses, result)
+
 print(f'Course: {i.g_course}, city: {i.g_city}, country: {i.g_country}, id: {i.id}')
 result = input("Is this the course you want to edit? ")
 if result == 'y':
@@ -50,11 +50,11 @@ if result == 'y':
     if confirm == 'y':
         i.g_latitude = new_lat
         i.g_longitude = new_long
-        session.commit()
-
-        #update sqlite database
-        j.g_latitude = new_lat
-        j.g_longitude = new_long
         session_sqlite.commit()
+
+        #update postgres database
+        # j.g_latitude = new_lat
+        # j.g_longitude = new_long
+        # session.commit()
 else:
     pass
