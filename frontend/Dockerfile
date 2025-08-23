@@ -17,4 +17,4 @@ ARG VITE_SERVER_IP
 ENV VITE_SERVER_IP=$VITE_SERVER_IP
 RUN npm run build
 
-# The static files will be in /app/dist
+# The static files will be in /frontend/dist
