@@ -1,26 +1,20 @@
-FROM node:21-alpine
+# Build stage for frontend
+FROM node:21-alpine AS build
 
-# Add necessary build tools for potential native dependencies
-RUN apk add --no-cache python3 make g++
+WORKDIR /app
 
-WORKDIR /usr/src/app
-
-# Copy package files first for better layer caching
+# Copy package files for better layer caching
 COPY package*.json ./
 RUN npm install
-
-# Install babel dependencies explicitly
-RUN npm install --save-dev @babel/core @babel/preset-env @babel/preset-react @babel/plugin-transform-runtime
+# Install the missing Babel plugin
+RUN npm install --save-dev @babel/plugin-transform-react-jsx
 
 # Copy the rest of the app
 COPY . .
 
-# Build the app with environment variables
+# Build the static files
 ARG VITE_SERVER_IP
 ENV VITE_SERVER_IP=$VITE_SERVER_IP
+RUN npm run build
 
-# Expose port
-EXPOSE 3000
-
-# Start the app with development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# The static files will be in /frontend/dist

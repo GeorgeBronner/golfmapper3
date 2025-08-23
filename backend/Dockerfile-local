@@ -22,6 +22,9 @@ RUN uv pip install --no-cache .
 # Copy the rest of the application
 COPY . .
 
+# remove /dist if it exists
+RUN rm -rf /app/dist
+
 # Expose the port the app runs on
 EXPOSE 8000
 

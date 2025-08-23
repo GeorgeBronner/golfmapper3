@@ -26,19 +26,31 @@ export default defineConfig({
     },
     extensions: ['.js', '.jsx', '.json']
   },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
+  },
   server: {
     host: '0.0.0.0',
     port: 3000,
     watch: {
       usePolling: true
     },
-    allowedHosts: true
+    allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: `http://${process.env.BACKEND_SERVER_IP || '127.0.0.1'}:${process.env.BACKEND_PORT || '8005'}`,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
   },
   define: {
     'process.env.REACT_APP_SENTRY_DSN': JSON.stringify(process.env.VITE_SENTRY_DSN),
-    'process.env.VITE_SERVER_IP': JSON.stringify(process.env.VITE_SERVER_IP || '127.0.0.1'),
-    'process.env.BACKEND_SERVER_IP': JSON.stringify(process.env.BACKEND_SERVER_IP || '127.0.0.1'),
-    'process.env.BACKEND_PORT': JSON.stringify(process.env.BACKEND_PORT || '8005')
+    'process.env.VITE_SERVER_IP': JSON.stringify(process.env.VITE_SERVER_IP || 'golf.bronnerapp.com'),
+    'process.env.BACKEND_SERVER_IP': JSON.stringify(process.env.BACKEND_SERVER_IP || 'golf.bronnerapp.com'),
+    'process.env.BACKEND_PORT': JSON.stringify(process.env.BACKEND_PORT || '80')
   },
   optimizeDeps: {
     esbuildOptions: {

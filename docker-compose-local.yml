@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile-local
+    container_name: gm3-backend-local
+    ports:
+      - "8005:8005"
+    volumes:
+      - type: bind
+        source: ${DB_PATH:-./backend/garmin.db}
+        target: /garmin.db
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile-local
+    container_name: gm3-frontend-dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    environment:
+      - VITE_SERVER_IP=${VITE_SERVER_IP:-127.0.0.1}
+      - VITE_BACKEND_SERVER_IP=${BACKEND_SERVER_IP:-127.0.0.1}
+      - VITE_BACKEND_PORT=${BACKEND_PORT:-8005}
+      - VITE_BACKEND_PROTOCOL=http
+
