@@ -1,8 +1,13 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="local mac docker compose" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
+  <configuration default="false" name="mac - local dynamic frontend" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker - local MacBook">
     <deployment type="docker-compose.yml">
       <settings>
         <option name="envFilePath" value="" />
+        <option name="envFilePaths">
+          <list>
+            <option value="" />
+          </list>
+        </option>
         <option name="envVars">
           <list>
             <DockerEnvVarImpl>
@@ -12,7 +17,7 @@
           </list>
         </option>
         <option name="commandLineOptions" value="--build" />
-        <option name="sourceFilePath" value="docker-compose.yml" />
+        <option name="sourceFilePath" value="docker-compose-local.yml" />
         <option name="upForceRecreate" value="true" />
       </settings>
     </deployment>
