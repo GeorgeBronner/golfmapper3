@@ -16,3 +16,10 @@ services:
       - DB_PATH=${DB_PATH:-./backend/garmin.db}
       - IS_THIS_WORKING=${IS_THIS_WORKING:-no}
     restart: unless-stopped
+    networks:
+      - nginx-proxy
+
+networks:
+  nginx-proxy:
+    external: true
+    name: nginx-proxy
