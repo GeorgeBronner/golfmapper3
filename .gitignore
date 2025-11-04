@@ -192,3 +192,6 @@ garmin.db
 # Node modules
 **/node_modules/
 **/npm-debug.log
+
+.claude/
+CLAUDE.md

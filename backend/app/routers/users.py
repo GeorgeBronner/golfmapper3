@@ -47,12 +47,3 @@ async def update_password(user: user_dependency, db: db_dependency, user_verific
         raise HTTPException(status_code=401, detail="Error on password verification")
     user_model.hashed_password = bcrypt_context.hash(user_verification.new_password)
     db.commit()
-
-
-@router.put("/phone-number/{user_phone}", status_code=status.HTTP_204_NO_CONTENT)
-async def update_phone(user: user_dependency, db: db_dependency, user_phone: str):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user_model = db.query(Users).filter(Users.id == user.get("id")).first()
-    user_model.phone_number = user_phone
-    db.commit()
