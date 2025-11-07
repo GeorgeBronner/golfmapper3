@@ -55,13 +55,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         user_role: str = payload.get("role")
         if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-        return {"username": username, "id": user_id, "user_role": user_role}
+        return {"username": username, "id": user_id, "role": user_role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
 async def get_test_user():
 
-    return {"username": "george", "id": 1, "user_role": "admin"}
+    return {"username": "george", "id": 1, "role": "admin"}
 
 
 class CreateUserRequest(BaseModel):
