@@ -17,7 +17,7 @@ dependencies = [
     "SQLAlchemy>=1.4.0",
     "starlette",
     "requests",
-    "bcrypt",
+    "bcrypt<5.0.0",
     "passlib",
     "folium",
     "dotenv",
