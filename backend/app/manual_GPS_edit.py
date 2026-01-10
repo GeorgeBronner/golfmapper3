@@ -18,7 +18,9 @@ DB_PORT = os.getenv('DB_PORT', '5432')
 # engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # old sqlite connection
-engine_sqlite = create_engine('sqlite:////Users/george/Code/keys/golfMapperDB/garmin.db', echo=True)
+# engine_sqlite = create_engine('sqlite:////Users/george/Code/keys/golfMapperDB/garmin.db', echo=True)
+engine_sqlite = create_engine('sqlite:///E:\\Documents\\Coding\\myProjects\\golfmapper3\\backend\\app\\garmin.db', echo=True)
+
 Base = declarative_base()
 
 class courses(Base):

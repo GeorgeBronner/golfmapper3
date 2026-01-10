@@ -176,6 +176,7 @@ frontend/dist/
 .venv/
 
 garmin.db
+dbs/golf_courses.db
 
 # Exclude Python virtual environment
 **/.venv/
