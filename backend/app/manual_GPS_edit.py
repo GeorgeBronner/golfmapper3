@@ -18,19 +18,34 @@ DB_PORT = os.getenv('DB_PORT', '5432')
 # engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # old sqlite connection
-engine_sqlite = create_engine('sqlite:////Users/george/Code/keys/golfMapperDB/garmin.db', echo=True)
+# engine_sqlite = create_engine('sqlite:////Users/george/Code/keys/golfMapperDB/garmin.db', echo=True)
+engine_sqlite = create_engine('sqlite:///E:\\Documents\\Coding\\myProjects\\golfmapper3\\backend\\app\\golf_mapper.db', echo=True)
+
 Base = declarative_base()
 
 class courses(Base):
     __tablename__ = 'courses'
     id = Column(Integer, primary_key=True)
-    g_course = Column(String(250))
-    g_address = Column(String(250))
-    g_city = Column(String(100))
-    g_state = Column(String(40))
-    g_country = Column(String(40))
-    g_latitude = Column(Float)
-    g_longitude = Column(Float)
+    club_name = Column(String)
+    course_name = Column(String)
+    created_at = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    city = Column(String)
+    state = Column(String)
+    country = Column(String)
+    latitude = Column(Float)
+    longitude = Column(Float)
+
+    @property
+    def display_name(self):
+        """Returns formatted course name"""
+        if self.club_name and self.course_name and self.club_name != self.course_name:
+            return f"{self.club_name} - {self.course_name}"
+        elif self.course_name:
+            return self.course_name
+        elif self.club_name:
+            return self.club_name
+        return ""
 
 # Session = sessionmaker(bind=engine)
 # session = Session()
@@ -41,20 +56,20 @@ result = int(input(f"Which course id to you want to edit? "))
 i = session_sqlite.get(courses, result)
 # j = session.get(courses, result)
 
-print(f'Course: {i.g_course}, city: {i.g_city}, country: {i.g_country}, id: {i.id}')
+print(f'Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}')
 result = input("Is this the course you want to edit? ")
 if result == 'y':
     new_lat = float(input('Enter Latitude: '))
     new_long = float(input('Enter Longitude: '))
-    confirm = input(f'Do you want to update Course: {i.g_course}, city: {i.g_city}, country: {i.g_country}, id: {i.id}, with lat: {new_lat}, long={new_long} ? ')
+    confirm = input(f'Do you want to update Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}, with lat: {new_lat}, long={new_long} ? ')
     if confirm == 'y':
-        i.g_latitude = new_lat
-        i.g_longitude = new_long
+        i.latitude = new_lat
+        i.longitude = new_long
         session_sqlite.commit()
 
         #update postgres database
-        # j.g_latitude = new_lat
-        # j.g_longitude = new_long
+        # j.latitude = new_lat
+        # j.longitude = new_long
         # session.commit()
 else:
     pass

@@ -7,10 +7,10 @@ function GarminCourseRow(props) {
 
     return (
         <tr className="course-row">
-            <td>{props.g_course}</td>
-            <td>{props.g_city}</td>
-            <td>{props.g_state}</td>
-            <td>{props.g_country}</td>
+            <td>{props.display_name}</td>
+            <td>{props.city}</td>
+            <td>{props.state}</td>
+            <td>{props.country}</td>
             <td>
                 <button onClick={handleClick}>DELETE</button>
             </td>

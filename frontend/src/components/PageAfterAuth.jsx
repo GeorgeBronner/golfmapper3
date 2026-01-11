@@ -34,7 +34,7 @@ export default class PageAfterAuth extends React.Component {
                 {
                     this.state.courses
                         .map(course =>
-                            <CourseCard g_course={course.g_course} g_city={course.g_city} onDelete={() => this.deleteUserCourse(course.id)}/>
+                            <CourseCard display_name={course.display_name} city={course.city} onDelete={() => this.deleteUserCourse(course.id)}/>
                         )
                 }
             </ul>

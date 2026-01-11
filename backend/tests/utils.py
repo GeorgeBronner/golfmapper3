@@ -40,13 +40,14 @@ def test_user_courses():
     user_course = UserCourses(course_id=200, user_id=1, year=2021)
     garmin_course = Courses(
         id=200,
-        g_course="RTJ Golf Trail at Magnolia Grove - Falls",
-        g_address="  7001 MAGNOLIA GROVE PKY",
-        g_country="US",
-        g_longitude=-88.20578,
-        g_city="Mobile",
-        g_state="Alabama",
-        g_latitude=30.740501,
+        club_name="RTJ Golf Trail at Magnolia Grove",
+        course_name="Falls",
+        address="7001 MAGNOLIA GROVE PKY",
+        city="Mobile",
+        state="Alabama",
+        country="US",
+        latitude=30.740501,
+        longitude=-88.20578,
     )
     db = TestingSessionLocal()
     db.add(user_course)
@@ -54,7 +55,7 @@ def test_user_courses():
     db.commit()
     yield user_course
     with engine.connect() as con:
-        con.execute(text("DELETE FROM new_user_courses;"))
+        con.execute(text("DELETE FROM user_courses;"))
         con.execute(text("DELETE FROM courses;"))
         con.commit()
 
