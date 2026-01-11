@@ -7,8 +7,8 @@ function CourseCard(props) {
 
     return (
         <tr className="course-row">
-            <td>{props.g_course}</td>
-            <td>{props.g_city}</td>
+            <td>{props.display_name}</td>
+            <td>{props.city}</td>
             <td>{props.year}</td>
             <td>
                 <button onClick={handleClick}>DELETE</button>

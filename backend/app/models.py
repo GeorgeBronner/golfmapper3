@@ -8,16 +8,29 @@ class Courses(Base):
     __tablename__ = "courses"
 
     id = Column(Integer, primary_key=True)
-    g_course = Column(String(250))
-    g_address = Column(String(250))
-    g_city = Column(String(100))
-    g_state = Column(String(40))
-    g_country = Column(String(40))
-    g_latitude = Column(Float)
-    g_longitude = Column(Float)
+    club_name = Column(String)
+    course_name = Column(String)
+    created_at = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    city = Column(String)
+    state = Column(String)
+    country = Column(String)
+    latitude = Column(Float)
+    longitude = Column(Float)
+
+    @property
+    def display_name(self):
+        """Returns formatted course name: 'Club - Course' if different, else just course name"""
+        if self.club_name and self.course_name and self.club_name != self.course_name:
+            return f"{self.club_name} - {self.course_name}"
+        elif self.course_name:
+            return self.course_name
+        elif self.club_name:
+            return self.club_name
+        return ""
 
     def __repr__(self):
-        return f'<course: {self.g_course}, {self.g_state}>'
+        return f'<course: {self.display_name}, {self.state}>'
 
 class Users(Base):
 
@@ -41,7 +54,7 @@ class UserCourses(Base):
     def __repr__(self):
         return f"Course ({self.course_id}, {self.user_id}, {self.year})"
 
-    __tablename__ = "new_user_courses"
+    __tablename__ = "user_courses"
 
     id = Column(Integer, primary_key=True, index=True)
     course_id = Column(Integer, ForeignKey("courses.id"))

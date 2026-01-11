@@ -1,11 +1,13 @@
 import os
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from app/.env
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # Fetch environment variables
 DB_USER = os.getenv('DB_USER', 'default_user')
@@ -24,7 +26,9 @@ if USE_SQLITE_DB.lower() == 'true':
     if SQLITE_DB_URL:
         SQLALCHEMY_DATABASE_URL = f'sqlite:///{SQLITE_DB_URL}'
     else:
-        SQLALCHEMY_DATABASE_URL = "sqlite:////garmin.db"
+        # Use absolute path to golf_mapper.db in the app directory
+        db_path = Path(__file__).parent / "golf_mapper.db"
+        SQLALCHEMY_DATABASE_URL = f"sqlite:///{db_path}"
     engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     SQLALCHEMY_DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/golfmapper2?options=-csearch_path%3Dmain'

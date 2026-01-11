@@ -53,8 +53,8 @@ const CourseSearch = () => {
             <div>
                 {Array.isArray(courses) && courses.map(course => (
                     <div key={course.id}>
-                        <h3>{course.g_course}</h3>
-                        <p>{course.g_city}</p>
+                        <h3>{course.display_name}</h3>
+                        <p>{course.city}</p>
                         <p>{course.id}</p>
                     </div>
                 ))}

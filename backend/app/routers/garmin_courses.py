@@ -21,11 +21,6 @@ geopy.geocoders.options.default_ssl_context = ctx
 router = APIRouter()
 
 
-@router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
 def get_db():
     db = SessionLocal()
     try:
@@ -39,33 +34,39 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 geolocator = geopy.geocoders.Nominatim(user_agent="golfmapper2")
 
 
-@router.get("/readall", status_code=status.HTTP_200_OK)
+from pydantic import BaseModel
+
+
+class CourseBase(BaseModel):
+    id: int
+    display_name: str
+    club_name: str | None
+    course_name: str | None
+    address: str | None
+    city: str | None
+    state: str | None
+    country: str | None
+    latitude: float | None
+    longitude: float | None
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
 async def readall(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return db.query(Courses).all()
 
-@router.get("/readall_alabama", status_code=status.HTTP_200_OK)
+
+@router.get("/readall_alabama", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
 async def readall_alabama(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     # return db.query(Courses).all()
-    return db.query(Courses).filter(Courses.g_state == 'Alabama').all()
+    return db.query(Courses).filter(Courses.state == "Alabama").all()
 
-from pydantic import BaseModel
-
-class CourseBase(BaseModel):
-    id: int
-    g_course: str
-    g_address: str
-    g_city: str
-    g_state: str
-    g_country: str
-    g_latitude: float
-    g_longitude: float
-
-    class Config:
-        from_attributes = True
 
 @router.get("/readall_page", status_code=status.HTTP_200_OK, response_model=Page[CourseBase])
 async def readall_page(user: user_dependency, db: db_dependency):
@@ -74,8 +75,13 @@ async def readall_page(user: user_dependency, db: db_dependency):
     return paginate(db, select(Courses))
 
 
-@router.get("/readall_page_manual", status_code=status.HTTP_200_OK)
-async def readall_page_manual(user: user_dependency, db: db_dependency, page: int = Query(1, ge=1), limit: int = Query(20, ge=1)):
+@router.get("/readall_page_manual", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
+async def readall_page_manual(
+    user: user_dependency,
+    db: db_dependency,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1),
+):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -85,7 +91,7 @@ async def readall_page_manual(user: user_dependency, db: db_dependency, page: in
     return courses
 
 
-@router.get("/course/{course_id}", status_code=status.HTTP_200_OK)
+@router.get("/course/{course_id}", status_code=status.HTTP_200_OK, response_model=CourseBase)
 async def read_todo(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -96,23 +102,26 @@ async def read_todo(user: user_dependency, db: db_dependency, course_id: int = P
 
 
 @router.get("/closest_courses/")
-async def get_closest_courses(lat: float = Query(...),
-                              long: float = Query(...),
-                              limit: int = Query(5, ge=1),
-                              db: Session = Depends(get_db)):
-
-    closest_courses = db.query(Courses).order_by(
-        func.abs(Courses.g_latitude - lat) + func.abs(Courses.g_longitude - long)
-    ).limit(limit).all()
+async def get_closest_courses(
+    lat: float = Query(...),
+    long: float = Query(...),
+    limit: int = Query(5, ge=1),
+    db: Session = Depends(get_db),
+):
+    closest_courses = (
+        db.query(Courses)
+        .order_by(func.abs(Courses.latitude - lat) + func.abs(Courses.longitude - long))
+        .limit(limit)
+        .all()
+    )
 
     # Calculate distances for the fetched courses
     courses_with_distances = []
     for course in closest_courses:
-        distance = geodesic((lat, long), (course.g_latitude, course.g_longitude)).kilometers
+        distance = geodesic((lat, long), (course.latitude, course.longitude)).kilometers
         courses_with_distances.append((course, distance))
 
     return courses_with_distances
-
 
 
 @router.get("/city_coordinates/")
@@ -133,17 +142,22 @@ async def get_city_coordinates(city: str = Query(...), state: str = None, countr
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def courses_from_location(location: geopy.location.Location, db: Session, courses_returned: int = 5):
+def courses_from_location(
+    location: geopy.location.Location, db: Session, courses_returned: int = 5
+):
     lat, long = location.latitude, location.longitude
-    closest_courses = db.query(Courses).order_by(
-        func.abs(Courses.g_latitude - lat) + func.abs(Courses.g_longitude - long)
-    ).limit(courses_returned).all()
+    closest_courses = (
+        db.query(Courses)
+        .order_by(func.abs(Courses.latitude - lat) + func.abs(Courses.longitude - long))
+        .limit(courses_returned)
+        .all()
+    )
 
     # Calculate distances for the fetched courses
     courses_with_distances = []
     for course in closest_courses:
-        distance = geodesic((lat, long), (course.g_latitude, course.g_longitude)).kilometers
-        courses_with_distances.append((course, {'distance': distance}))
+        distance = geodesic((lat, long), (course.latitude, course.longitude)).kilometers
+        courses_with_distances.append((course, {"distance": distance}))
     return courses_with_distances
 
 
@@ -161,10 +175,11 @@ async def get_zipcode_coordinates(zipcode: str = Query(...), country: Optional[s
 
 @router.get("/zipcode_closest_courses/")
 async def zipcode_closest_courses(
-        zipcode: str = Query(...),
-        country: Optional[str] = "US",
-        courses_returned: Optional[int] = 5,
-        db: Session = Depends(get_db)):
+    zipcode: str = Query(...),
+    country: Optional[str] = "US",
+    courses_returned: Optional[int] = 5,
+    db: Session = Depends(get_db),
+):
     try:
         location = geolocator.geocode(zipcode, country_codes=country)
         if location:
@@ -177,11 +192,11 @@ async def zipcode_closest_courses(
 
 @router.get("/city_closest_courses/")
 async def city_closest_courses(
-        city: str = Query(...),
-        state: Optional[str] = None,
-        country: Optional[str] = None,
-        courses_returned: Optional[int] = 5,
-        db: Session = Depends(get_db)
+    city: str = Query(...),
+    state: Optional[str] = None,
+    country: Optional[str] = None,
+    courses_returned: Optional[int] = 5,
+    db: Session = Depends(get_db),
 ):
     location_str = city
     if state:

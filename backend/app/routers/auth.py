@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +11,11 @@ from app.models import Users
 from app.database import SessionLocal
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
+from dotenv import load_dotenv
+
+# Load environment variables from app/.env
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 SECRET_KEY=os.getenv("SECRET_KEY_AUTH", "")
@@ -33,10 +39,18 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 def authenticate_user(username: str, password: str, db: Session) -> Users | bool:
     user = db.query(Users).filter(Users.username == username).first()
+    print(f"[DEBUG] authenticate_user: username={username}")
+    print(f"[DEBUG] User found: {user is not None}")
     if user is None:
+        print(f"[DEBUG] User not found in database")
         return False
-    if not bcrypt_context.verify(password, user.hashed_password):
+    print(f"[DEBUG] User: {user.username}, checking password...")
+    password_valid = bcrypt_context.verify(password, user.hashed_password)
+    print(f"[DEBUG] Password valid: {password_valid}")
+    if not password_valid:
+        print(f"[DEBUG] Password verification failed")
         return False
+    print(f"[DEBUG] Authentication successful")
     return user
 
 
@@ -107,6 +121,6 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
-        return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = create_access_token(user.username, user.id, user.role, timedelta(minutes=90))
     return {"access_token": token, "token_type": "bearer"}

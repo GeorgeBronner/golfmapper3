@@ -73,11 +73,11 @@ export default class CourseList extends React.Component {
                 <table className="course-table">
                     <thead>
                         <tr>
-                            <th onClick={() => this.sortData('g_course')} className="sortable">
-                                Course Name {sortConfig.key === 'g_course' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            <th onClick={() => this.sortData('display_name')} className="sortable">
+                                Course Name {sortConfig.key === 'display_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                             </th>
-                            <th onClick={() => this.sortData('g_city')} className="sortable">
-                                City {sortConfig.key === 'g_city' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            <th onClick={() => this.sortData('city')} className="sortable">
+                                City {sortConfig.key === 'city' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                             </th>
                             <th onClick={() => this.sortData('year')} className="sortable" data-sort={sortConfig.key === 'year' ? sortConfig.direction : null}>
                                 Year {sortConfig.key === 'year' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
@@ -87,12 +87,12 @@ export default class CourseList extends React.Component {
                     </thead>
                     <tbody>
                         {sortedCourses.map(course =>
-                            <CourseCard 
+                            <CourseCard
                                 key={course.id}
                                 id={course.id}
-                                g_course={course.g_course} 
-                                g_city={course.g_city} 
-                                year={course.year} 
+                                display_name={course.display_name}
+                                city={course.city}
+                                year={course.year}
                                 onDelete={() => this.deleteUserCourse(course.id)}
                             />
                         )}

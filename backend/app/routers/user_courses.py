@@ -39,6 +39,24 @@ class UserCourseRequest(BaseModel):
         return v
 
 
+class CourseResponse(BaseModel):
+    id: int
+    display_name: str
+    club_name: str
+    course_name: str
+    address: str | None
+    city: str
+    state: str
+    country: str
+    latitude: float
+    longitude: float
+    created_at: str | None = None
+    year: int | None = None  # Added by the endpoint dynamically
+
+    class Config:
+        from_attributes = True
+
+
 @router.get("/readall_ids", status_code=status.HTTP_200_OK)
 async def readall_ids(user: user_dependency, db: db_dependency):
     if user is None:
@@ -46,7 +64,7 @@ async def readall_ids(user: user_dependency, db: db_dependency):
     return db.query(UserCourses).filter(UserCourses.user_id == user.get("id")).all()
 
 
-@router.get("/readall_ids_w_year", status_code=status.HTTP_200_OK)
+@router.get("/readall_ids_w_year", status_code=status.HTTP_200_OK, response_model=list[CourseResponse])
 async def readall_ids_w_year(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -77,7 +95,7 @@ async def readall_ids_w_year(user: user_dependency, db: db_dependency):
 
     return courses
 
-@router.get("/readall", status_code=status.HTTP_200_OK)
+@router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseResponse])
 async def readall(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")

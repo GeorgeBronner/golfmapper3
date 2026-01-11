@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:local": "npx cross-env VITE_BACKEND_SERVER_IP=localhost VITE_BACKEND_PROTOCOL=http VITE_BACKEND_PORT=8005 vite build && npm run copy:dist",
+    "build:prod": "npx cross-env VITE_BACKEND_SERVER_IP=golf.bronnerapp.com VITE_BACKEND_PROTOCOL=https VITE_BACKEND_PORT=443 vite build && npm run copy:dist",
+    "copy:dist": "node -e \"require('fs').cpSync('dist', '../backend/dist', {recursive: true})\"",
     "preview": "vite preview",
     "test": "vitest"
   },
@@ -29,6 +32,7 @@
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^5.1.2",
+    "cross-env": "^10.1.0",
     "jsdom": "^27.3.0",
     "vite": "^7.3.0",
     "vitest": "^4.0.16"

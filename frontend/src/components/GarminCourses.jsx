@@ -52,13 +52,13 @@ export default class GarminCourses extends React.Component {
                     </thead>
                     <tbody>
                         {this.state.courses.slice(1).map(course =>
-                            <GarminCourseRow 
+                            <GarminCourseRow
                                 key={course.id}
                                 id={course.id}
-                                g_course={course.g_course} 
-                                g_city={course.g_city}
-                                g_state={course.g_state}
-                                g_country={course.g_country}
+                                display_name={course.display_name}
+                                city={course.city}
+                                state={course.state}
+                                country={course.country}
                                 onDelete={() => this.deleteUserCourse(course.id)}
                             />
                         )}

@@ -12,13 +12,16 @@ def test_readall_authenticated(test_user_courses):
     assert response.json() == [
         {
             "id": 200,
-            "g_course": "RTJ Golf Trail at Magnolia Grove - Falls",
-            "g_address": "  7001 MAGNOLIA GROVE PKY",
-            "g_country": "US",
-            "g_longitude": -88.20578,
-            "g_city": "Mobile",
-            "g_state": "Alabama",
-            "g_latitude": 30.740501
+            "display_name": "RTJ Golf Trail at Magnolia Grove - Falls",
+            "club_name": "RTJ Golf Trail at Magnolia Grove",
+            "course_name": "Falls",
+            "address": "7001 MAGNOLIA GROVE PKY",
+            "city": "Mobile",
+            "state": "Alabama",
+            "country": "US",
+            "latitude": 30.740501,
+            "longitude": -88.20578,
+            "created_at": None
         }
     ]
 

@@ -47,7 +47,7 @@ async def readall(user: user_dependency, db: db_dependency):
 async def readall_alabama(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return db.query(Courses).filter(Courses.g_state == 'Alabama').all()
+    return db.query(Courses).filter(Courses.state == 'Alabama').all()
 
 @router.get("/course/{course_id}", status_code=status.HTTP_200_OK)
 async def read_todo(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
@@ -65,13 +65,13 @@ async def get_closest_courses(lat: float = Query(...),
                               db: Session = Depends(get_db)):
 
     closest_courses = db.query(Courses).order_by(
-        func.abs(Courses.g_latitude - lat) + func.abs(Courses.g_longitude - long)
+        func.abs(Courses.latitude - lat) + func.abs(Courses.longitude - long)
     ).limit(limit).all()
 
     # Calculate distances for the fetched courses
     courses_with_distances = []
     for course in closest_courses:
-        distance = geodesic((lat, long), (course.g_latitude, course.g_longitude)).kilometers
+        distance = geodesic((lat, long), (course.latitude, course.longitude)).kilometers
         courses_with_distances.append((course, distance))
 
     return courses_with_distances
@@ -114,13 +114,13 @@ async def city_closest_courses(
         if location:
             lat, long = location.latitude, location.longitude
             closest_courses = db.query(Courses).order_by(
-                func.abs(Courses.g_latitude - lat) + func.abs(Courses.g_longitude - long)
+                func.abs(Courses.latitude - lat) + func.abs(Courses.longitude - long)
             ).limit(5).all()
 
 # Calculate distances for the fetched courses
             courses_with_distances = []
             for course in closest_courses:
-                distance = geodesic((lat, long), (course.g_latitude, course.g_longitude)).kilometers
+                distance = geodesic((lat, long), (course.latitude, course.longitude)).kilometers
                 courses_with_distances.append((course, distance))
 
             return courses_with_distances

@@ -17,25 +17,25 @@ function CourseSearch() {
     const columns = useMemo(
         () => [
             {
-                accessorKey: 'g_course',
+                accessorKey: 'display_name',
                 header: () => 'Course',
                 cell: info => info.getValue(),
                 footer: props => props.column.id,
             },
             {
-                accessorFn: row => row.g_city,
-                id: 'g_city',
+                accessorFn: row => row.city,
+                id: 'city',
                 cell: info => info.getValue(),
                 header: () => <span>City</span>,
                 footer: props => props.column.id,
             },
             {
-                accessorKey: 'g_state',
+                accessorKey: 'state',
                 header: () => 'State',
                 footer: props => props.column.id,
             },
             {
-                accessorKey: 'g_country',
+                accessorKey: 'country',
                 header: () => <span>Country</span>,
                 footer: props => props.column.id,
             },

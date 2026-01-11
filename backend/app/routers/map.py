@@ -52,9 +52,9 @@ async def user_map_generate(user: user_dependency, db: db_dependency):
     user_map = folium.Map(location=[40, -90], zoom_start=4, control_scale=True)
     fg = folium.FeatureGroup(name=f"FIX ME - USERNAME")
     for i in user_courses:
-        new_description = i.g_course + ' ' + str(i.id)
+        new_description = i.display_name + ' ' + str(i.id)
         fg.add_child(
-            folium.CircleMarker(location=[i.g_latitude, i.g_longitude], popup=new_description, color='red', opacity=0.7,
+            folium.CircleMarker(location=[i.latitude, i.longitude], popup=new_description, color='red', opacity=0.7,
                                 radius=7))
     user_map.add_child(fg)
 
