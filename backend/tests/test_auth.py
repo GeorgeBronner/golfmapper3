@@ -1,5 +1,5 @@
 from .utils import *
-from routers.auth import get_db, authenticate_user, create_access_token, SECRET_KEY, ALGORITHM, get_current_user
+from app.routers.auth import get_db, authenticate_user, create_access_token, SECRET_KEY, ALGORITHM, get_current_user
 from fastapi import status
 from jose import jwt
 from datetime import timedelta
@@ -28,7 +28,6 @@ def test_create_access_token(test_user):
     access_token = create_access_token(test_user.username, test_user.id, test_user.role, timedelta(minutes=15))
 
     payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
-    print(payload)
     assert payload.get("sub") == test_user.username
     assert payload.get("id") == test_user.id
     assert payload.get("role") == test_user.role

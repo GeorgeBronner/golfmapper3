@@ -114,7 +114,7 @@ else:
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_frontend(request: Request, full_path: str):
     # Check if the path is an API route
-    api_prefixes = ["/auth/", "/garmin_courses/", "/admin/", "/users/", "/user_courses/", "/map/"]
+    api_prefixes = ["/auth/", "/garmin_courses/", "/admin/", "/user/", "/user_courses/", "/map/"]
     request_path = request.url.path
 
     if any(request_path.startswith(prefix) for prefix in api_prefixes):

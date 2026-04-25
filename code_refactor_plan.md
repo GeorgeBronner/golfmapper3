@@ -385,7 +385,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     SECRET_KEY_AUTH: str
     USE_SQLITE_DB: bool = True
-    SQLITE_DB_URL: str = "./garmin.db"
+    SQLITE_DB_URL: str = ""
     SENTRY_DSN: str = ""
     STATIC_FILES_DIR: str = "./dist"
     MAP_FILES_DIR: str = "./static/user_maps"
@@ -691,12 +691,12 @@ The catch-all route checks `api_prefixes` to decide whether to serve index.html,
 | N-3  | Backend  | N+1 query in readall_ids_w_year                | Needed      |
 | N-4  | Backend  | No SQLAlchemy relationships on models          | Needed      |
 | N-5  | Backend  | No unique constraint on UserCourses            | Needed      |
-| N-6  | Backend  | Wrong names in admin.py (todo → course)        | Needed      |
+| N-6  | Backend  | ~~Wrong names in admin.py (todo → course)~~    | ✅ Done     |
 | N-7  | Backend  | garmin_courses router has no prefix            | Needed      |
 | N-8  | Backend  | No database migrations (Alembic)               | Needed      |
 | N-9  | Backend  | created_at is String not DateTime              | Needed      |
 | N-10 | Frontend | Class components in functional codebase        | Needed      |
-| N-11 | Frontend | No user feedback on form submission            | Needed      |
+| N-11 | Frontend | No user feedback on form submission (LoginPage ✅, CourseForm pending) | Needed |
 | N-12 | Frontend | Delete course has no confirmation              | Needed      |
 | N-13 | Frontend | Map page silently fails if not yet generated   | Needed      |
 | N-14 | Frontend | CourseSearch shows debug JSON + button         | Needed      |
@@ -723,13 +723,20 @@ The catch-all route checks `api_prefixes` to decide whether to serve index.html,
 | NH-7 | Backend  | Pydantic response models on all endpoints      | Nice to Have|
 | NH-8 | Frontend | Empty state on Map page                        | Nice to Have|
 | NH-9 | Both     | Dead code file deletion                        | Nice to Have|
-| NH-10| Backend  | Fix hardcoded "FIX ME - USERNAME" in map.py    | Nice to Have|
+| NH-10| Backend  | ~~Fix hardcoded "FIX ME - USERNAME" in map.py~~| ✅ Done     |
 | NH-11| Both     | year validator returns None silently           | Nice to Have|
 | NH-12| Frontend | GarminCourses needs search/filter              | Nice to Have|
-| NH-13| Both     | Add test coverage                              | Nice to Have|
-| NH-14| Backend  | Fragile SPA catch-all route                    | Nice to Have|
+| NH-13| Both     | Add test coverage (backend ✅ 20/20, frontend blocked by jsdom/vitest ESM conflict) | Nice to Have |
+| NH-14| Backend  | Fragile SPA catch-all route (api_prefixes typo /users/→/user/ ✅ fixed) | Nice to Have |
 
 **Must Do**: ~~8 items~~ ✅ 8/8 complete (2026-04-25)  
-**Needed**: 15 items — estimated 1–2 days  
+**Needed**: 13 remaining (N-6 ✅, N-11 partial) — estimated 1–2 days  
 **To Review**: 13 items — estimated 2–4 days  
-**Nice to Have**: 14 items — estimated 1–2 weeks  
+**Nice to Have**: 12 remaining (NH-10 ✅, NH-13 partial, NH-14 partial) — estimated 1–2 weeks  
+
+### Additional fixes made during test overhaul (2026-04-25)
+- `garmin_courses.py`: Fixed broad `except Exception` swallowing `HTTPException(404)` and re-raising as 500 — in all four geocoding endpoints
+- `main.py`: Fixed `api_prefixes` typo (`/users/` → `/user/`) that caused `/user/` API routes to be served as frontend HTML
+- `docker-compose.yml`: Synced to match production server's working config (`golf_mapper.db` at correct bind-mount path)
+- Backend test suite: 20/20 passing — rewrote test infrastructure (in-memory SQLite, `app.xxx` imports, mocked geocoder, real admin tests)
+- Frontend tests: vitest/jsdom v27 ESM conflict unresolved — deferred to Nice to Have

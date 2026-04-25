@@ -138,6 +138,8 @@ async def get_city_coordinates(city: str = Query(...), state: str = None, countr
             return {"latitude": location.latitude, "longitude": location.longitude}
         else:
             raise HTTPException(status_code=404, detail="Location not found")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -169,6 +171,8 @@ async def get_zipcode_coordinates(zipcode: str = Query(...), country: Optional[s
             return {"latitude": location.latitude, "longitude": location.longitude}
         else:
             raise HTTPException(status_code=404, detail="Location not found")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -186,6 +190,8 @@ async def zipcode_closest_courses(
             return courses_from_location(location, db, courses_returned)
         else:
             raise HTTPException(status_code=404, detail="Location not found")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -210,5 +216,7 @@ async def city_closest_courses(
             return courses_from_location(location, db, courses_returned)
         else:
             raise HTTPException(status_code=404, detail="Location not found")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
