@@ -18,7 +18,9 @@ env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-SECRET_KEY=os.getenv("SECRET_KEY_AUTH", "")
+SECRET_KEY = os.getenv("SECRET_KEY_AUTH", "")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY_AUTH environment variable is not set")
 
 ALGORITHM = "HS256"
 

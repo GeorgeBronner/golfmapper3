@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 import { generateUserMap } from '../utils/mapUtils';
 
 function CourseForm() {
@@ -21,10 +20,10 @@ function CourseForm() {
         event.preventDefault();
         setSuccess('');
         setError('');
-        axios.post(`${API_BASE_URL}/user_courses/add_course`, {
+        api.post('/user_courses/add_course', {
             garmin_id: courseId,
             year: year,
-        }, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        })
             .then(() => {
                 setSuccess('Course added successfully.');
                 setCourse('');

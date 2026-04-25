@@ -1,7 +1,6 @@
 import React from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import CourseCard from "./CourseCard";
-import { API_BASE_URL } from '../config';
 
 export default class CourseList extends React.Component {
     state = {
@@ -17,10 +16,7 @@ export default class CourseList extends React.Component {
     }
 
     fetchCourses = () => {
-        axios.get(`${API_BASE_URL}/user_courses/readall_ids_w_year`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }})
+        api.get('/user_courses/readall_ids_w_year')
             .then(res => {
                 const courses = res.data;
                 this.setState({ courses });
@@ -28,12 +24,8 @@ export default class CourseList extends React.Component {
     }
 
     deleteUserCourse = (id) => {
-        axios.delete(`${API_BASE_URL}/user_courses/delete/${id}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }})
-            .then(response => {
-                console.log(response);
+        api.delete(`/user_courses/delete/${id}`)
+            .then(() => {
                 this.fetchCourses();
             })
             .catch(error => {

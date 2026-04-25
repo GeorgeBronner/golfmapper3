@@ -1,16 +1,9 @@
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 
 export const generateUserMap = () => {
-    return axios.get(`${API_BASE_URL}/map/user_map_generate`, {
-        headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-    })
-        .then(response => {
-            console.log(response);
-        })
+    return api.get('/map/user_map_generate')
+        .then(response => response.data)
         .catch(error => {
             console.error(error);
         });
-}; 
+};

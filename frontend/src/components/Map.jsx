@@ -1,35 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
+import { useAuth } from './AuthProvider';
 
 function Map() {
     const iframeRef = useRef(null);
-    const token = localStorage.getItem('token');
+    const { token } = useAuth();
     const [status, setStatus] = useState('loading');
 
     useEffect(() => {
-        const authHeaders = { 'Authorization': `Bearer ${token}` };
-
         const loadMap = () => {
-            fetch(`${API_BASE_URL}/map/usermap?rand=` + new Date(), { headers: authHeaders })
-                .then(response => {
-                    if (response.status === 404) {
+            api.get('/map/usermap?rand=' + new Date())
+                .catch(error => {
+                    if (error.response?.status === 404) {
                         setStatus('generating');
-                        return fetch(`${API_BASE_URL}/map/user_map_generate`, {
-                            method: 'GET',
-                            headers: authHeaders,
-                        }).then(genResponse => {
-                            if (!genResponse.ok) throw new Error('Generation failed');
-                            return fetch(`${API_BASE_URL}/map/usermap`, { headers: authHeaders });
-                        });
+                        return api.get('/map/user_map_generate')
+                            .then(() => api.get('/map/usermap'));
                     }
-                    if (!response.ok) throw new Error('Failed to load map');
-                    return response;
+                    throw error;
                 })
-                .then(response => response.text())
-                .then(html => {
+                .then(response => {
                     const doc = iframeRef.current.contentWindow.document;
                     doc.open();
-                    doc.write(html);
+                    doc.write(response.data);
                     doc.close();
                     setStatus('loaded');
                 })

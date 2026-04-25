@@ -1,25 +1,19 @@
 import os
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / '.env')
 
-# Fetch environment variables
-DB_USER = os.getenv('DB_USER', 'default_user')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'default_password')
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
+SQLITE_DB_URL = os.getenv('SQLITE_DB_URL')
+if SQLITE_DB_URL:
+    db_url = f'sqlite:///{SQLITE_DB_URL}'
+else:
+    db_url = f"sqlite:///{Path(__file__).parent / 'golf_mapper.db'}"
 
-# use with postgres
-# SQLALCHEMY_DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/golfmapper2?options=-csearch_path%3Dmain'
-# engine = create_engine(SQLALCHEMY_DATABASE_URL)
-
-# old sqlite connection
-# engine_sqlite = create_engine('sqlite:////Users/george/Code/keys/golfMapperDB/garmin.db', echo=True)
-engine_sqlite = create_engine('sqlite:///E:\\Documents\\Coding\\myProjects\\golfmapper3\\backend\\app\\golf_mapper.db', echo=True)
+engine_sqlite = create_engine(db_url, echo=True)
 
 Base = declarative_base()
 

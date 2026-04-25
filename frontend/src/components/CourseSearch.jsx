@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { API_BASE_URL } from '../config';
+import api from '../services/api';
 import {
     flexRender,
     getCoreRowModel,
@@ -64,11 +63,7 @@ function CourseSearch() {
 
     const refreshData = useCallback(async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/readall`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-            });
+            const response = await api.get('/readall');
             setCourseData(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
+import { useAuth } from './AuthProvider';
 
 function LoginPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { setToken } = useAuth();
 
     const handleSubmit = (event) => {
         event.preventDefault();
@@ -21,7 +23,7 @@ function LoginPage() {
             }
         })
             .then(response => {
-                localStorage.setItem('token', response.data.access_token);
+                setToken(response.data.access_token);
                 setUsername('');
                 setPassword('');
                 navigate('/course_list');

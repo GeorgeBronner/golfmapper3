@@ -5,7 +5,6 @@ import CourseForm from "./components/CourseForm";
 import Map from "./components/Map";
 import LoginPage from "./components/LoginPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
-import PageAfterAuth from "./components/PageAfterAuth";
 import Footer from "./components/Footer";
 import NewUser from "./components/NewUser";
 import LoginHeader from "./components/LoginHeader";
@@ -52,10 +51,6 @@ const router = createBrowserRouter(
                 {
                     path: '/garmin_course_list',
                     element: <GarminCourses />
-                },
-                {
-                    path: '/PageAfterAuth',
-                    element: <PageAfterAuth />
                 },
                 {
                     path: '/map',
