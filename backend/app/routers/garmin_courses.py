@@ -15,7 +15,7 @@ from typing import Optional
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 
-ctx = ssl._create_unverified_context(cafile=certifi.where())
+ctx = ssl.create_default_context(cafile=certifi.where())
 geopy.geocoders.options.default_ssl_context = ctx
 
 router = APIRouter()
@@ -138,8 +138,10 @@ async def get_city_coordinates(city: str = Query(...), state: str = None, countr
             return {"latitude": location.latitude, "longitude": location.longitude}
         else:
             raise HTTPException(status_code=404, detail="Location not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")
 
 
 def courses_from_location(
@@ -169,8 +171,10 @@ async def get_zipcode_coordinates(zipcode: str = Query(...), country: Optional[s
             return {"latitude": location.latitude, "longitude": location.longitude}
         else:
             raise HTTPException(status_code=404, detail="Location not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")
 
 
 @router.get("/zipcode_closest_courses/")
@@ -186,8 +190,10 @@ async def zipcode_closest_courses(
             return courses_from_location(location, db, courses_returned)
         else:
             raise HTTPException(status_code=404, detail="Location not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")
 
 
 @router.get("/city_closest_courses/")
@@ -210,5 +216,7 @@ async def city_closest_courses(
             return courses_from_location(location, db, courses_returned)
         else:
             raise HTTPException(status_code=404, detail="Location not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")

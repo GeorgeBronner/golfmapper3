@@ -36,16 +36,13 @@ async def readall(user: user_dependency, db: db_dependency):
 
 
 @router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
+async def delete_course(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
     if user is None or user.get("role") != "admin":
         raise HTTPException(status_code=401, detail="Unauthorized")
-    todo_model = db.query(Courses).filter(Courses.id == course_id).first()
-    if todo_model is None:
-        raise HTTPException(status_code=404, detail="Todo not found")
-    db.delete(todo_model)
+    course_model = db.query(Courses).filter(Courses.id == course_id).first()
+    if course_model is None:
+        raise HTTPException(status_code=404, detail="Course not found")
+    db.delete(course_model)
     db.commit()
 
 
-@router.get("/sentry-debug")
-async def trigger_error():
-    division_by_zero = 1 / 0

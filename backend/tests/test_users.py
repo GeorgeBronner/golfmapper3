@@ -1,4 +1,4 @@
-from routers.users import get_db, get_current_user
+from app.routers.users import get_db, get_current_user
 from fastapi import status
 from .utils import *
 
@@ -16,7 +16,7 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 
 
 def test_return_user(test_user):
-    response = client.get("/user")
+    response = client.get("/user/")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["username"] == "georgetest"
     assert response.json()["email"] == "georgetest@mail.com"
@@ -32,7 +32,7 @@ def test_password_change_success(test_user):
     assert response.status_code == status.HTTP_204_NO_CONTENT
     db = TestingSessionLocal()
     user = db.query(Users).filter(Users.username == "georgetest").first()
-    assert bcrypt_context.verify("newpassword", user.hashed_password)
+    assert bcrypt.checkpw(b"newpassword", user.hashed_password.encode())
 
 
 def test_password_change_invalid_current_password(test_user):

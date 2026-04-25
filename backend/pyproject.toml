@@ -17,8 +17,7 @@ dependencies = [
     "SQLAlchemy>=1.4.0",
     "starlette",
     "requests",
-    "bcrypt<5.0.0",
-    "passlib",
+    "bcrypt",
     "folium",
     "pandas>=2.0.0,<2.3.0",
     "dotenv",
@@ -36,6 +35,10 @@ dev = [
     "pytest-asyncio",
     "ruff>=0.2.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

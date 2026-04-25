@@ -3,14 +3,18 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 import pytest
-from main import app
-from database import Base
-from models import UserCourses, Users, Courses
-from routers.auth import bcrypt_context
+from app.main import app
+from app.database import Base
+from app.models import UserCourses, Users, Courses
+import bcrypt
 
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./testdb.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool)
+SQLALCHEMY_DATABASE_URL = "sqlite://"
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
@@ -25,19 +29,14 @@ def override_get_db():
 
 
 def override_get_current_user():
-    return {"username": "george", "id": 1, "role": "admin"}
+    return {"username": "georgetest", "id": 1, "role": "admin"}
 
 
 client = TestClient(app)
 
-# id = Column(Integer, primary_key=True, index=True)
-# course_id = Column(Integer, ForeignKey("courses.id"))
-# user_id = Column(Integer, ForeignKey("users.id"))
-
 
 @pytest.fixture
 def test_user_courses():
-    user_course = UserCourses(course_id=200, user_id=1, year=2021)
     garmin_course = Courses(
         id=200,
         club_name="RTJ Golf Trail at Magnolia Grove",
@@ -49,9 +48,10 @@ def test_user_courses():
         latitude=30.740501,
         longitude=-88.20578,
     )
+    user_course = UserCourses(id=1, course_id=200, user_id=1, year=2021)
     db = TestingSessionLocal()
-    db.add(user_course)
     db.add(garmin_course)
+    db.add(user_course)
     db.commit()
     yield user_course
     with engine.connect() as con:
@@ -59,28 +59,19 @@ def test_user_courses():
         con.execute(text("DELETE FROM courses;"))
         con.commit()
 
-# id = Column(Integer, primary_key=True, index=True)
-# email = Column(String, unique=True)
-# username = Column(String, unique=True)
-# first_name = Column(String)
-# last_name = Column(String)
-# hashed_password = Column(String)
-# is_active = Column(Boolean, default=True)
-# role = Column(String)
-
 
 @pytest.fixture
 def test_user():
     user = Users(
+        id=1,
         email="georgetest@mail.com",
         username="georgetest",
         first_name="firsttest",
         last_name="lasttest",
-        hashed_password=bcrypt_context.hash("password"),
+        hashed_password=bcrypt.hashpw(b"password", bcrypt.gensalt()).decode(),
         is_active=True,
         role="admin",
     )
-
     db = TestingSessionLocal()
     db.add(user)
     db.commit()

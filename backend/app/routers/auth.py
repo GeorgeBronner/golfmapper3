@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
+import bcrypt
 from starlette import status
 from app.models import Users
 from app.database import SessionLocal
@@ -22,7 +22,6 @@ SECRET_KEY=os.getenv("SECRET_KEY_AUTH", "")
 
 ALGORITHM = "HS256"
 
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
@@ -39,18 +38,10 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 def authenticate_user(username: str, password: str, db: Session) -> Users | bool:
     user = db.query(Users).filter(Users.username == username).first()
-    print(f"[DEBUG] authenticate_user: username={username}")
-    print(f"[DEBUG] User found: {user is not None}")
     if user is None:
-        print(f"[DEBUG] User not found in database")
         return False
-    print(f"[DEBUG] User: {user.username}, checking password...")
-    password_valid = bcrypt_context.verify(password, user.hashed_password)
-    print(f"[DEBUG] Password valid: {password_valid}")
-    if not password_valid:
-        print(f"[DEBUG] Password verification failed")
+    if not bcrypt.checkpw(password.encode(), user.hashed_password.encode()):
         return False
-    print(f"[DEBUG] Authentication successful")
     return user
 
 
@@ -109,7 +100,7 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
         email=create_user_request.email,
         first_name=create_user_request.first_name,
         last_name=create_user_request.last_name,
-        hashed_password=bcrypt_context.hash(create_user_request.password),
+        hashed_password=bcrypt.hashpw(create_user_request.password.encode(), bcrypt.gensalt()).decode(),
         role='user',
         is_active=True,
     )

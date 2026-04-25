@@ -24,3 +24,4 @@ __pycache__/
 
 garmin.db
 golf_mapper.db
+static/user_maps/

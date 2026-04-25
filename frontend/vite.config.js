@@ -5,6 +5,11 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+    setupFiles: ['./src/test-setup.js'],
+  },
   plugins: [
     react({
       jsxRuntime: 'automatic',

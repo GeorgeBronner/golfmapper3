@@ -1,4 +1,4 @@
-from routers.user_courses import get_db, get_current_user
+from app.routers.user_courses import get_db, get_current_user
 from fastapi import status
 from .utils import *
 
@@ -21,7 +21,8 @@ def test_readall_authenticated(test_user_courses):
             "country": "US",
             "latitude": 30.740501,
             "longitude": -88.20578,
-            "created_at": None
+            "created_at": None,
+            "year": None,
         }
     ]
 
