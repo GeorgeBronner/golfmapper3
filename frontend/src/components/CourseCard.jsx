@@ -2,6 +2,7 @@ import React from 'react';
 
 function CourseCard(props) {
     function handleClick() {
+        if (!window.confirm(`Delete "${props.display_name}"?`)) return;
         props.onDelete(props.id);
     }
 

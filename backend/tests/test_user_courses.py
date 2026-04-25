@@ -1,4 +1,4 @@
-from app.routers.user_courses import get_db, get_current_user
+from app.dependencies import get_db, get_current_user
 from fastapi import status
 from .utils import *
 

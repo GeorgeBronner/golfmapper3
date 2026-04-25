@@ -1,5 +1,5 @@
 from .utils import *
-from app.routers.admin import get_db, get_current_user
+from app.dependencies import get_db, get_current_user
 from fastapi import status
 
 app.dependency_overrides[get_db] = override_get_db

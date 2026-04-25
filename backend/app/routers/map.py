@@ -1,39 +1,19 @@
 import os
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from starlette import status
-from app.database import SessionLocal
-from sqlalchemy.orm import Session
-from typing import Annotated
-from app.routers.auth import get_current_user
 from fastapi.responses import FileResponse
 import folium
-import geopy.geocoders
-import certifi
-import ssl
 
 from app.routers.user_courses import readall
-
-ctx = ssl.create_default_context(cafile=certifi.where())
-geopy.geocoders.options.default_ssl_context = ctx
+from app.dependencies import db_dependency, user_dependency
 
 MAP_DIR = Path(os.getenv("MAP_FILES_DIR", "./static/user_maps"))
 
 router = APIRouter(prefix="/map", tags=["map"])
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
-
-db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]
-
-
-async def generate_user_map(user: dict, db: Session) -> Path:
+async def generate_user_map(user: dict, db) -> Path:
     user_courses = await readall(user, db)
     MAP_DIR.mkdir(parents=True, exist_ok=True)
     map_path = MAP_DIR / f"user_map_{user['id']}.html"

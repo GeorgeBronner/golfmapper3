@@ -1,24 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path
 from starlette import status
-from app.database import SessionLocal
-from sqlalchemy.orm import Session
-from typing import Annotated
 from app.models import Courses
-from .auth import get_current_user
+from app.dependencies import db_dependency, user_dependency
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 @router.get("/")
@@ -44,5 +29,3 @@ async def delete_course(user: user_dependency, db: db_dependency, course_id: int
         raise HTTPException(status_code=404, detail="Course not found")
     db.delete(course_model)
     db.commit()
-
-

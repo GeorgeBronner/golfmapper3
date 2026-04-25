@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
@@ -12,8 +12,6 @@ import {
 } from '@tanstack/react-table';
 
 function CourseSearch() {
-    const rerender = useReducer(() => ({}), {})[1];
-
     const columns = useMemo(
         () => [
             {
@@ -47,6 +45,7 @@ function CourseSearch() {
                 enableColumnFilter: false,
             },
             {
+                id: 'add_link',
                 accessorKey: 'id',
                 header: () => <span style={{ padding: '0 10px' }}>Link to Add</span>,
                 cell: info => (
@@ -70,7 +69,6 @@ function CourseSearch() {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
             });
-            response.data.shift();
             setCourseData(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -89,9 +87,6 @@ function CourseSearch() {
             />
             <hr />
             <div>
-                <button onClick={() => rerender()}>Force Rerender</button>
-            </div>
-            <div>
                 <button onClick={() => refreshData()}>Refresh Data</button>
             </div>
         </>
@@ -107,7 +102,6 @@ function MyTable({ data, columns }) {
     const table = useReactTable({
         columns,
         data,
-        debugTable: true,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
@@ -233,7 +227,6 @@ function MyTable({ data, columns }) {
                 Showing {table.getRowModel().rows.length.toLocaleString()} of{' '}
                 {table.getRowCount().toLocaleString()} Rows
             </div>
-            <pre>{JSON.stringify(table.getState().pagination, null, 2)}</pre>
         </div>
     );
 }

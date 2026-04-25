@@ -51,7 +51,7 @@ export default class GarminCourses extends React.Component {
                         </tr>
                     </thead>
                     <tbody>
-                        {this.state.courses.slice(1).map(course =>
+                        {this.state.courses.map(course =>
                             <GarminCourseRow
                                 key={course.id}
                                 id={course.id}

@@ -1,40 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from starlette import status
-from app.database import SessionLocal
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from sqlalchemy import select
-from typing import Annotated
+from typing import Optional
 from app.models import Courses
-from app.routers.auth import get_current_user
-from sqlalchemy import func
+from app.dependencies import db_dependency, user_dependency, get_db
 from geopy.distance import geodesic
 import geopy.geocoders
-import certifi
-import ssl
-from typing import Optional
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-
-ctx = ssl.create_default_context(cafile=certifi.where())
-geopy.geocoders.options.default_ssl_context = ctx
+from pydantic import BaseModel
 
 router = APIRouter()
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]
 geolocator = geopy.geocoders.Nominatim(user_agent="golfmapper2")
-
-
-from pydantic import BaseModel
 
 
 class CourseBase(BaseModel):
@@ -60,14 +39,6 @@ async def readall(user: user_dependency, db: db_dependency):
     return db.query(Courses).all()
 
 
-@router.get("/readall_alabama", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
-async def readall_alabama(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    # return db.query(Courses).all()
-    return db.query(Courses).filter(Courses.state == "Alabama").all()
-
-
 @router.get("/readall_page", status_code=status.HTTP_200_OK, response_model=Page[CourseBase])
 async def readall_page(user: user_dependency, db: db_dependency):
     if user is None:
@@ -75,24 +46,8 @@ async def readall_page(user: user_dependency, db: db_dependency):
     return paginate(db, select(Courses))
 
 
-@router.get("/readall_page_manual", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
-async def readall_page_manual(
-    user: user_dependency,
-    db: db_dependency,
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1),
-):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    offset = (page - 1) * limit
-    courses = db.query(Courses).offset(offset).limit(limit).all()
-
-    return courses
-
-
 @router.get("/course/{course_id}", status_code=status.HTTP_200_OK, response_model=CourseBase)
-async def read_todo(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
+async def read_course(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     course_model = db.query(Courses).filter(Courses.id == course_id).first()
@@ -114,13 +69,10 @@ async def get_closest_courses(
         .limit(limit)
         .all()
     )
-
-    # Calculate distances for the fetched courses
     courses_with_distances = []
     for course in closest_courses:
         distance = geodesic((lat, long), (course.latitude, course.longitude)).kilometers
         courses_with_distances.append((course, distance))
-
     return courses_with_distances
 
 
@@ -131,7 +83,6 @@ async def get_city_coordinates(city: str = Query(...), state: str = None, countr
         location_str += f", {state}"
     if country:
         location_str += f", {country}"
-
     try:
         location = geolocator.geocode(location_str)
         if location:
@@ -154,8 +105,6 @@ def courses_from_location(
         .limit(courses_returned)
         .all()
     )
-
-    # Calculate distances for the fetched courses
     courses_with_distances = []
     for course in closest_courses:
         distance = geodesic((lat, long), (course.latitude, course.longitude)).kilometers
@@ -209,7 +158,6 @@ async def city_closest_courses(
         location_str += f", {state}"
     if country:
         location_str += f", {country}"
-
     try:
         location = geolocator.geocode(location_str)
         if location:

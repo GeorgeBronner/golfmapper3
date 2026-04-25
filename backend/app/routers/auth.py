@@ -64,10 +64,6 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-async def get_test_user():
-
-    return {"username": "george", "id": 1, "role": "admin"}
-
 
 class CreateUserRequest(BaseModel):
     username: str

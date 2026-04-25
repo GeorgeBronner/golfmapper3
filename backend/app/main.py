@@ -9,8 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
 from app.database import engine
-from app.routers import garmin_courses, garmin_courses_no_auth, auth, admin, users, user_courses, user_courses_no_auth, \
-    map
+from app.routers import garmin_courses, auth, admin, users, user_courses, map
 from app.models import Base
 
 # Import sentry_sdk conditionally to avoid errors if not installed
@@ -97,11 +96,9 @@ async def serve_root_frontend():
 # Include routers after the root handler
 app.include_router(auth.router)
 app.include_router(garmin_courses.router)
-# app.include_router(garmin_courses_no_auth.router)
 app.include_router(admin.router)
 app.include_router(users.router)
 app.include_router(user_courses.router)
-# app.include_router(user_courses_no_auth.router)
 app.include_router(map.router)
 
 # Mount static files only if directory exists

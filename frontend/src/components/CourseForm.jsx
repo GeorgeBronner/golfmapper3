@@ -8,6 +8,8 @@ function CourseForm() {
     const { courseIdParam } = useParams();
     const [courseId, setCourse] = useState('');
     const [year, setYear] = useState('');
+    const [success, setSuccess] = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (courseIdParam && !isNaN(courseIdParam)) {
@@ -17,18 +19,27 @@ function CourseForm() {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+        setSuccess('');
+        setError('');
         axios.post(`${API_BASE_URL}/user_courses/add_course`, {
             garmin_id: courseId,
             year: year,
         }, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
-            .then(response => {
-                console.log(response);
+            .then(() => {
+                setSuccess('Course added successfully.');
+                setCourse('');
+                setYear('');
             })
-            .catch(error => {
-                console.error(error);
+            .catch(err => {
+                const status = err.response?.status;
+                if (status === 409) {
+                    setError('You have already added this course for that year.');
+                } else if (status === 422) {
+                    setError('Invalid course ID or year.');
+                } else {
+                    setError('Failed to add course. Please try again.');
+                }
             });
-        setCourse('');
-        setYear('');
     };
 
     return (
@@ -40,10 +51,12 @@ function CourseForm() {
                 </label>
                 <label>
                     Year:
-                    <input type="text" value={year} onChange={e => setYear(e.target.value)} />
+                    <input type="number" value={year} onChange={e => setYear(e.target.value)} />
                 </label>
                 <input type="submit" value="Submit" />
             </form>
+            {success && <div className="alert alert-success">{success}</div>}
+            {error && <div className="alert alert-danger">{error}</div>}
             <button onClick={generateUserMap}>Generate User Map</button>
         </div>
     );
