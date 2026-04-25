@@ -32,7 +32,7 @@ def test_password_change_success(test_user):
     assert response.status_code == status.HTTP_204_NO_CONTENT
     db = TestingSessionLocal()
     user = db.query(Users).filter(Users.username == "georgetest").first()
-    assert bcrypt_context.verify("newpassword", user.hashed_password)
+    assert bcrypt.checkpw(b"newpassword", user.hashed_password.encode())
 
 
 def test_password_change_invalid_current_password(test_user):

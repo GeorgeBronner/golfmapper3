@@ -140,8 +140,8 @@ async def get_city_coordinates(city: str = Query(...), state: str = None, countr
             raise HTTPException(status_code=404, detail="Location not found")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")
 
 
 def courses_from_location(
@@ -173,8 +173,8 @@ async def get_zipcode_coordinates(zipcode: str = Query(...), country: Optional[s
             raise HTTPException(status_code=404, detail="Location not found")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")
 
 
 @router.get("/zipcode_closest_courses/")
@@ -192,8 +192,8 @@ async def zipcode_closest_courses(
             raise HTTPException(status_code=404, detail="Location not found")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")
 
 
 @router.get("/city_closest_courses/")
@@ -218,5 +218,5 @@ async def city_closest_courses(
             raise HTTPException(status_code=404, detail="Location not found")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Geocoding service error")

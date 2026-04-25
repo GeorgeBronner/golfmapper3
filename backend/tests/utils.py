@@ -6,7 +6,7 @@ import pytest
 from app.main import app
 from app.database import Base
 from app.models import UserCourses, Users, Courses
-from app.routers.auth import bcrypt_context
+import bcrypt
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite://"
@@ -68,7 +68,7 @@ def test_user():
         username="georgetest",
         first_name="firsttest",
         last_name="lasttest",
-        hashed_password=bcrypt_context.hash("password"),
+        hashed_password=bcrypt.hashpw(b"password", bcrypt.gensalt()).decode(),
         is_active=True,
         role="admin",
     )

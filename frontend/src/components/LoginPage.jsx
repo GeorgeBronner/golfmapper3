@@ -22,18 +22,18 @@ function LoginPage() {
         })
             .then(response => {
                 localStorage.setItem('token', response.data.access_token);
+                setUsername('');
+                setPassword('');
                 navigate('/course_list');
             })
             .catch(() => {
                 setError('Invalid username or password.');
             });
-        setUsername('');
-        setPassword('');
     };
 
     return (
         <form onSubmit={handleSubmit}>
-            {error && <div className="alert alert-danger">{error}</div>}
+            {error && <div className="alert alert-danger" role="alert">{error}</div>}
             <label>
                 Username:
                 <input type="text" value={username} onChange={e => setUsername(e.target.value)} />

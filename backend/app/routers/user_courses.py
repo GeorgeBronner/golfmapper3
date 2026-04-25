@@ -1,3 +1,5 @@
+import os
+from pathlib import Path as FilePath
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from starlette import status
 from pydantic import BaseModel, Field, field_validator
@@ -10,6 +12,11 @@ from app.routers.auth import get_current_user
 import geopy.geocoders
 import certifi
 import ssl
+
+_MAP_DIR = FilePath(os.getenv("MAP_FILES_DIR", "./static/user_maps"))
+
+def _invalidate_user_map(user_id: int) -> None:
+    (_MAP_DIR / f"user_map_{user_id}.html").unlink(missing_ok=True)
 
 
 ctx = ssl.create_default_context(cafile=certifi.where())
@@ -129,6 +136,7 @@ async def add_user_course(user: user_dependency, db: db_dependency, user_course_
     user_course_model = UserCourses(course_id=user_course_request.garmin_id, year=user_course_request.year, user_id=user.get("id"))
     db.add(user_course_model)
     db.commit()
+    _invalidate_user_map(user.get("id"))
 
 
 @router.delete("/delete/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -141,3 +149,4 @@ async def delete_user_course(user: user_dependency, db: db_dependency, course_id
         raise HTTPException(status_code=404, detail="Course_id not found")
     db.delete(user_course_model)
     db.commit()
+    _invalidate_user_map(user.get("id"))

@@ -57,7 +57,7 @@ async def generate_user_map(user: dict, db: Session) -> Path:
     try:
         user_map.save(str(map_path))
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Map generation failed")
+        raise HTTPException(status_code=500, detail="Map generation failed") from e
 
     return map_path
 
