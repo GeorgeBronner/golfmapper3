@@ -39,18 +39,10 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 def authenticate_user(username: str, password: str, db: Session) -> Users | bool:
     user = db.query(Users).filter(Users.username == username).first()
-    print(f"[DEBUG] authenticate_user: username={username}")
-    print(f"[DEBUG] User found: {user is not None}")
     if user is None:
-        print(f"[DEBUG] User not found in database")
         return False
-    print(f"[DEBUG] User: {user.username}, checking password...")
-    password_valid = bcrypt_context.verify(password, user.hashed_password)
-    print(f"[DEBUG] Password valid: {password_valid}")
-    if not password_valid:
-        print(f"[DEBUG] Password verification failed")
+    if not bcrypt_context.verify(password, user.hashed_password):
         return False
-    print(f"[DEBUG] Authentication successful")
     return user
 
 

@@ -15,7 +15,7 @@ from typing import Optional
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 
-ctx = ssl._create_unverified_context(cafile=certifi.where())
+ctx = ssl.create_default_context(cafile=certifi.where())
 geopy.geocoders.options.default_ssl_context = ctx
 
 router = APIRouter()

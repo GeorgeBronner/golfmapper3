@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
 from app.database import SessionLocal
@@ -11,10 +13,11 @@ import certifi
 import ssl
 
 from app.routers.user_courses import readall
-from app.routers.users import user_info
 
-ctx = ssl._create_unverified_context(cafile=certifi.where())
+ctx = ssl.create_default_context(cafile=certifi.where())
 geopy.geocoders.options.default_ssl_context = ctx
+
+MAP_DIR = Path(os.getenv("MAP_FILES_DIR", "./static/user_maps"))
 
 router = APIRouter(prefix="/map", tags=["map"])
 
@@ -31,15 +34,13 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 @router.get("/usermap")
-async def root(user: user_dependency):
+async def get_usermap(user: user_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return FileResponse(f"app/static/user_maps/user_map_{user['username']}_{user['id']}.html")
-
-
-# @router.get("/usermap1")
-# async def root():
-#     return FileResponse("static/user_map_test1.html")
+    map_path = MAP_DIR / f"user_map_{user['id']}.html"
+    if not map_path.exists():
+        raise HTTPException(status_code=404, detail="Map not yet generated. Visit /map/user_map_generate first.")
+    return FileResponse(str(map_path))
 
 
 @router.get("/user_map_generate", status_code=status.HTTP_200_OK)
@@ -49,15 +50,28 @@ async def user_map_generate(user: user_dependency, db: db_dependency):
     user_courses = await readall(user, db)
     if not user_courses:
         raise HTTPException(status_code=404, detail="No courses found")
+
+    MAP_DIR.mkdir(parents=True, exist_ok=True)
+    map_path = MAP_DIR / f"user_map_{user['id']}.html"
+
     user_map = folium.Map(location=[40, -90], zoom_start=4, control_scale=True)
-    fg = folium.FeatureGroup(name=f"FIX ME - USERNAME")
-    for i in user_courses:
-        new_description = i.display_name + ' ' + str(i.id)
+    fg = folium.FeatureGroup(name=user['username'])
+    for course in user_courses:
+        description = course.display_name + ' ' + str(course.id)
         fg.add_child(
-            folium.CircleMarker(location=[i.latitude, i.longitude], popup=new_description, color='red', opacity=0.7,
-                                radius=7))
+            folium.CircleMarker(
+                location=[course.latitude, course.longitude],
+                popup=description,
+                color='red',
+                opacity=0.7,
+                radius=7,
+            )
+        )
     user_map.add_child(fg)
 
-    user_map.save(f"app/static/user_maps/user_map_{user['username']}_{user['id']}.html")
+    try:
+        user_map.save(str(map_path))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Map generation failed")
 
     return {"message": "Map generated"}

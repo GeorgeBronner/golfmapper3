@@ -12,16 +12,6 @@ import LoginHeader from "./components/LoginHeader";
 import GarminCourses from "./components/GarminCourses";
 import CourseSearch from "./components/CourseSearch";
 
-// Function to get the access token from cookies
-const getAccessToken = () => {
-    return localStorage.getItem('token');
-}
-
-// Function to check if the user is authenticated
-const isAuthenticated = () => {
-    return !!getAccessToken();
-}
-
 const Layout = () => (
     <>
         <LoginHeader />
@@ -49,7 +39,7 @@ const router = createBrowserRouter(
             ]
         },
         {
-            element: <ProtectedRoute isAuthenticated={isAuthenticated()} />,
+            element: <ProtectedRoute />,
             children: [
                 {
                     path: '/course_list',
