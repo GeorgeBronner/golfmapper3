@@ -19,7 +19,7 @@ dependencies = [
     "requests",
     "bcrypt",
     "folium",
-    "pandas>=2.0.0,<2.3.0",
+    "pandas>=2.0,<2.3",
     "dotenv",
     "sentry-sdk[fastapi]",
     "python-dotenv>=0.19.0",
@@ -27,12 +27,12 @@ dependencies = [
     "psycopg2-binary",
     "python-multipart",
     "certifi",
+    "pytest>=7.0.0",
+    "pytest-asyncio",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio",
     "ruff>=0.2.0",
 ]
 
