@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from app.models import Users
 from .auth import get_current_user
-from passlib.context import CryptContext
+import bcrypt
 
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -21,9 +21,6 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
 class UserVerification(BaseModel):
     password: str
     new_password: str = Field(min_length=6)
@@ -43,7 +40,7 @@ async def update_password(user: user_dependency, db: db_dependency, user_verific
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_model = db.query(Users).filter(Users.id == user.get("id")).first()
-    if not bcrypt_context.verify(user_verification.password, user_model.hashed_password):
+    if not bcrypt.checkpw(user_verification.password.encode(), user_model.hashed_password.encode()):
         raise HTTPException(status_code=401, detail="Error on password verification")
-    user_model.hashed_password = bcrypt_context.hash(user_verification.new_password)
+    user_model.hashed_password = bcrypt.hashpw(user_verification.new_password.encode(), bcrypt.gensalt()).decode()
     db.commit()
