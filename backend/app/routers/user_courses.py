@@ -2,7 +2,7 @@ import os
 from pathlib import Path as FilePath
 from fastapi import APIRouter, HTTPException, Path
 from starlette import status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models import Courses, UserCourses
 from app.dependencies import db_dependency, user_dependency
 
@@ -23,7 +23,7 @@ class UserCourseRequest(BaseModel):
     @field_validator('year')
     def check_year(cls, v):
         if v < 1900 or v > 2070:
-            return None
+            raise ValueError('Year must be between 1900 and 2070')
         return v
 
 
@@ -41,8 +41,7 @@ class CourseResponse(BaseModel):
     created_at: str | None = None
     year: int | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 @router.get("/readall_ids", status_code=status.HTTP_200_OK)

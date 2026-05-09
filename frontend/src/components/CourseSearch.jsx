@@ -63,7 +63,7 @@ function CourseSearch() {
 
     const refreshData = useCallback(async () => {
         try {
-            const response = await api.get('/readall');
+            const response = await api.get('/garmin_courses/readall');
             setCourseData(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);

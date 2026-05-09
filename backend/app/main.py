@@ -27,13 +27,8 @@ load_dotenv()
 if sentry_sdk_available and os.getenv("SENTRY_DSN", ""):
     sentry_sdk.init(
         dsn=os.getenv("SENTRY_DSN", ""),
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=1.0,
-        # Set profiles_sample_rate to 1.0 to profile 100%
-        # of sampled transactions.
-        # We recommend adjusting this value in production.
-        profiles_sample_rate=1.0,
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.0,
     )
 
 app = FastAPI()
@@ -67,8 +62,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Define the static files directory

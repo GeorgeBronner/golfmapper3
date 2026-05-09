@@ -18,9 +18,10 @@ class Courses(Base):
     latitude = Column(Float)
     longitude = Column(Float)
 
+    user_courses = relationship("UserCourses", back_populates="course", cascade="all, delete-orphan")
+
     @property
     def display_name(self):
-        """Returns formatted course name: 'Club - Course' if different, else just course name"""
         if self.club_name and self.course_name and self.club_name != self.course_name:
             return f"{self.club_name} - {self.course_name}"
         elif self.course_name:
@@ -48,6 +49,8 @@ class Users(Base):
     is_active = Column(Boolean, default=True)
     role = Column(String)
 
+    courses = relationship("UserCourses", back_populates="user", cascade="all, delete-orphan")
+
 
 class UserCourses(Base):
 
@@ -57,6 +60,9 @@ class UserCourses(Base):
     __tablename__ = "user_courses"
 
     id = Column(Integer, primary_key=True, index=True)
-    course_id = Column(Integer, ForeignKey("courses.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     year = Column(Integer, nullable=True)
+
+    user = relationship("Users", back_populates="courses")
+    course = relationship("Courses", back_populates="user_courses")
