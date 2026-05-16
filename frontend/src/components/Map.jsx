@@ -6,7 +6,6 @@ function Map() {
     const iframeRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
-    const blobUrlRef = useRef(null);
 
     useEffect(() => {
         const loadMap = async () => {
@@ -31,20 +30,16 @@ function Map() {
                     throw error;
                 })
                 .then(response => {
-                    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-                    const blob = new Blob([response.data], { type: 'text/html' });
-                    blobUrlRef.current = URL.createObjectURL(blob);
-                    iframeRef.current.src = blobUrlRef.current;
+                    const doc = iframeRef.current.contentWindow.document;
+                    doc.open();
+                    doc.write(response.data);
+                    doc.close();
                     setStatus('loaded');
                 })
                 .catch(() => setStatus('error'));
         };
 
         loadMap();
-
-        return () => {
-            if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-        };
     }, [token]);
 
     return (
