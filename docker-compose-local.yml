@@ -12,6 +12,7 @@ services:
         target: /garmin.db
     environment:
       - ENVIRONMENT=development
+      - SECRET_KEY_AUTH=${SECRET_KEY_AUTH}
     restart: unless-stopped
 
 

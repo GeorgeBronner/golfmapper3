@@ -1,8 +1,7 @@
-import os
-from pathlib import Path
+import logging
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import bcrypt
@@ -11,14 +10,13 @@ from app.models import Users
 from app.database import SessionLocal
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
-from dotenv import load_dotenv
+from app.config import settings
+from app.limiter import limiter
 
-# Load environment variables from app/.env
-env_path = Path(__file__).parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-SECRET_KEY = os.getenv("SECRET_KEY_AUTH", "")
+SECRET_KEY = settings.SECRET_KEY_AUTH
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY_AUTH environment variable is not set")
 
@@ -49,8 +47,7 @@ def authenticate_user(username: str, password: str, db: Session) -> Users | bool
 
 def create_access_token(username: str, user_id: int, role: str, expires_delta: timedelta):
     encode = {"sub": username, "id": user_id, "role": role}
-    expires_delta = datetime.now(timezone.utc) + expires_delta
-    encode.update({"exp": expires_delta})
+    encode.update({"exp": datetime.now(timezone.utc) + expires_delta})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -83,7 +80,6 @@ class Token(BaseModel):
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency, create_user_request: CreateUserRequest):
-    # Check if a user with the same username or email already exists
     existing_user = db.query(Users).filter(
         (Users.username == create_user_request.username) |
         (Users.email == create_user_request.email)
@@ -107,9 +103,29 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
 
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
+@limiter.limit("10/minute")
+async def login_for_access_token(
+    request: Request,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: db_dependency,
+):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
+        logger.warning("Failed login attempt for username=%s", form_data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    token = create_access_token(user.username, user.id, user.role, timedelta(minutes=90))
+    logger.info("Successful login for username=%s", user.username)
+    token = create_access_token(
+        user.username, user.id, user.role,
+        timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),
+    )
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Issue a fresh token for an already-authenticated user."""
+    token = create_access_token(
+        current_user["username"], current_user["id"], current_user["role"],
+        timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),
+    )
     return {"access_token": token, "token_type": "bearer"}

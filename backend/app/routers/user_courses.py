@@ -1,12 +1,13 @@
-import os
+from datetime import datetime
 from pathlib import Path as FilePath
 from fastapi import APIRouter, HTTPException, Path
 from starlette import status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from app.config import settings
 from app.models import Courses, UserCourses
 from app.dependencies import db_dependency, user_dependency
 
-_MAP_DIR = FilePath(os.getenv("MAP_FILES_DIR", "./static/user_maps"))
+_MAP_DIR = FilePath(settings.MAP_FILES_DIR)
 
 
 def _invalidate_user_map(user_id: int) -> None:
@@ -16,6 +17,15 @@ def _invalidate_user_map(user_id: int) -> None:
 router = APIRouter(prefix="/user_courses", tags=["user_courses"])
 
 
+class UserCourseOut(BaseModel):
+    id: int
+    course_id: int
+    user_id: int
+    year: int | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserCourseRequest(BaseModel):
     garmin_id: int = Field(...)
     year: int = Field(...)
@@ -23,7 +33,7 @@ class UserCourseRequest(BaseModel):
     @field_validator('year')
     def check_year(cls, v):
         if v < 1900 or v > 2070:
-            return None
+            raise ValueError('Year must be between 1900 and 2070')
         return v
 
 
@@ -38,14 +48,13 @@ class CourseResponse(BaseModel):
     country: str
     latitude: float
     longitude: float
-    created_at: str | None = None
+    created_at: datetime | None = None
     year: int | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-@router.get("/readall_ids", status_code=status.HTTP_200_OK)
+@router.get("/readall_ids", status_code=status.HTTP_200_OK, response_model=list[UserCourseOut])
 async def readall_ids(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")

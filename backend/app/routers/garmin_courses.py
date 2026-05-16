@@ -9,9 +9,9 @@ from geopy.distance import geodesic
 import geopy.geocoders
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-router = APIRouter()
+router = APIRouter(prefix="/garmin_courses", tags=["garmin_courses"])
 
 geolocator = geopy.geocoders.Nominatim(user_agent="golfmapper2")
 
@@ -28,8 +28,7 @@ class CourseBase(BaseModel):
     latitude: float | None
     longitude: float | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 @router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseBase])

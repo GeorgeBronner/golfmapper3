@@ -1,7 +1,10 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime, UniqueConstraint
+
+_now = lambda: datetime.now(timezone.utc)
 
 
 class Courses(Base):
@@ -10,7 +13,7 @@ class Courses(Base):
     id = Column(Integer, primary_key=True)
     club_name = Column(String)
     course_name = Column(String)
-    created_at = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=True)
     address = Column(String, nullable=True)
     city = Column(String)
     state = Column(String)
@@ -18,9 +21,10 @@ class Courses(Base):
     latitude = Column(Float)
     longitude = Column(Float)
 
+    user_courses = relationship("UserCourses", back_populates="course", cascade="all, delete-orphan")
+
     @property
     def display_name(self):
-        """Returns formatted course name: 'Club - Course' if different, else just course name"""
         if self.club_name and self.course_name and self.club_name != self.course_name:
             return f"{self.club_name} - {self.course_name}"
         elif self.course_name:
@@ -47,6 +51,10 @@ class Users(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     role = Column(String)
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
+
+    courses = relationship("UserCourses", back_populates="user", cascade="all, delete-orphan")
 
 
 class UserCourses(Base):
@@ -57,6 +65,15 @@ class UserCourses(Base):
     __tablename__ = "user_courses"
 
     id = Column(Integer, primary_key=True, index=True)
-    course_id = Column(Integer, ForeignKey("courses.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     year = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
+
+    user = relationship("Users", back_populates="courses")
+    course = relationship("Courses", back_populates="user_courses")
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'course_id', 'year', name='uq_user_course_year'),
+    )

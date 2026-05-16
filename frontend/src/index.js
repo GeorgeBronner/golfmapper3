@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './components/App.jsx';
 import AuthProvider from './components/AuthProvider.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as Sentry from "@sentry/react";
 
@@ -12,9 +13,7 @@ Sentry.init({
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration(),
     ],
-    // Performance Monitoring
-    tracesSampleRate: 1.0, // Capture 100% of the transactions
-    // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+    tracesSampleRate: 0.1,
     tracePropagationTargets: ["localhost", import.meta.env.VITE_SENTRY_DSN],
     // Session Replay
     replaysSessionSampleRate: 0.1,
@@ -24,8 +23,10 @@ Sentry.init({
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
     <React.StrictMode>
-        <AuthProvider>
-            <App />
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <App />
+            </AuthProvider>
+        </ErrorBoundary>
     </React.StrictMode>
 );

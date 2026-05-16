@@ -3,7 +3,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: gm3-backend
+    container_name: gm3-stage-backend
     ports:
       - "8005:8005"
     volumes:
@@ -11,14 +11,7 @@ services:
         source: ${DB_PATH:-./backend/golf_mapper.db}
         target: /app/app/golf_mapper.db
     environment:
-      - ENVIRONMENT=development
+      - ENVIRONMENT=staging
       - STATIC_FILES_DIR=./dist
       - SECRET_KEY_AUTH=${SECRET_KEY_AUTH}
     restart: unless-stopped
-    networks:
-      - nginx-proxy
-
-networks:
-  nginx-proxy:
-    external: true
-    name: nginx-proxy

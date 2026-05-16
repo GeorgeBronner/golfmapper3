@@ -1,14 +1,14 @@
-import os
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from starlette import status
 from fastapi.responses import FileResponse
 import folium
 
+from app.config import settings
 from app.routers.user_courses import readall
 from app.dependencies import db_dependency, user_dependency
 
-MAP_DIR = Path(os.getenv("MAP_FILES_DIR", "./static/user_maps"))
+MAP_DIR = Path(settings.MAP_FILES_DIR)
 
 router = APIRouter(prefix="/map", tags=["map"])
 

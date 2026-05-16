@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config';
 import { useAuth } from './AuthProvider';
+import api from '../services/api';
 
 function LoginPage() {
     const [username, setUsername] = useState('');
@@ -14,13 +13,8 @@ function LoginPage() {
     const handleSubmit = (event) => {
         event.preventDefault();
         setError('');
-        axios.post(`${API_BASE_URL}/auth/token`, {
-            username: username,
-            password: password,
-        }, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
+        api.post('/auth/token', new URLSearchParams({ username, password }), {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         })
             .then(response => {
                 setToken(response.data.access_token);

@@ -1,96 +1,77 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import CourseCard from "./CourseCard";
 
-export default class CourseList extends React.Component {
-    state = {
-        courses: [],
-        sortConfig: {
-            key: 'year',
-            direction: 'desc'
-        }
-    }
+function CourseList() {
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [sortConfig, setSortConfig] = useState({ key: 'year', direction: 'desc' });
 
-    componentDidMount() {
-        this.fetchCourses();
-    }
-
-    fetchCourses = () => {
+    const fetchCourses = useCallback(() => {
+        setLoading(true);
         api.get('/user_courses/readall_ids_w_year')
-            .then(res => {
-                const courses = res.data;
-                this.setState({ courses });
-            })
-    }
+            .then(res => setCourses(res.data))
+            .finally(() => setLoading(false));
+    }, []);
 
-    deleteUserCourse = (id) => {
+    useEffect(() => {
+        fetchCourses();
+    }, [fetchCourses]);
+
+    const deleteUserCourse = (id) => {
         api.delete(`/user_courses/delete/${id}`)
-            .then(() => {
-                this.fetchCourses();
-            })
-            .catch(error => {
-                console.error(error);
-            });
-    }
+            .then(() => fetchCourses())
+            .catch(error => console.error(error));
+    };
 
-    sortData = (key) => {
-        let direction = 'asc';
-        if (this.state.sortConfig.key === key && this.state.sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        this.setState({ sortConfig: { key, direction } });
-    }
+    const sortData = (key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+        }));
+    };
 
-    getSortedData = () => {
-        const { courses, sortConfig } = this.state;
-        if (!sortConfig.key) return courses;
+    const sortedCourses = [...courses].sort((a, b) => {
+        if (!sortConfig.key) return 0;
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
 
-        return [...courses].sort((a, b) => {
-            if (a[sortConfig.key] < b[sortConfig.key]) {
-                return sortConfig.direction === 'asc' ? -1 : 1;
-            }
-            if (a[sortConfig.key] > b[sortConfig.key]) {
-                return sortConfig.direction === 'asc' ? 1 : -1;
-            }
-            return 0;
-        });
-    }
+    if (loading) return <p>Loading courses...</p>;
 
-    render() {
-        const { sortConfig } = this.state;
-        const sortedCourses = this.getSortedData();
-
-        return (
-            <div className="course-list-container">
-                <table className="course-table">
-                    <thead>
-                        <tr>
-                            <th onClick={() => this.sortData('display_name')} className="sortable">
-                                Course Name {sortConfig.key === 'display_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th onClick={() => this.sortData('city')} className="sortable">
-                                City {sortConfig.key === 'city' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th onClick={() => this.sortData('year')} className="sortable" data-sort={sortConfig.key === 'year' ? sortConfig.direction : null}>
-                                Year {sortConfig.key === 'year' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sortedCourses.map(course =>
-                            <CourseCard
-                                key={course.id}
-                                id={course.id}
-                                display_name={course.display_name}
-                                city={course.city}
-                                year={course.year}
-                                onDelete={() => this.deleteUserCourse(course.id)}
-                            />
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        )
-    }
+    return (
+        <div className="course-list-container">
+            <table className="course-table">
+                <thead>
+                    <tr>
+                        <th onClick={() => sortData('display_name')} className="sortable">
+                            Course Name {sortConfig.key === 'display_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th onClick={() => sortData('city')} className="sortable">
+                            City {sortConfig.key === 'city' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th onClick={() => sortData('year')} className="sortable" data-sort={sortConfig.key === 'year' ? sortConfig.direction : null}>
+                            Year {sortConfig.key === 'year' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {sortedCourses.map(course =>
+                        <CourseCard
+                            key={course.id}
+                            id={course.id}
+                            display_name={course.display_name}
+                            city={course.city}
+                            year={course.year}
+                            onDelete={() => deleteUserCourse(course.id)}
+                        />
+                    )}
+                </tbody>
+            </table>
+        </div>
+    );
 }
+
+export default CourseList;
