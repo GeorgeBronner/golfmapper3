@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path as FilePath
 from fastapi import APIRouter, HTTPException, Path
 from starlette import status
@@ -47,7 +48,7 @@ class CourseResponse(BaseModel):
     country: str
     latitude: float
     longitude: float
-    created_at: str | None = None
+    created_at: datetime | None = None
     year: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
