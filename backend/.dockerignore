@@ -22,6 +22,6 @@ __pycache__/
 .env.test.local
 .env.production.local
 
-garmin.db
-golf_mapper.db
+**/garmin.db
+**/golf_mapper.db
 static/user_maps/
