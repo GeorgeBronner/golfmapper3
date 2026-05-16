@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:local": "npx cross-env VITE_BACKEND_SERVER_IP=localhost VITE_BACKEND_PROTOCOL=http VITE_BACKEND_PORT=8005 vite build && npm run copy:dist",
     "build:prod": "npx cross-env VITE_BACKEND_SERVER_IP=golf.bronnerapp.com VITE_BACKEND_PROTOCOL=https VITE_BACKEND_PORT=443 vite build && npm run copy:dist",
+    "build:stage": "npx cross-env VITE_BACKEND_SERVER_IP=golf-stage.lab.bronnerapp.com VITE_BACKEND_PROTOCOL=https VITE_BACKEND_PORT=443 vite build && npm run copy:dist",
     "copy:dist": "node -e \"require('fs').cpSync('dist', '../backend/dist', {recursive: true})\"",
     "preview": "vite preview",
     "test": "vitest"
