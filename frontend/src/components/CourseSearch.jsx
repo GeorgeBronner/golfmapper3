@@ -60,19 +60,25 @@ function CourseSearch() {
     );
 
     const [courseData, setCourseData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const refreshData = useCallback(async () => {
+        setLoading(true);
         try {
             const response = await api.get('/garmin_courses/readall');
             setCourseData(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
         }
     }, []);
 
     useEffect(() => {
         refreshData();
     }, [refreshData]);
+
+    if (loading) return <p>Loading courses...</p>;
 
     return (
         <>

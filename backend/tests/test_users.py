@@ -16,7 +16,7 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 
 
 def test_return_user(test_user):
-    response = client.get("/user/")
+    response = client.get("/api/v1/user/")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["username"] == "georgetest"
     assert response.json()["email"] == "georgetest@mail.com"
@@ -28,7 +28,7 @@ def test_return_user(test_user):
 
 def test_password_change_success(test_user):
     request_body = {"password": "password", "new_password": "newpassword"}
-    response = client.put("/user/password", json=request_body)
+    response = client.put("/api/v1/user/password", json=request_body)
     assert response.status_code == status.HTTP_204_NO_CONTENT
     db = TestingSessionLocal()
     user = db.query(Users).filter(Users.username == "georgetest").first()
@@ -37,7 +37,7 @@ def test_password_change_success(test_user):
 
 def test_password_change_invalid_current_password(test_user):
     request_body = {"password": "wrong_password", "new_password": "newpassword"}
-    response = client.put("/user/password", json=request_body)
+    response = client.put("/api/v1/user/password", json=request_body)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Error on password verification"}
 

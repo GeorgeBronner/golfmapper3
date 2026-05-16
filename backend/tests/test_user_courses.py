@@ -7,7 +7,7 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 
 
 def test_readall_authenticated(test_user_courses):
-    response = client.get("/user_courses/readall")
+    response = client.get("/api/v1/user_courses/readall")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == [
         {
@@ -28,7 +28,7 @@ def test_readall_authenticated(test_user_courses):
 
 
 def test_read_one_authenticated(test_user_courses):
-    response = client.get("/user_courses/readall_ids")
+    response = client.get("/api/v1/user_courses/readall_ids")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == [
         {'course_id': 200, 'user_id': 1, 'year': 2021, 'id': 1}

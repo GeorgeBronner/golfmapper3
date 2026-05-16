@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Path
 from starlette import status
 from app.models import Courses
 from app.dependencies import db_dependency, user_dependency
+from app.routers.garmin_courses import CourseBase
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -13,7 +14,7 @@ async def root(user: user_dependency):
     return {"message": "Hello Admin"}
 
 
-@router.get("/courses", status_code=status.HTTP_200_OK)
+@router.get("/courses", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
 async def readall(user: user_dependency, db: db_dependency):
     if user is None or user.get("role") != "admin":
         raise HTTPException(status_code=401, detail="Unauthorized")

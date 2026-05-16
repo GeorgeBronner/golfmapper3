@@ -1,5 +1,6 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from app.models import Users
 from app.dependencies import db_dependency, user_dependency
 import bcrypt
@@ -7,17 +8,30 @@ import bcrypt
 router = APIRouter(prefix="/user", tags=["user"])
 
 
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    username: str
+    first_name: str
+    last_name: str
+    is_active: bool
+    role: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserVerification(BaseModel):
     password: str
     new_password: str = Field(min_length=6)
 
 
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get("/", status_code=status.HTTP_200_OK, response_model=UserResponse)
 async def user_info(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    user_model = db.query(Users).filter(Users.id == user.get("id")).first()
-    return user_model
+    return db.query(Users).filter(Users.id == user.get("id")).first()
 
 
 @router.put("/password", status_code=status.HTTP_204_NO_CONTENT)

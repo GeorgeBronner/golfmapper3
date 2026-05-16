@@ -1,7 +1,10 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
 
 from app.database import Base
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime, UniqueConstraint
+
+_now = lambda: datetime.now(timezone.utc)
 
 
 class Courses(Base):
@@ -48,6 +51,8 @@ class Users(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     role = Column(String)
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
 
     courses = relationship("UserCourses", back_populates="user", cascade="all, delete-orphan")
 
@@ -63,6 +68,8 @@ class UserCourses(Base):
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     year = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
 
     user = relationship("Users", back_populates="courses")
     course = relationship("Courses", back_populates="user_courses")

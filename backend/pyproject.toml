@@ -30,6 +30,7 @@ dependencies = [
     "pytest>=7.0.0",
     "pytest-asyncio",
     "pydantic-settings>=2.14.1",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]

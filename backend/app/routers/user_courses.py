@@ -16,6 +16,15 @@ def _invalidate_user_map(user_id: int) -> None:
 router = APIRouter(prefix="/user_courses", tags=["user_courses"])
 
 
+class UserCourseOut(BaseModel):
+    id: int
+    course_id: int
+    user_id: int
+    year: int | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserCourseRequest(BaseModel):
     garmin_id: int = Field(...)
     year: int = Field(...)
@@ -44,7 +53,7 @@ class CourseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-@router.get("/readall_ids", status_code=status.HTTP_200_OK)
+@router.get("/readall_ids", status_code=status.HTTP_200_OK, response_model=list[UserCourseOut])
 async def readall_ids(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")

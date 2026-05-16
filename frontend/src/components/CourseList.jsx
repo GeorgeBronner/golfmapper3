@@ -4,11 +4,14 @@ import CourseCard from "./CourseCard";
 
 function CourseList() {
     const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [sortConfig, setSortConfig] = useState({ key: 'year', direction: 'desc' });
 
     const fetchCourses = useCallback(() => {
+        setLoading(true);
         api.get('/user_courses/readall_ids_w_year')
-            .then(res => setCourses(res.data));
+            .then(res => setCourses(res.data))
+            .finally(() => setLoading(false));
     }, []);
 
     useEffect(() => {
@@ -34,6 +37,8 @@ function CourseList() {
         if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
     });
+
+    if (loading) return <p>Loading courses...</p>;
 
     return (
         <div className="course-list-container">

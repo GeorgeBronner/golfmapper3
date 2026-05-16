@@ -1,6 +1,7 @@
+import logging
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import bcrypt
@@ -10,6 +11,9 @@ from app.database import SessionLocal
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from app.config import settings
+from app.limiter import limiter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 SECRET_KEY = settings.SECRET_KEY_AUTH
@@ -99,10 +103,17 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
 
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
+@limiter.limit("10/minute")
+async def login_for_access_token(
+    request: Request,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: db_dependency,
+):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
+        logger.warning("Failed login attempt for username=%s", form_data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    logger.info("Successful login for username=%s", user.username)
     token = create_access_token(
         user.username, user.id, user.role,
         timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './components/App.jsx';
 import AuthProvider from './components/AuthProvider.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as Sentry from "@sentry/react";
 
@@ -22,8 +23,10 @@ Sentry.init({
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
     <React.StrictMode>
-        <AuthProvider>
-            <App />
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <App />
+            </AuthProvider>
+        </ErrorBoundary>
     </React.StrictMode>
 );
