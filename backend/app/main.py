@@ -59,32 +59,9 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # --- CORS ---
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://localhost:3000",
-    "https://127.0.0.1:3000",
-    "http://localhost:8005",
-    "http://127.0.0.1:8005",
-    "https://localhost:8005",
-    "https://localhost",
-    "https://127.0.0.1",
-    "https://127.0.0.1:8005",
-    "https://10.9.8.221:3000",
-    "http://10.9.8.221:3000",
-    "https://golf.bronnerapp.com",
-    "http://golf.bronnerapp.com",
-    "https://golf.bronnerapp.com:80",
-    "http://golf.bronnerapp.com:80",
-    "https://132.145.156.224:3000",
-    "http://132.145.156.224:3000",
-    "https://backend.bronnerapp.com",
-    "http://backend.bronnerapp.com"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
