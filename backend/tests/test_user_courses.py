@@ -33,3 +33,15 @@ def test_read_one_authenticated(test_user_courses):
     assert response.json() == [
         {'course_id': 200, 'user_id': 1, 'year': 2021, 'id': 1}
     ]
+
+
+def test_readall_ids_w_year_datetime_created_at(test_user_courses_with_datetime):
+    # Regression: CourseResponse.created_at must accept datetime objects, not just str.
+    # A str type annotation caused Pydantic v2 to raise string_type validation errors
+    # and return 500 when the DB had real datetime values in courses.created_at.
+    response = client.get("/api/v1/user_courses/readall_ids_w_year")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["created_at"] is not None
+    assert data[0]["year"] == 2024
