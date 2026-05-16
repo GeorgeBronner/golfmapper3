@@ -1,6 +1,4 @@
-import os
 from pathlib import Path
-from dotenv import load_dotenv
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +6,7 @@ from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
+from app.config import settings
 from app.database import engine
 from app.routers import garmin_courses, auth, admin, users, user_courses, map
 from app.models import Base
@@ -20,14 +19,11 @@ try:
 except ImportError:
     sentry_sdk_available = False
 
-# Load environment variables
-load_dotenv()
-
 # Initialize Sentry if DSN is provided and sentry_sdk is available
-if sentry_sdk_available and os.getenv("SENTRY_DSN", ""):
+if sentry_sdk_available and settings.SENTRY_DSN:
     sentry_sdk.init(
-        dsn=os.getenv("SENTRY_DSN", ""),
-        traces_sample_rate=0.1,
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=settings.TRACES_SAMPLE_RATE,
         profiles_sample_rate=0.0,
     )
 
@@ -67,8 +63,7 @@ app.add_middleware(
 )
 
 # Define the static files directory
-static_dir = os.getenv("STATIC_FILES_DIR", "./dist")
-static_path = Path(static_dir).resolve()
+static_path = Path(settings.STATIC_FILES_DIR).resolve()
 assets_path = static_path / "assets"
 
 # Health check endpoint

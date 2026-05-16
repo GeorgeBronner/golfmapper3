@@ -1,12 +1,12 @@
-import os
 from pathlib import Path as FilePath
 from fastapi import APIRouter, HTTPException, Path
 from starlette import status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from app.config import settings
 from app.models import Courses, UserCourses
 from app.dependencies import db_dependency, user_dependency
 
-_MAP_DIR = FilePath(os.getenv("MAP_FILES_DIR", "./static/user_maps"))
+_MAP_DIR = FilePath(settings.MAP_FILES_DIR)
 
 
 def _invalidate_user_map(user_id: int) -> None:

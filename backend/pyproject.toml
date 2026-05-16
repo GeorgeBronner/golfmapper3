@@ -29,6 +29,7 @@ dependencies = [
     "certifi",
     "pytest>=7.0.0",
     "pytest-asyncio",
+    "pydantic-settings>=2.14.1",
 ]
 
 [project.optional-dependencies]

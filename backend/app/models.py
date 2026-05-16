@@ -1,7 +1,7 @@
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime, UniqueConstraint
 
 
 class Courses(Base):
@@ -10,7 +10,7 @@ class Courses(Base):
     id = Column(Integer, primary_key=True)
     club_name = Column(String)
     course_name = Column(String)
-    created_at = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=True)
     address = Column(String, nullable=True)
     city = Column(String)
     state = Column(String)
@@ -66,3 +66,7 @@ class UserCourses(Base):
 
     user = relationship("Users", back_populates="courses")
     course = relationship("Courses", back_populates="user_courses")
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'course_id', 'year', name='uq_user_course_year'),
+    )
