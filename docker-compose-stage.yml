@@ -1,0 +1,17 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gm3-stage-backend
+    ports:
+      - "8005:8005"
+    volumes:
+      - type: bind
+        source: ${DB_PATH:-./backend/golf_mapper.db}
+        target: /app/app/golf_mapper.db
+    environment:
+      - ENVIRONMENT=staging
+      - STATIC_FILES_DIR=./dist
+      - SECRET_KEY_AUTH=${SECRET_KEY_AUTH}
+    restart: unless-stopped
