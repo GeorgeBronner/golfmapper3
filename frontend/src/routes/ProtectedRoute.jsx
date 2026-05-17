@@ -20,11 +20,15 @@ const ProtectedRoute = () => {
         return <Navigate to="/" />;
     }
 
-    return <div>
-    <Header />
-    <Outlet />
-    <Footer />
-    </div>;
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <Header />
+            <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <Outlet />
+            </main>
+            <Footer />
+        </div>
+    );
 };
 
 export default ProtectedRoute;

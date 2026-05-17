@@ -43,7 +43,7 @@ function Map() {
     }, [token]);
 
     return (
-        <div className="App">
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <h1>Your Map</h1>
             {status === 'loading' && <p>Loading...</p>}
             {status === 'generating' && <p>Generating your map...</p>}
@@ -52,9 +52,7 @@ function Map() {
             <iframe
                 ref={iframeRef}
                 title="Golf Course Map"
-                width="100%"
-                height="800px"
-                style={{ border: 'none', display: status === 'loaded' ? 'block' : 'none' }}
+                style={{ flex: 1, border: 'none', minHeight: 0, display: status === 'loaded' ? 'block' : 'none' }}
             />
         </div>
     );
