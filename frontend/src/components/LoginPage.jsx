@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import api from '../services/api';
 
@@ -28,18 +28,69 @@ function LoginPage() {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            {error && <div className="alert alert-danger" role="alert">{error}</div>}
-            <label>
-                Username:
-                <input type="text" value={username} onChange={e => setUsername(e.target.value)} />
-            </label>
-            <label>
-                Password:
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} />
-            </label>
-            <input type="submit" value="Login" />
-        </form>
+        <div className="login-shell">
+            {/* Left hero panel */}
+            <div className="login-hero">
+                <div className="login-hero-logo">⛳ GolfMapper</div>
+                <div>
+                    <div className="login-hero-tagline">
+                        Track every course<br />you've <span>ever played.</span>
+                    </div>
+                    <div className="login-hero-sub">
+                        Your personal golf course journal, beautifully mapped.
+                    </div>
+                </div>
+                <div className="login-hero-dots">
+                    <div className="login-hero-dot active" />
+                    <div className="login-hero-dot" />
+                    <div className="login-hero-dot" />
+                </div>
+            </div>
+
+            {/* Right form panel */}
+            <div className="login-form-panel">
+                <div>
+                    <div className="login-form-title">Welcome back</div>
+                    <div className="login-form-subtitle">Sign in to your GolfMapper account</div>
+                </div>
+
+                {error && <div className="alert-danger" role="alert">{error}</div>}
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="login-username">Username</label>
+                        <input
+                            id="login-username"
+                            className="form-input"
+                            type="text"
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                            placeholder="your_username"
+                            autoComplete="username"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="login-password">Password</label>
+                        <input
+                            id="login-password"
+                            className="form-input"
+                            type="password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            autoComplete="current-password"
+                        />
+                    </div>
+                    <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '11px' }}>
+                        Sign In
+                    </button>
+                </form>
+
+                <div className="login-footer-link">
+                    Don't have an account? <Link to="/register">Create one free →</Link>
+                </div>
+            </div>
+        </div>
     );
 }
 

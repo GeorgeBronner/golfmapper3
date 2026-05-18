@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import {
     flexRender,
@@ -20,15 +21,7 @@ function GarminCourses() {
             .finally(() => setLoading(false));
     }, []);
 
-    useEffect(() => {
-        fetchCourses();
-    }, [fetchCourses]);
-
-    const deleteUserCourse = (id) => {
-        api.delete(`/user_courses/delete/${id}`)
-            .then(() => fetchCourses())
-            .catch(error => console.error(error));
-    };
+    useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
     const columns = useMemo(() => [
         { accessorKey: 'display_name', header: 'Course Name' },
@@ -36,10 +29,13 @@ function GarminCourses() {
         { accessorKey: 'state', header: 'State' },
         { accessorKey: 'country', header: 'Country' },
         {
-            id: 'actions',
-            header: 'Actions',
+            id: 'add_link',
+            accessorKey: 'id',
+            header: 'Add',
             cell: ({ row }) => (
-                <button onClick={() => deleteUserCourse(row.original.id)}>Delete</button>
+                <Link to={`/add_course_by_id/${row.original.id}`} className="btn-primary" style={{ padding: '5px 10px', fontSize: '12px' }}>
+                    Add
+                </Link>
             ),
             enableGlobalFilter: false,
         },
@@ -56,49 +52,66 @@ function GarminCourses() {
         initialState: { pagination: { pageSize: 20 } },
     });
 
-    if (loading) return <p>Loading courses...</p>;
+    if (loading) return <p className="loading-text">Loading courses…</p>;
+
+    const filtered = table.getFilteredRowModel().rows.length;
 
     return (
-        <div className="course-list-container">
-            <div style={{ marginBottom: '0.5rem' }}>
-                <input
-                    value={globalFilter ?? ''}
-                    onChange={e => setGlobalFilter(e.target.value)}
-                    placeholder="Search courses..."
-                    style={{ padding: '0.4rem', width: '300px' }}
-                />
+        <div>
+            <div className="page-header">
+                <div>
+                    <div className="page-title">All Courses</div>
+                    <div className="page-subtitle">Browse the full Garmin course database</div>
+                </div>
             </div>
-            <table className="course-table">
-                <thead>
-                    {table.getHeaderGroups().map(hg => (
-                        <tr key={hg.id}>
-                            {hg.headers.map(header => (
-                                <th key={header.id}>
-                                    {flexRender(header.column.columnDef.header, header.getContext())}
-                                </th>
+
+            <div className="table-card">
+                <div className="table-card-header">
+                    <span className="table-card-title">{filtered.toLocaleString()} courses</span>
+                    <input
+                        className="filter-input"
+                        value={globalFilter ?? ''}
+                        onChange={e => setGlobalFilter(e.target.value)}
+                        placeholder="🔍 Search courses…"
+                        style={{ width: '220px' }}
+                    />
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="fairway-table">
+                        <thead>
+                            {table.getHeaderGroups().map(hg => (
+                                <tr key={hg.id}>
+                                    {hg.headers.map(header => (
+                                        <th key={header.id}>
+                                            {flexRender(header.column.columnDef.header, header.getContext())}
+                                        </th>
+                                    ))}
+                                </tr>
                             ))}
-                        </tr>
-                    ))}
-                </thead>
-                <tbody>
-                    {table.getRowModel().rows.map(row => (
-                        <tr key={row.id}>
-                            {row.getVisibleCells().map(cell => (
-                                <td key={cell.id}>
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
+                        </thead>
+                        <tbody>
+                            {table.getRowModel().rows.map(row => (
+                                <tr key={row.id}>
+                                    {row.getVisibleCells().map(cell => (
+                                        <td key={cell.id}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </td>
+                                    ))}
+                                </tr>
                             ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>{'<'}</button>
-                <span>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
-                <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>{'>'}</button>
-                <span style={{ marginLeft: '1rem' }}>
-                    {table.getFilteredRowModel().rows.length.toLocaleString()} courses
-                </span>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="pagination-row">
+                    <button className="pagination-btn" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹ Prev</button>
+                    <span className="pagination-info">
+                        Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                    </span>
+                    <button className="pagination-btn" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next ›</button>
+                    <span className="pagination-count">{filtered.toLocaleString()} results</span>
+                </div>
             </div>
         </div>
     );

@@ -1,18 +1,26 @@
 import React from 'react';
 
-function CourseCard(props) {
+function CourseCard({ id, display_name, city, year, onDelete }) {
     function handleClick() {
-        if (!window.confirm(`Delete "${props.display_name}"?`)) return;
-        props.onDelete(props.id);
+        if (!window.confirm(`Delete "${display_name}"?`)) return;
+        onDelete(id);
     }
 
     return (
-        <tr className="course-row">
-            <td>{props.display_name}</td>
-            <td>{props.city}</td>
-            <td>{props.year}</td>
+        <tr>
+            <td className="td-course-name">{display_name}</td>
+            <td className="td-location">{city}</td>
+            <td className="td-year">{year}</td>
             <td>
-                <button onClick={handleClick}>DELETE</button>
+                <button
+                    type="button"
+                    className="btn-delete-icon"
+                    onClick={handleClick}
+                    aria-label={`Delete ${display_name}`}
+                    title={`Delete ${display_name}`}
+                >
+                    🗑
+                </button>
             </td>
         </tr>
     );

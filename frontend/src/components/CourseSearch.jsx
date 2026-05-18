@@ -11,53 +11,43 @@ import {
 } from '@tanstack/react-table';
 
 function CourseSearch() {
-    const columns = useMemo(
-        () => [
-            {
-                accessorKey: 'display_name',
-                header: () => 'Course',
-                cell: info => info.getValue(),
-                footer: props => props.column.id,
-            },
-            {
-                accessorFn: row => row.city,
-                id: 'city',
-                cell: info => info.getValue(),
-                header: () => <span>City</span>,
-                footer: props => props.column.id,
-            },
-            {
-                accessorKey: 'state',
-                header: () => 'State',
-                footer: props => props.column.id,
-            },
-            {
-                accessorKey: 'country',
-                header: () => <span>Country</span>,
-                footer: props => props.column.id,
-            },
-            {
-                accessorKey: 'id',
-                header: () => 'ID',
-                cell: info => info.getValue(),
-                footer: props => props.column.id,
-                enableColumnFilter: false,
-            },
-            {
-                id: 'add_link',
-                accessorKey: 'id',
-                header: () => <span style={{ padding: '0 10px' }}>Link to Add</span>,
-                cell: info => (
-                    <Link to={`/add_course_by_id/${info.getValue()}`} style={{ padding: '0 10px' }}>
-                        {"Add Course"}
-                    </Link>
-                ),
-                footer: props => props.column.id,
-                enableColumnFilter: false, // Disable filtering for this column
-            },
-        ],
-        []
-    );
+    const columns = useMemo(() => [
+        {
+            accessorKey: 'display_name',
+            header: 'Course',
+            cell: info => info.getValue(),
+        },
+        {
+            accessorFn: row => row.city,
+            id: 'city',
+            header: 'City',
+            cell: info => info.getValue(),
+        },
+        {
+            accessorKey: 'state',
+            header: 'State',
+        },
+        {
+            accessorKey: 'country',
+            header: 'Country',
+        },
+        {
+            accessorKey: 'id',
+            header: 'ID',
+            enableColumnFilter: false,
+        },
+        {
+            id: 'add_link',
+            accessorKey: 'id',
+            header: 'Add',
+            cell: info => (
+                <Link to={`/add_course_by_id/${info.getValue()}`} className="btn-primary" style={{ padding: '5px 10px', fontSize: '12px' }}>
+                    Add
+                </Link>
+            ),
+            enableColumnFilter: false,
+        },
+    ], []);
 
     const [courseData, setCourseData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -74,31 +64,27 @@ function CourseSearch() {
         }
     }, []);
 
-    useEffect(() => {
-        refreshData();
-    }, [refreshData]);
+    useEffect(() => { refreshData(); }, [refreshData]);
 
-    if (loading) return <p>Loading courses...</p>;
+    if (loading) return <p className="loading-text">Loading courses…</p>;
 
     return (
-        <>
-            <MyTable
-                data={courseData}
-                columns={columns}
-            />
-            <hr />
-            <div>
-                <button onClick={() => refreshData()}>Refresh Data</button>
+        <div>
+            <div className="page-header">
+                <div>
+                    <div className="page-title">Course Search</div>
+                    <div className="page-subtitle">Filter by any column to find a course</div>
+                </div>
+                <button className="btn-ghost" onClick={refreshData}>⟳ Refresh</button>
             </div>
-        </>
+
+            <SearchTable data={courseData} columns={columns} />
+        </div>
     );
 }
 
-function MyTable({ data, columns }) {
-    const [pagination, setPagination] = useState({
-        pageIndex: 0,
-        pageSize: 10,
-    });
+function SearchTable({ data, columns }) {
+    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
     const table = useReactTable({
         columns,
@@ -108,172 +94,93 @@ function MyTable({ data, columns }) {
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         onPaginationChange: setPagination,
-        state: {
-            pagination,
-        },
+        state: { pagination },
     });
 
     return (
-        <div className="p-2">
-            <div className="h-2" />
-            <table>
-                <thead>
-                {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id}>
-                        {headerGroup.headers.map(header => (
-                            <th key={header.id} colSpan={header.colSpan}>
-                                <div
-                                    className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
-                                    onClick={header.column.getToggleSortingHandler()}
-                                >
-                                    {flexRender(
-                                        header.column.columnDef.header,
-                                        header.getContext()
-                                    )}
-                                    {{
-                                        asc: ' 🔼',
-                                        desc: ' 🔽',
-                                    }[header.column.getIsSorted()] ?? null}
-                                    {header.column.getCanFilter() ? (
-                                        <div>
-                                            <Filter column={header.column} table={table} />
-                                        </div>
-                                    ) : null}
-                                </div>
-                            </th>
-                        ))}
-                    </tr>
-                ))}
-                </thead>
-                <tbody>
-                {table.getRowModel().rows.map(row => (
-                    <tr key={row.id}>
-                        {row.getVisibleCells().map(cell => (
-                            <td key={cell.id}>
-                                {flexRender(
-                                    cell.column.columnDef.cell,
-                                    cell.getContext()
-                                )}
-                            </td>
-                        ))}
-                    </tr>
-                ))}
-                </tbody>
-            </table>
-            <div className="h-2" />
-            <div className="flex items-center gap-2">
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.firstPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    {'<<'}
-                </button>
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    {'<'}
-                </button>
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    {'>'}
-                </button>
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.lastPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    {'>>'}
-                </button>
-                <span className="flex items-center gap-1">
-                    <div>Page</div>
-                    <strong>
-                        {table.getState().pagination.pageIndex + 1} of{' '}
-                        {table.getPageCount().toLocaleString()}
-                    </strong>
+        <div className="table-card">
+            <div className="table-card-header">
+                <span className="table-card-title">
+                    {table.getFilteredRowModel().rows.length.toLocaleString()} of {table.getRowCount().toLocaleString()} courses
                 </span>
-                <span className="flex items-center gap-1">
-                    | Go to page:
-                    <input
-                        type="number"
-                        min="1"
-                        max={table.getPageCount()}
-                        defaultValue={table.getState().pagination.pageIndex + 1}
-                        onChange={e => {
-                            const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                            table.setPageIndex(page);
-                        }}
-                        className="border p-1 rounded w-16"
-                    />
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+                <table className="fairway-table">
+                    <thead>
+                        {table.getHeaderGroups().map(headerGroup => (
+                            <tr key={headerGroup.id}>
+                                {headerGroup.headers.map(header => (
+                                    <th
+                                        key={header.id}
+                                        colSpan={header.colSpan}
+                                        onClick={header.column.getToggleSortingHandler()}
+                                        tabIndex={header.column.getCanSort() ? 0 : undefined}
+                                        onKeyDown={e => {
+                                            if ((e.key === 'Enter' || e.key === ' ') && header.column.getCanSort())
+                                                header.column.getToggleSortingHandler()(e);
+                                        }}
+                                        style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                                    >
+                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                        {{ asc: ' ↑', desc: ' ↓' }[header.column.getIsSorted()] ?? null}
+                                        {header.column.getCanFilter() && (
+                                            <div onClick={e => e.stopPropagation()} style={{ marginTop: '4px' }}>
+                                                <ColumnFilter column={header.column} />
+                                            </div>
+                                        )}
+                                    </th>
+                                ))}
+                            </tr>
+                        ))}
+                    </thead>
+                    <tbody>
+                        {table.getRowModel().rows.map(row => (
+                            <tr key={row.id}>
+                                {row.getVisibleCells().map(cell => (
+                                    <td key={cell.id}>
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="pagination-row">
+                <button className="pagination-btn" onClick={() => table.firstPage()} disabled={!table.getCanPreviousPage()}>«</button>
+                <button className="pagination-btn" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹</button>
+                <span className="pagination-info">
+                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount().toLocaleString()}
                 </span>
+                <button className="pagination-btn" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</button>
+                <button className="pagination-btn" onClick={() => table.lastPage()} disabled={!table.getCanNextPage()}>»</button>
+                <span className="pagination-count">{table.getRowCount().toLocaleString()} total</span>
                 <select
                     value={table.getState().pagination.pageSize}
-                    onChange={e => {
-                        table.setPageSize(Number(e.target.value));
-                    }}
+                    onChange={e => table.setPageSize(Number(e.target.value))}
+                    className="filter-input"
+                    style={{ marginLeft: 'auto', width: 'auto' }}
                 >
-                    {[10, 20, 30, 40, 50].map(pageSize => (
-                        <option key={pageSize} value={pageSize}>
-                            Show {pageSize}
-                        </option>
+                    {[10, 20, 50].map(size => (
+                        <option key={size} value={size}>Show {size}</option>
                     ))}
                 </select>
-            </div>
-            <div>
-                Showing {table.getRowModel().rows.length.toLocaleString()} of{' '}
-                {table.getRowCount().toLocaleString()} Rows
             </div>
         </div>
     );
 }
 
-function Filter({ column, table }) {
-    const firstValue = table
-        .getPreFilteredRowModel()
-        .flatRows[0]?.getValue(column.id);
-
-    const columnFilterValue = column.getFilterValue();
-
-    return typeof firstValue === 'number' ? (
-        <div className="flex space-x-2" onClick={e => e.stopPropagation()}>
-            <input
-                type="number"
-                value={(columnFilterValue ?? [])[0] ?? ''}
-                onChange={e =>
-                    column.setFilterValue((old = []) => [
-                        e.target.value,
-                        old[1],
-                    ])
-                }
-                placeholder={`Min`}
-                className="w-24 border shadow rounded"
-            />
-            <input
-                type="number"
-                value={(columnFilterValue ?? [])[1] ?? ''}
-                onChange={e =>
-                    column.setFilterValue((old = []) => [
-                        old[0],
-                        e.target.value,
-                    ])
-                }
-                placeholder={`Max`}
-                className="w-24 border shadow rounded"
-            />
-        </div>
-    ) : (
+function ColumnFilter({ column }) {
+    const value = column.getFilterValue() ?? '';
+    return (
         <input
-            className="w-36 border shadow rounded"
+            className="filter-input"
+            value={value}
             onChange={e => column.setFilterValue(e.target.value)}
-            onClick={e => e.stopPropagation()}
-            placeholder={`Search...`}
-            type="text"
-            value={columnFilterValue ?? ''}
+            placeholder="Filter…"
+            style={{ width: '100%', fontSize: '11px', padding: '3px 6px' }}
         />
     );
 }

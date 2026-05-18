@@ -20,10 +20,7 @@ function CourseForm() {
         event.preventDefault();
         setSuccess('');
         setError('');
-        api.post('/user_courses/add_course', {
-            garmin_id: courseId,
-            year: year,
-        })
+        api.post('/user_courses/add_course', { garmin_id: courseId, year })
             .then(() => {
                 setSuccess('Course added successfully.');
                 setCourse('');
@@ -43,20 +40,50 @@ function CourseForm() {
 
     return (
         <div>
-            <form onSubmit={handleSubmit}>
-                <label>
-                    CourseId:
-                    <input type="text" value={courseId} onChange={e => setCourse(e.target.value)} />
-                </label>
-                <label>
-                    Year:
-                    <input type="number" value={year} onChange={e => setYear(e.target.value)} />
-                </label>
-                <input type="submit" value="Submit" />
-            </form>
-            {success && <div className="alert alert-success">{success}</div>}
-            {error && <div className="alert alert-danger">{error}</div>}
-            <button onClick={generateUserMap}>Generate User Map</button>
+            <div className="page-header">
+                <div>
+                    <div className="page-title">Add Course</div>
+                    <div className="page-subtitle">Enter a Garmin course ID and the year you played it</div>
+                </div>
+            </div>
+
+            <div className="form-card">
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="course-id">Course ID</label>
+                        <input
+                            id="course-id"
+                            className="form-input"
+                            type="text"
+                            value={courseId}
+                            onChange={e => setCourse(e.target.value)}
+                            placeholder="e.g. 12345"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="course-year">Year Played</label>
+                        <input
+                            id="course-year"
+                            className="form-input"
+                            type="number"
+                            value={year}
+                            onChange={e => setYear(e.target.value)}
+                            placeholder={new Date().getFullYear()}
+                            min="1900"
+                            max={new Date().getFullYear()}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button type="submit" className="btn-primary">Add Course</button>
+                        <button type="button" className="btn-ghost" onClick={generateUserMap}>
+                            🗺 Regenerate Map
+                        </button>
+                    </div>
+                </form>
+
+                {success && <div className="alert-success">{success}</div>}
+                {error && <div className="alert-danger">{error}</div>}
+            </div>
         </div>
     );
 }

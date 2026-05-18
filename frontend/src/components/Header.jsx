@@ -1,12 +1,8 @@
 import React from 'react';
-import { Link, useNavigate} from 'react-router-dom';
-import Navbar from "react-bootstrap/Navbar";
-import Container from "react-bootstrap/Container";
-import Nav from "react-bootstrap/Nav";
-import Button from "react-bootstrap/Button";
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 
-function Header() {
+function Header({ isOpen, onClose }) {
     const navigate = useNavigate();
     const { setToken } = useAuth();
 
@@ -15,23 +11,46 @@ function Header() {
         navigate('/');
     };
 
-    return (
-        <div>
+    const navLinkClass = ({ isActive }) =>
+        `nav-item${isActive ? ' active' : ''}`;
 
-        <Navbar bg="light" data-bs-theme="light">
-            <Container>
-                <Navbar.Brand href="#home">Golf Mapper 3</Navbar.Brand>
-                <Nav className="me-auto">
-                    <Nav.Link href="/course_list">Home</Nav.Link>
-                    <Nav.Link href="/add_course_by_id">Add Course</Nav.Link>
-                    <Nav.Link href="/garmin_course_list">All Course List</Nav.Link>
-                    <Nav.Link href="/course_search">Course Search</Nav.Link>
-                    <Nav.Link href="/map">Map</Nav.Link>
-                    <Button onClick={handleLogout}>Logout</Button>
-                </Nav>
-            </Container>
-        </Navbar>
-        </div>
+    return (
+        <nav className={`sidebar${isOpen ? ' open' : ''}`} role="navigation">
+            <Link to="/course_list" className="sidebar-brand" onClick={onClose}>
+                ⛳ GolfMapper
+            </Link>
+
+            <div className="nav-section">
+                <div className="nav-section-label">Navigation</div>
+                <NavLink to="/course_list" className={navLinkClass} onClick={onClose}>
+                    <span className="nav-icon">📋</span> My Courses
+                </NavLink>
+                <NavLink to="/map" className={navLinkClass} onClick={onClose}>
+                    <span className="nav-icon">🗺</span> My Map
+                </NavLink>
+                <NavLink to="/course_search" className={navLinkClass} onClick={onClose}>
+                    <span className="nav-icon">🔍</span> Course Search
+                </NavLink>
+                <NavLink to="/add_course_by_id" className={navLinkClass} onClick={onClose}>
+                    <span className="nav-icon">➕</span> Add Course
+                </NavLink>
+                <NavLink to="/garmin_course_list" className={navLinkClass} onClick={onClose}>
+                    <span className="nav-icon">📂</span> All Courses
+                </NavLink>
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="nav-section">
+                <button className="btn-logout" onClick={handleLogout}>
+                    <span className="nav-icon">🚪</span> Logout
+                </button>
+            </div>
+
+            <div className="sidebar-footer">
+                GolfMapper · v3
+            </div>
+        </nav>
     );
 }
 
