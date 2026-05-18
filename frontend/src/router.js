@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Outlet, Link } from 'react-router-dom';
 import CourseList from './components/CourseList';
 import CourseForm from './components/CourseForm';
 import Map from './components/Map';
@@ -13,7 +13,7 @@ const router = createBrowserRouter([
     {
         element: <Outlet />,
         children: [
-            { path: '/', element: <LoginPage />, index: true },
+            { path: '/', element: <LoginPage /> },
             { path: '/register', element: <NewUser /> },
         ],
     },
@@ -32,7 +32,7 @@ const router = createBrowserRouter([
         element: (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
                 <p>404 — Page not found.</p>
-                <a href="/">Back to login</a>
+                <Link to="/">Back to login</Link>
             </div>
         ),
     },

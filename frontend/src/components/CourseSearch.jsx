@@ -101,7 +101,7 @@ function SearchTable({ data, columns }) {
         <div className="table-card">
             <div className="table-card-header">
                 <span className="table-card-title">
-                    {table.getRowModel().rows.length.toLocaleString()} of {table.getRowCount().toLocaleString()} courses
+                    {table.getFilteredRowModel().rows.length.toLocaleString()} of {table.getRowCount().toLocaleString()} courses
                 </span>
             </div>
 
@@ -115,6 +115,11 @@ function SearchTable({ data, columns }) {
                                         key={header.id}
                                         colSpan={header.colSpan}
                                         onClick={header.column.getToggleSortingHandler()}
+                                        tabIndex={header.column.getCanSort() ? 0 : undefined}
+                                        onKeyDown={e => {
+                                            if ((e.key === 'Enter' || e.key === ' ') && header.column.getCanSort())
+                                                header.column.getToggleSortingHandler()(e);
+                                        }}
                                         style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
                                     >
                                         {flexRender(header.column.columnDef.header, header.getContext())}

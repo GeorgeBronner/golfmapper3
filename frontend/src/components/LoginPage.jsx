@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import api from '../services/api';
 
@@ -54,7 +54,7 @@ function LoginPage() {
                     <div className="login-form-subtitle">Sign in to your GolfMapper account</div>
                 </div>
 
-                {error && <div className="alert-danger">{error}</div>}
+                {error && <div className="alert-danger" role="alert">{error}</div>}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div className="form-group">
@@ -87,7 +87,7 @@ function LoginPage() {
                 </form>
 
                 <div className="login-footer-link">
-                    Don't have an account? <a href="/register">Create one free →</a>
+                    Don't have an account? <Link to="/register">Create one free →</Link>
                 </div>
             </div>
         </div>

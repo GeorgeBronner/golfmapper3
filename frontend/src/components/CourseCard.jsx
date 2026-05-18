@@ -12,7 +12,13 @@ function CourseCard({ id, display_name, city, year, onDelete }) {
             <td className="td-location">{city}</td>
             <td className="td-year">{year}</td>
             <td>
-                <button className="btn-delete-icon" onClick={handleClick} title={`Delete ${display_name}`}>
+                <button
+                    type="button"
+                    className="btn-delete-icon"
+                    onClick={handleClick}
+                    aria-label={`Delete ${display_name}`}
+                    title={`Delete ${display_name}`}
+                >
                     🗑
                 </button>
             </td>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
 function NewUser() {
@@ -46,7 +46,7 @@ function NewUser() {
                     <div className="login-form-subtitle">Free forever. No credit card needed.</div>
                 </div>
 
-                {error && <div className="alert-danger">{error}</div>}
+                {error && <div className="alert-danger" role="alert">{error}</div>}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div className="form-group">
@@ -79,7 +79,7 @@ function NewUser() {
                 </form>
 
                 <div className="login-footer-link">
-                    Already have an account? <a href="/">Sign in →</a>
+                    Already have an account? <Link to="/">Sign in →</Link>
                 </div>
             </div>
         </div>

@@ -1,45 +1,58 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthProvider';
 
 function Map() {
     const iframeRef = useRef(null);
+    const activeCallRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
 
-    const loadMap = async () => {
+    const loadMap = useCallback(async () => {
+        const callId = {};
+        activeCallRef.current = callId;
+        const isCurrent = () => activeCallRef.current === callId;
+
         setStatus('loading');
         try {
             const coursesRes = await api.get('/user_courses/readall_ids_w_year');
+            if (!isCurrent()) return;
             if (coursesRes.data.length === 0) {
                 setStatus('empty');
                 return;
             }
         } catch {
-            setStatus('error');
+            if (isCurrent()) setStatus('error');
             return;
         }
 
-        api.get('/map/usermap?rand=' + new Date())
-            .catch(error => {
+        try {
+            let response;
+            try {
+                response = await api.get('/map/usermap?rand=' + new Date());
+            } catch (error) {
+                if (!isCurrent()) return;
                 if (error.response?.status === 404) {
                     setStatus('generating');
-                    return api.get('/map/user_map_generate')
-                        .then(() => api.get('/map/usermap'));
+                    await api.get('/map/user_map_generate');
+                    if (!isCurrent()) return;
+                    response = await api.get('/map/usermap');
+                } else {
+                    throw error;
                 }
-                throw error;
-            })
-            .then(response => {
-                const doc = iframeRef.current.contentWindow.document;
-                doc.open();
-                doc.write(response.data);
-                doc.close();
-                setStatus('loaded');
-            })
-            .catch(() => setStatus('error'));
-    };
+            }
+            if (!isCurrent()) return;
+            const doc = iframeRef.current.contentWindow.document;
+            doc.open();
+            doc.write(response.data);
+            doc.close();
+            setStatus('loaded');
+        } catch {
+            if (isCurrent()) setStatus('error');
+        }
+    }, []);
 
-    useEffect(() => { loadMap(); }, [token]);
+    useEffect(() => { loadMap(); }, [token, loadMap]);
 
     return (
         <div className="map-wrapper">

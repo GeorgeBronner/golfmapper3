@@ -276,7 +276,8 @@
 .td-course-name { font-weight: 500; }
 .td-location { color: var(--text-secondary); font-size: 13px; }
 .td-year {
-  font-family: 'Inter', monospace;
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
   color: var(--primary);
   font-weight: 600;
   font-size: 13px;

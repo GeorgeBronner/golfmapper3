@@ -83,13 +83,25 @@ function CourseList() {
                         <table className="fairway-table">
                             <thead>
                                 <tr>
-                                    <th onClick={() => sortData('display_name')}>
+                                    <th
+                                        onClick={() => sortData('display_name')}
+                                        tabIndex={0}
+                                        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && sortData('display_name')}
+                                    >
                                         Course Name {sortConfig.key === 'display_name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
                                     </th>
-                                    <th onClick={() => sortData('city')}>
+                                    <th
+                                        onClick={() => sortData('city')}
+                                        tabIndex={0}
+                                        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && sortData('city')}
+                                    >
                                         Location {sortConfig.key === 'city' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
                                     </th>
-                                    <th onClick={() => sortData('year')}>
+                                    <th
+                                        onClick={() => sortData('year')}
+                                        tabIndex={0}
+                                        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && sortData('year')}
+                                    >
                                         Year {sortConfig.key === 'year' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
                                     </th>
                                     <th style={{ width: '48px' }}></th>
