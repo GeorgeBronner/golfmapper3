@@ -24,7 +24,7 @@ describe('LoginPage', () => {
 
     it('renders a login submit button', () => {
         renderWithProviders(<LoginPage />);
-        expect(screen.getByDisplayValue(/login/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
 
     it('does not show an error message on initial render', () => {
