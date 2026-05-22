@@ -4,7 +4,7 @@ import { useAuth } from './AuthProvider';
 
 function Header({ isOpen, onClose }) {
     const navigate = useNavigate();
-    const { setToken } = useAuth();
+    const { setToken, userRole } = useAuth();
 
     const handleLogout = () => {
         setToken(null);
@@ -37,6 +37,11 @@ function Header({ isOpen, onClose }) {
                 <NavLink to="/garmin_course_list" className={navLinkClass} onClick={onClose}>
                     <span className="nav-icon">📂</span> All Courses
                 </NavLink>
+                {userRole === 'admin' && (
+                    <NavLink to="/admin/users" className={navLinkClass} onClick={onClose}>
+                        <span className="nav-icon">⚙️</span> Admin
+                    </NavLink>
+                )}
             </div>
 
             <div className="sidebar-divider" />

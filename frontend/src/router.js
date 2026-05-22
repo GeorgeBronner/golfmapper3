@@ -5,9 +5,11 @@ import CourseForm from './components/CourseForm';
 import Map from './components/Map';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './routes/ProtectedRoute';
+import AdminRoute from './routes/AdminRoute';
 import NewUser from './components/NewUser';
 import GarminCourses from './components/GarminCourses';
 import CourseSearch from './components/CourseSearch';
+import AdminUsers from './components/AdminUsers';
 
 const router = createBrowserRouter([
     {
@@ -25,6 +27,12 @@ const router = createBrowserRouter([
             { path: '/garmin_course_list', element: <GarminCourses /> },
             { path: '/map', element: <Map /> },
             { path: '/course_search', element: <CourseSearch /> },
+        ],
+    },
+    {
+        element: <AdminRoute />,
+        children: [
+            { path: '/admin/users', element: <AdminUsers /> },
         ],
     },
     {

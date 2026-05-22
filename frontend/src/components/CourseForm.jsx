@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { generateUserMap } from '../utils/mapUtils';
 
 function CourseForm() {
     const { courseIdParam } = useParams();
+    const navigate = useNavigate();
     const [courseId, setCourse] = useState('');
     const [year, setYear] = useState('');
     const [success, setSuccess] = useState('');
@@ -75,7 +76,11 @@ function CourseForm() {
                     </div>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         <button type="submit" className="btn-primary">Add Course</button>
-                        <button type="button" className="btn-ghost" onClick={generateUserMap}>
+                        <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() => generateUserMap().then(() => setTimeout(() => navigate('/map'), 50))}
+                        >
                             🗺 Regenerate Map
                         </button>
                     </div>

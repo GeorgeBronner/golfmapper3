@@ -679,6 +679,44 @@
 }
 
 /* ══════════════════════════════════════════════
+   ADMIN TOP NAV
+══════════════════════════════════════════════ */
+.admin-topnav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.admin-nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.admin-nav-link:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.admin-nav-link.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* ══════════════════════════════════════════════
    RESPONSIVE — MOBILE
 ══════════════════════════════════════════════ */
 @media (max-width: 768px) {
@@ -766,5 +804,10 @@
 
   .map-iframe {
     min-height: 300px;
+  }
+
+  .admin-topnav {
+    flex-wrap: wrap;
+    padding: 0 16px;
   }
 }

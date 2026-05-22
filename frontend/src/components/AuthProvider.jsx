@@ -3,11 +3,16 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const AuthContext = createContext();
 
+const getUserRole = (tkn) => {
+    if (!tkn) return null;
+    try {
+        return JSON.parse(atob(tkn.split('.')[1])).role ?? null;
+    } catch { return null; }
+};
+
 const AuthProvider = ({ children }) => {
-    // State to hold the authentication token
     const [token, setToken_] = useState(localStorage.getItem("token"));
 
-    // Function to set the authentication token
     const setToken = (newToken) => {
         setToken_(newToken);
     };
@@ -22,11 +27,11 @@ const AuthProvider = ({ children }) => {
         }
     }, [token]);
 
-    // Memoized value of the authentication context
     const contextValue = useMemo(
         () => ({
             token,
             setToken,
+            userRole: getUserRole(token),
         }),
         [token]
     );
