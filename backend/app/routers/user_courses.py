@@ -80,6 +80,7 @@ async def readall_ids_w_year(user: user_dependency, db: db_dependency):
         db.query(Courses, UserCourses.year, UserCourses.id)
         .join(UserCourses, Courses.id == UserCourses.course_id)
         .filter(UserCourses.user_id == user.get("id"))
+        .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
         .all()
     )
     courses = []

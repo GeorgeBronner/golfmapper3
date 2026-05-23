@@ -10,6 +10,13 @@ const getUserRole = (tkn) => {
     } catch { return null; }
 };
 
+const getUsername = (tkn) => {
+    if (!tkn) return null;
+    try {
+        return JSON.parse(atob(tkn.split('.')[1])).sub ?? null;
+    } catch { return null; }
+};
+
 const AuthProvider = ({ children }) => {
     const [token, setToken_] = useState(localStorage.getItem("token"));
 
@@ -32,6 +39,7 @@ const AuthProvider = ({ children }) => {
             token,
             setToken,
             userRole: getUserRole(token),
+            username: getUsername(token),
         }),
         [token]
     );

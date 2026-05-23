@@ -4,7 +4,7 @@ import { useAuth } from './AuthProvider';
 
 function Header({ isOpen, onClose }) {
     const navigate = useNavigate();
-    const { setToken, userRole } = useAuth();
+    const { setToken, userRole, username } = useAuth();
 
     const handleLogout = () => {
         setToken(null);
@@ -34,9 +34,6 @@ function Header({ isOpen, onClose }) {
                 <NavLink to="/add_course_by_id" className={navLinkClass} onClick={onClose}>
                     <span className="nav-icon">➕</span> Add Course
                 </NavLink>
-                <NavLink to="/garmin_course_list" className={navLinkClass} onClick={onClose}>
-                    <span className="nav-icon">📂</span> All Courses
-                </NavLink>
                 {userRole === 'admin' && (
                     <NavLink to="/admin/users" className={navLinkClass} onClick={onClose}>
                         <span className="nav-icon">⚙️</span> Admin
@@ -53,6 +50,11 @@ function Header({ isOpen, onClose }) {
             </div>
 
             <div className="sidebar-footer">
+                {username && (
+                    <NavLink to="/profile" className={navLinkClass} onClick={onClose} style={{ marginBottom: '6px' }}>
+                        <span className="nav-icon">👤</span> {username}
+                    </NavLink>
+                )}
                 GolfMapper · v3
             </div>
         </nav>

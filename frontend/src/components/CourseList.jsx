@@ -101,7 +101,21 @@ function CourseList() {
                                         tabIndex={0}
                                         onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && sortData('city')}
                                     >
-                                        Location {sortConfig.key === 'city' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                                        City {sortConfig.key === 'city' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                                    </th>
+                                    <th
+                                        onClick={() => sortData('state')}
+                                        tabIndex={0}
+                                        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && sortData('state')}
+                                    >
+                                        State {sortConfig.key === 'state' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                                    </th>
+                                    <th
+                                        onClick={() => sortData('country')}
+                                        tabIndex={0}
+                                        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && sortData('country')}
+                                    >
+                                        Country {sortConfig.key === 'country' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
                                     </th>
                                     <th
                                         onClick={() => sortData('year')}
@@ -121,6 +135,8 @@ function CourseList() {
                                         user_course_id={course.user_course_id}
                                         display_name={course.display_name}
                                         city={course.city}
+                                        state={course.state}
+                                        country={course.country}
                                         year={course.year}
                                         onDelete={() => deleteUserCourse(course.id)}
                                         onYearSave={(year) => updateYear(course.user_course_id, year)}

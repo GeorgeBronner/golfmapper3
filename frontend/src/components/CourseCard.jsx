@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-function CourseCard({ id, display_name, city, year, onDelete, onYearSave }) {
+function CourseCard({ id, display_name, city, state, country, year, onDelete, onYearSave }) {
     const [editing, setEditing] = useState(false);
     const [draftYear, setDraftYear] = useState('');
     const inputRef = useRef(null);
@@ -36,6 +36,8 @@ function CourseCard({ id, display_name, city, year, onDelete, onYearSave }) {
         <tr>
             <td className="td-course-name">{display_name}</td>
             <td className="td-location">{city}</td>
+            <td>{state}</td>
+            <td>{country}</td>
             <td
                 className="td-year"
                 onClick={editing ? undefined : startEdit}
