@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import api from '../services/api';
+import { nominatimToGeoFields } from '../utils/geoLookup';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -27,11 +28,12 @@ function LocationPicker({ position, setPosition, setForm }) {
                 .then(r => r.json())
                 .then(data => {
                     const a = data.address || {};
+                    const { city, state, country } = nominatimToGeoFields(a);
                     setForm(prev => ({
                         ...prev,
-                        city: a.city || a.town || a.village || a.hamlet || '',
-                        state: a.state || '',
-                        country: a.country || '',
+                        city,
+                        state,
+                        country,
                         address: a.road ? `${a.house_number ? a.house_number + ' ' : ''}${a.road}` : '',
                     }));
                 })
