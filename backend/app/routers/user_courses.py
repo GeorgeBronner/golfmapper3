@@ -39,6 +39,7 @@ class UserCourseRequest(BaseModel):
 
 class CourseResponse(BaseModel):
     id: int
+    user_course_id: int | None = None
     display_name: str
     club_name: str
     course_name: str
@@ -54,6 +55,16 @@ class CourseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class YearUpdateRequest(BaseModel):
+    year: int = Field(...)
+
+    @field_validator('year')
+    def check_year(cls, v):
+        if v < 1900 or v > 2070:
+            raise ValueError('Year must be between 1900 and 2070')
+        return v
+
+
 @router.get("/readall_ids", status_code=status.HTTP_200_OK, response_model=list[UserCourseOut])
 async def readall_ids(user: user_dependency, db: db_dependency):
     if user is None:
@@ -66,14 +77,15 @@ async def readall_ids_w_year(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     results = (
-        db.query(Courses, UserCourses.year)
+        db.query(Courses, UserCourses.year, UserCourses.id)
         .join(UserCourses, Courses.id == UserCourses.course_id)
         .filter(UserCourses.user_id == user.get("id"))
         .all()
     )
     courses = []
-    for course, year in results:
+    for course, year, uc_id in results:
         course.year = year
+        course.user_course_id = uc_id
         courses.append(course)
     return courses
 
@@ -102,6 +114,27 @@ async def add_user_course(user: user_dependency, db: db_dependency, user_course_
         user_id=user.get("id"),
     )
     db.add(user_course_model)
+    db.commit()
+    _invalidate_user_map(user.get("id"))
+
+
+@router.patch("/{user_course_id}/year", status_code=status.HTTP_200_OK)
+async def update_user_course_year(
+    user: user_dependency,
+    db: db_dependency,
+    year_update: YearUpdateRequest,
+    user_course_id: int = Path(ge=1),
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    uc = (
+        db.query(UserCourses)
+        .filter(UserCourses.id == user_course_id, UserCourses.user_id == user.get("id"))
+        .first()
+    )
+    if uc is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    uc.year = year_update.year
     db.commit()
     _invalidate_user_map(user.get("id"))
 

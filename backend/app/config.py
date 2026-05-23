@@ -38,6 +38,7 @@ class Settings(BaseSettings):
         "http://backend.bronnerapp.com",
         "https://golf-stage.lab.bronnerapp.com",
         "http://golf-stage.lab.bronnerapp.com",
+        "http://localhost:23441",
     ]
 
     model_config = SettingsConfigDict(

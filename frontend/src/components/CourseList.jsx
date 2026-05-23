@@ -23,6 +23,12 @@ function CourseList() {
             .catch(error => console.error(error));
     };
 
+    const updateYear = (userCourseId, year) => {
+        api.patch(`/user_courses/${userCourseId}/year`, { year })
+            .then(() => fetchCourses())
+            .catch(error => console.error(error));
+    };
+
     const sortData = (key) => {
         setSortConfig(prev => ({
             key,
@@ -110,12 +116,14 @@ function CourseList() {
                             <tbody>
                                 {sortedCourses.map(course => (
                                     <CourseCard
-                                        key={course.id}
+                                        key={course.user_course_id}
                                         id={course.id}
+                                        user_course_id={course.user_course_id}
                                         display_name={course.display_name}
                                         city={course.city}
                                         year={course.year}
                                         onDelete={() => deleteUserCourse(course.id)}
+                                        onYearSave={(year) => updateYear(course.user_course_id, year)}
                                     />
                                 ))}
                             </tbody>

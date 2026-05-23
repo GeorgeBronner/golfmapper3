@@ -3,22 +3,28 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
 function NewUser() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [form, setForm] = useState({ username: '', email: '', first_name: '', last_name: '', password: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
+
+    const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+    const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError('');
+        if (!isValidEmail(form.email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
         try {
-            await api.post('/auth/', { username, password });
+            await api.post('/auth/', form);
             navigate('/');
         } catch {
-            setError('Registration failed. That username may already be taken.');
+            setError('Registration failed. That username or email may already be taken.');
         }
-        setUsername('');
-        setPassword('');
+        setForm({ username: '', email: '', first_name: '', last_name: '', password: '' });
     };
 
     return (
@@ -49,16 +55,62 @@ function NewUser() {
                 {error && <div className="alert-danger" role="alert">{error}</div>}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="form-group" style={{ flex: 1 }}>
+                            <label className="form-label" htmlFor="reg-first-name">First Name</label>
+                            <input
+                                id="reg-first-name"
+                                className="form-input"
+                                type="text"
+                                name="first_name"
+                                value={form.first_name}
+                                onChange={handleChange}
+                                placeholder="Jane"
+                                autoComplete="given-name"
+                                required
+                            />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                            <label className="form-label" htmlFor="reg-last-name">Last Name</label>
+                            <input
+                                id="reg-last-name"
+                                className="form-input"
+                                type="text"
+                                name="last_name"
+                                value={form.last_name}
+                                onChange={handleChange}
+                                placeholder="Doe"
+                                autoComplete="family-name"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="reg-email">Email</label>
+                        <input
+                            id="reg-email"
+                            className="form-input"
+                            type="email"
+                            name="email"
+                            value={form.email}
+                            onChange={handleChange}
+                            placeholder="jane@example.com"
+                            autoComplete="email"
+                            required
+                        />
+                    </div>
                     <div className="form-group">
                         <label className="form-label" htmlFor="reg-username">Username</label>
                         <input
                             id="reg-username"
                             className="form-input"
                             type="text"
-                            value={username}
-                            onChange={e => setUsername(e.target.value)}
+                            name="username"
+                            value={form.username}
+                            onChange={handleChange}
                             placeholder="choose_a_username"
                             autoComplete="username"
+                            required
                         />
                     </div>
                     <div className="form-group">
@@ -67,10 +119,12 @@ function NewUser() {
                             id="reg-password"
                             className="form-input"
                             type="password"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
+                            name="password"
+                            value={form.password}
+                            onChange={handleChange}
                             placeholder="••••••••"
                             autoComplete="new-password"
+                            required
                         />
                     </div>
                     <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '11px' }}>
