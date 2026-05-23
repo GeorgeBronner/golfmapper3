@@ -28,6 +28,9 @@ function Header({ isOpen, onClose }) {
                 <NavLink to="/map" className={navLinkClass} onClick={onClose}>
                     <span className="nav-icon">🗺</span> My Map
                 </NavLink>
+                <NavLink to="/all_map" className={navLinkClass} onClick={onClose}>
+                    <span className="nav-icon">🌍</span> All Users Map
+                </NavLink>
                 <NavLink to="/course_search" className={navLinkClass} onClick={onClose}>
                     <span className="nav-icon">🔍</span> Course Search
                 </NavLink>

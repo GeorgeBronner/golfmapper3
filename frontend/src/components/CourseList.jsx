@@ -55,7 +55,10 @@ function CourseList() {
                     <div className="page-title">My Courses</div>
                     <div className="page-subtitle">{courses.length} course{courses.length !== 1 ? 's' : ''} tracked</div>
                 </div>
-                <Link to="/course_search" className="btn-primary">＋ Add Course</Link>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Link to="/course_search" className="btn-primary">＋ Add Course</Link>
+                    <Link to="/all_map" className="btn-ghost">🌍 All Users Map</Link>
+                </div>
             </div>
 
             <div className="stat-row">

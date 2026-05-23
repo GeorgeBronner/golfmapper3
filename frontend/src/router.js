@@ -3,6 +3,7 @@ import { createBrowserRouter, Outlet, Link } from 'react-router-dom';
 import CourseList from './components/CourseList';
 import CourseForm from './components/CourseForm';
 import Map from './components/Map';
+import AllUsersMap from './components/AllUsersMap';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
             { path: '/course_list', element: <CourseList /> },
             { path: '/add_course_by_id/:courseIdParam?', element: <CourseForm /> },
             { path: '/map', element: <Map /> },
+            { path: '/all_map', element: <AllUsersMap /> },
             { path: '/course_search', element: <CourseSearch /> },
             { path: '/profile', element: <UserProfile /> },
         ],
