@@ -1,0 +1,30 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest code
+        working-directory: /home/george/docker-config/golfmapper3
+        run: git pull
+
+      - name: Build frontend
+        working-directory: /home/george/docker-config/golfmapper3/frontend
+        run: |
+          export NVM_DIR="/home/george/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          npm install
+          npm run build:stage
+
+      - name: Build and deploy
+        working-directory: /home/george/docker-config/golfmapper3
+        run: |
+          docker compose -f docker-compose-stage.yml build --no-cache
+          docker compose -f docker-compose-stage.yml up -d
+
+      - name: Verify
+        run: docker logs gm3-stage-backend --tail 20
