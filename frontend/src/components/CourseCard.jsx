@@ -36,7 +36,12 @@ function CourseCard({ id, display_name, city, year, onDelete, onYearSave }) {
         <tr>
             <td className="td-course-name">{display_name}</td>
             <td className="td-location">{city}</td>
-            <td className="td-year">
+            <td
+                className="td-year"
+                onClick={editing ? undefined : startEdit}
+                title={editing ? undefined : 'Click to edit year'}
+                style={editing ? undefined : { cursor: 'pointer' }}
+            >
                 {editing ? (
                     <input
                         ref={inputRef}
@@ -50,11 +55,7 @@ function CourseCard({ id, display_name, city, year, onDelete, onYearSave }) {
                         max="2070"
                     />
                 ) : (
-                    <span
-                        onClick={startEdit}
-                        title="Click to edit year"
-                        style={{ cursor: 'pointer', borderBottom: '1px dashed var(--text-muted)', paddingBottom: '1px' }}
-                    >
+                    <span style={{ borderBottom: '1px dashed var(--text-muted)', paddingBottom: '1px' }}>
                         {year ?? '—'}
                     </span>
                 )}
