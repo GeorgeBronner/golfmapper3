@@ -1,4 +1,5 @@
 import bcrypt
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict
 from starlette import status
@@ -28,6 +29,22 @@ class PasswordReset(BaseModel):
     new_password: str
 
 
+class CourseCreate(BaseModel):
+    club_name: str | None = None
+    course_name: str | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+    latitude: float
+    longitude: float
+
+
+class LocationUpdate(BaseModel):
+    latitude: float
+    longitude: float
+
+
 @router.get("/")
 async def root(user: user_dependency):
     if user is None or user.get("role") != "admin":
@@ -51,6 +68,46 @@ async def delete_course(user: user_dependency, db: db_dependency, course_id: int
         raise HTTPException(status_code=404, detail="Course not found")
     db.delete(course_model)
     db.commit()
+
+
+@router.post("/courses", status_code=status.HTTP_201_CREATED, response_model=CourseBase)
+async def create_course(user: user_dependency, db: db_dependency, course_data: CourseCreate):
+    if user is None or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    course = Courses(
+        club_name=course_data.club_name,
+        course_name=course_data.course_name,
+        address=course_data.address,
+        city=course_data.city,
+        state=course_data.state,
+        country=course_data.country,
+        latitude=course_data.latitude,
+        longitude=course_data.longitude,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+@router.put("/courses/{course_id}/location", status_code=status.HTTP_200_OK, response_model=CourseBase)
+async def update_course_location(
+    user: user_dependency,
+    db: db_dependency,
+    location: LocationUpdate,
+    course_id: int = Path(ge=1),
+):
+    if user is None or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    course = db.query(Courses).filter(Courses.id == course_id).first()
+    if course is None:
+        raise HTTPException(status_code=404, detail="Course not found")
+    course.latitude = location.latitude
+    course.longitude = location.longitude
+    db.commit()
+    db.refresh(course)
+    return course
 
 
 @router.get("/users", status_code=status.HTTP_200_OK, response_model=list[UserSummary])
