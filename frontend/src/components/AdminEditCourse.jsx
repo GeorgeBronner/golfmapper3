@@ -12,6 +12,8 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
 
+const DEFAULT_CENTER = [39, -98];
+
 function FlyTo({ target }) {
     const map = useMap();
     useEffect(() => {
@@ -57,7 +59,9 @@ export default function AdminEditCourse() {
             const res = await api.get(`/garmin_courses/course/${courseId}`);
             const c = res.data;
             setCourse(c);
-            const pos = { lat: c.latitude, lng: c.longitude };
+            const pos = Number.isFinite(c.latitude) && Number.isFinite(c.longitude)
+                ? { lat: c.latitude, lng: c.longitude }
+                : null;
             setPosition(pos);
             setFlyTarget(pos);
         } catch (err) {
@@ -130,7 +134,7 @@ export default function AdminEditCourse() {
                     </p>
                     <Row>
                         <Col md={9}>
-                            <MapContainer center={[lat, lng]} zoom={14} style={{ height: '460px', width: '100%', borderRadius: '6px' }}>
+                            <MapContainer center={position ? [lat, lng] : DEFAULT_CENTER} zoom={position ? 14 : 4} style={{ height: '460px', width: '100%', borderRadius: '6px' }}>
                                 <TileLayer
                                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -146,7 +150,7 @@ export default function AdminEditCourse() {
                                 <div><strong>Lat:</strong> {lat?.toFixed(6)}</div>
                                 <div><strong>Lng:</strong> {lng?.toFixed(6)}</div>
                             </div>
-                            <Button variant="primary" onClick={handleSave} disabled={saving}>
+                            <Button variant="primary" onClick={handleSave} disabled={saving || !position}>
                                 {saving ? <><Spinner size="sm" className="me-1" />Saving…</> : 'Save Location'}
                             </Button>
                         </Col>

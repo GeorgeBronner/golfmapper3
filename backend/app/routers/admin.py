@@ -1,7 +1,7 @@
 import bcrypt
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Path
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from starlette import status
 from app.models import Courses, Users
 from app.dependencies import db_dependency, user_dependency
@@ -36,13 +36,13 @@ class CourseCreate(BaseModel):
     city: str | None = None
     state: str | None = None
     country: str | None = None
-    latitude: float
-    longitude: float
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
 
 
 class LocationUpdate(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
 
 
 @router.get("/")

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -15,11 +15,15 @@ L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, 
 const EMPTY_FORM = { club_name: '', course_name: '', address: '', city: '', state: '', country: '' };
 
 function LocationPicker({ position, setPosition, setForm }) {
+    const abortRef = useRef(null);
     useMapEvents({
         click(e) {
             const { lat, lng } = e.latlng;
             setPosition([lat, lng]);
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+            if (abortRef.current) abortRef.current.abort();
+            const controller = new AbortController();
+            abortRef.current = controller;
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { signal: controller.signal })
                 .then(r => r.json())
                 .then(data => {
                     const a = data.address || {};
@@ -31,7 +35,7 @@ function LocationPicker({ position, setPosition, setForm }) {
                         address: a.road ? `${a.house_number ? a.house_number + ' ' : ''}${a.road}` : '',
                     }));
                 })
-                .catch(() => {});
+                .catch(err => { if (err.name !== 'AbortError') console.error(err); });
         },
     });
     return position ? <Marker position={position} /> : null;
