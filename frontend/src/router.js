@@ -10,6 +10,8 @@ import NewUser from './components/NewUser';
 import GarminCourses from './components/GarminCourses';
 import CourseSearch from './components/CourseSearch';
 import AdminUsers from './components/AdminUsers';
+import AdminAddCourse from './components/AdminAddCourse';
+import AdminEditCourse from './components/AdminEditCourse';
 
 const router = createBrowserRouter([
     {
@@ -33,6 +35,8 @@ const router = createBrowserRouter([
         element: <AdminRoute />,
         children: [
             { path: '/admin/users', element: <AdminUsers /> },
+            { path: '/admin/add-course', element: <AdminAddCourse /> },
+            { path: '/admin/edit-course', element: <AdminEditCourse /> },
         ],
     },
     {
