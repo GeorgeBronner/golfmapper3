@@ -1,11 +1,13 @@
 from datetime import datetime
 from pathlib import Path as FilePath
+
 from fastapi import APIRouter, HTTPException, Path
-from starlette import status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from starlette import status
+
 from app.config import settings
-from app.models import Courses, UserCourses
 from app.dependencies import db_dependency, user_dependency
+from app.models import Courses, UserCourses
 
 _MAP_DIR = FilePath(settings.MAP_FILES_DIR)
 

@@ -1,10 +1,23 @@
 from datetime import datetime, timezone
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime, UniqueConstraint
 
-_now = lambda: datetime.now(timezone.utc)
+
+def _now():
+    return datetime.now(timezone.utc)
 
 
 class Courses(Base):
@@ -76,4 +89,19 @@ class UserCourses(Base):
 
     __table_args__ = (
         UniqueConstraint('user_id', 'course_id', 'year', name='uq_user_course_year'),
+    )
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token_hash = Column(String, nullable=False, unique=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+    __table_args__ = (
+        Index("ix_prt_token_hash", "token_hash"),
     )

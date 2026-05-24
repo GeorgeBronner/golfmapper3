@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
-from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, Float
-from sqlalchemy.orm import declarative_base, sessionmaker
+
 from dotenv import load_dotenv
+from sqlalchemy import Column, Float, Integer, String, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv(dotenv_path=Path(__file__).parent / '.env')
 
@@ -46,7 +46,7 @@ class courses(Base):
 Session_sqlite = sessionmaker(bind=engine_sqlite)
 session_sqlite = Session_sqlite()
 
-result = int(input(f"Which course id to you want to edit? "))
+result = int(input("Which course id to you want to edit? "))
 i = session_sqlite.get(courses, result)
 # j = session.get(courses, result)
 

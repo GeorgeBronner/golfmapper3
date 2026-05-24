@@ -1,9 +1,9 @@
 from pathlib import Path
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config import settings
-
 
 if settings.USE_SQLITE_DB:
     if settings.SQLITE_DB_URL:

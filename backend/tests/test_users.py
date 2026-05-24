@@ -1,18 +1,13 @@
-from app.dependencies import get_db, get_current_user
+import bcrypt
 from fastapi import status
-from .utils import *
+
+from app.dependencies import get_current_user, get_db
+from app.models import Users
+
+from .utils import TestingSessionLocal, app, client, override_get_current_user, override_get_db
 
 app.dependency_overrides[get_db] = override_get_db
 app.dependency_overrides[get_current_user] = override_get_current_user
-
-# id = Column(Integer, primary_key=True, index=True)
-# email = Column(String, unique=True)
-# username = Column(String, unique=True)
-# first_name = Column(String)
-# last_name = Column(String)
-# hashed_password = Column(String)
-# is_active = Column(Boolean, default=True)
-# role = Column(String)
 
 
 def test_return_user(test_user):
@@ -23,7 +18,7 @@ def test_return_user(test_user):
     assert response.json()["first_name"] == "firsttest"
     assert response.json()["last_name"] == "lasttest"
     assert response.json()["role"] == "admin"
-    assert response.json()["is_active"] == True
+    assert response.json()["is_active"]
 
 
 def test_password_change_success(test_user):

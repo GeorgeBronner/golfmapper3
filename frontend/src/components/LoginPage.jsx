@@ -86,6 +86,9 @@ function LoginPage() {
                     </button>
                 </form>
 
+                <div className="login-footer-link" style={{ textAlign: 'center' }}>
+                    <Link to="/forgot-password">Forgot password?</Link>
+                </div>
                 <div className="login-footer-link">
                     Don't have an account? <Link to="/register">Create one free →</Link>
                 </div>

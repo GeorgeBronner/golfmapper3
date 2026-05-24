@@ -1,6 +1,8 @@
-from app.dependencies import get_db, get_current_user
 from fastapi import status
-from .utils import *
+
+from app.dependencies import get_current_user, get_db
+
+from .utils import app, client, override_get_current_user, override_get_db
 
 app.dependency_overrides[get_db] = override_get_db
 app.dependency_overrides[get_current_user] = override_get_current_user
@@ -12,6 +14,7 @@ def test_readall_authenticated(test_user_courses):
     assert response.json() == [
         {
             "id": 200,
+            "user_course_id": None,
             "display_name": "RTJ Golf Trail at Magnolia Grove - Falls",
             "club_name": "RTJ Golf Trail at Magnolia Grove",
             "course_name": "Falls",

@@ -1,9 +1,11 @@
 from datetime import datetime
+
+import bcrypt
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
-from app.models import Users
+
 from app.dependencies import db_dependency, user_dependency
-import bcrypt
+from app.models import Users
 
 router = APIRouter(prefix="/user", tags=["user"])
 

@@ -312,6 +312,7 @@ dependencies = [
     { name = "folium" },
     { name = "geopy" },
     { name = "httpx" },
+    { name = "mailtrap" },
     { name = "pandas" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
@@ -334,6 +335,11 @@ dev = [
     { name = "ruff" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "bcrypt" },
@@ -344,6 +350,7 @@ requires-dist = [
     { name = "folium" },
     { name = "geopy" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "mailtrap", specifier = ">=2.0.0" },
     { name = "pandas", specifier = ">=2.0,<2.3" },
     { name = "psycopg2-binary" },
     { name = "pydantic", specifier = ">=2.3.0" },
@@ -354,7 +361,7 @@ requires-dist = [
     { name = "python-jose" },
     { name = "python-multipart" },
     { name = "requests" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.2.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0" },
     { name = "sentry-sdk", extras = ["fastapi"] },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", specifier = ">=1.4.0" },
@@ -362,6 +369,9 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.23.2" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.4.0" }]
 
 [[package]]
 name = "greenlet"
@@ -479,6 +489,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/71/69/826a5d1f45426c68d8f6539f8d275c0e4fcaa57f0c017ec3100986558a41/limits-5.8.0.tar.gz", hash = "sha256:c9e0d74aed837e8f6f50d1fcebcf5fd8130957287206bc3799adaee5092655da", size = 226104, upload-time = "2026-02-05T07:17:35.859Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/98/cb5ca20618d205a09d5bec7591fbc4130369c7e6308d9a676a28ff3ab22c/limits-5.8.0-py3-none-any.whl", hash = "sha256:ae1b008a43eb43073c3c579398bd4eb4c795de60952532dc24720ab45e1ac6b8", size = 60954, upload-time = "2026-02-05T07:17:34.425Z" },
+]
+
+[[package]]
+name = "mailtrap"
+version = "2.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/29/75/568f03714c42e8e3bee14a52711adbfc3556e5dea2ed7142b031578d6529/mailtrap-2.6.0.tar.gz", hash = "sha256:990b4f21c75f7a1cdfce6802b9a50ab31b9cdf6071402a15dda882fd0bb56857", size = 31028, upload-time = "2026-05-14T13:51:02.138Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/fe/15644d532361e8a277e9afddeff161c7f2cb9b98024130318a2b37b49a0b/mailtrap-2.6.0-py3-none-any.whl", hash = "sha256:764624917c5999790e42827cf03e4e3652008c5a9e3ab08e97f480a923dc0315", size = 46563, upload-time = "2026-05-14T13:51:00.764Z" },
 ]
 
 [[package]]

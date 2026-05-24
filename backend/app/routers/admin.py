@@ -1,10 +1,12 @@
-import bcrypt
 from datetime import datetime, timezone
+
+import bcrypt
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 from starlette import status
-from app.models import Courses, Users
+
 from app.dependencies import db_dependency, user_dependency
+from app.models import Courses, Users
 from app.routers.garmin_courses import CourseBase
 
 router = APIRouter(prefix="/admin", tags=["admin"])
