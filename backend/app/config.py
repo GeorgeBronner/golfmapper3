@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,10 @@ class Settings(BaseSettings):
     DB_PORT: str = "5432"
     SENTRY_DSN: str = ""
     STATIC_FILES_DIR: str = "./dist"
+    MAILTRAP_API_KEY: str = ""
+    APP_BASE_URL: str = "https://golf.bronnerapp.com"
+    FROM_EMAIL: str = "noreply@bronnerapp.com"
+    FROM_NAME: str = "GolfMapper"
     MAP_FILES_DIR: str = "./static/user_maps"
     TRACES_SAMPLE_RATE: float = 0.1
     TOKEN_EXPIRE_MINUTES: int = 90

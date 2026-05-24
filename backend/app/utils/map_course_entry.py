@@ -4,16 +4,17 @@ Allows adding new courses to the database by clicking on a map
 Uses OpenStreetMaps with Leaflet and reverse geocoding
 """
 
+import sys
+from datetime import datetime
+from typing import Optional
+
+import httpx
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from sqlalchemy import create_engine, Column, Integer, String, Float
-from sqlalchemy.orm import sessionmaker, declarative_base
 from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
-import uvicorn
-import sys
-import httpx
+from sqlalchemy import Column, Float, Integer, String, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Fix encoding for Windows console
 if sys.platform == "win32":
@@ -204,7 +205,7 @@ async def create_course(course: CourseCreate):
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
     finally:
         db.close()
 

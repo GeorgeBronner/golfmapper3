@@ -13,6 +13,8 @@ import UserProfile from './components/UserProfile';
 import AdminUsers from './components/AdminUsers';
 import AdminAddCourse from './components/AdminAddCourse';
 import AdminEditCourse from './components/AdminEditCourse';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 
 const router = createBrowserRouter([
     {
@@ -20,6 +22,8 @@ const router = createBrowserRouter([
         children: [
             { path: '/', element: <LoginPage /> },
             { path: '/register', element: <NewUser /> },
+            { path: '/forgot-password', element: <ForgotPassword /> },
+            { path: '/reset-password', element: <ResetPassword /> },
         ],
     },
     {

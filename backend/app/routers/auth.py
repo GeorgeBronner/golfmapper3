@@ -1,17 +1,19 @@
 import logging
-from datetime import timedelta, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
+
+import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-import bcrypt
 from starlette import status
-from app.models import Users
-from app.database import SessionLocal
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import jwt, JWTError
+
 from app.config import settings
+from app.database import SessionLocal
 from app.limiter import limiter
+from app.models import Users
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +63,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
         return {"username": username, "id": user_id, "role": user_role}
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials") from None
 
 
 class CreateUserRequest(BaseModel):

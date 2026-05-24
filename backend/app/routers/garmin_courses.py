@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from starlette import status
-from sqlalchemy import select, func
-from sqlalchemy.orm import Session
 from typing import Optional
-from app.models import Courses
-from app.dependencies import db_dependency, user_dependency, get_db
-from geopy.distance import geodesic
+
 import geopy.geocoders
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
+from geopy.distance import geodesic
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+from starlette import status
+
+from app.dependencies import db_dependency, get_db, user_dependency
+from app.models import Courses
 
 router = APIRouter(prefix="/garmin_courses", tags=["garmin_courses"])
 
@@ -91,7 +93,7 @@ async def get_city_coordinates(city: str = Query(...), state: str = None, countr
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=500, detail="Geocoding service error")
+        raise HTTPException(status_code=500, detail="Geocoding service error") from None
 
 
 def courses_from_location(
@@ -122,7 +124,7 @@ async def get_zipcode_coordinates(zipcode: str = Query(...), country: Optional[s
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=500, detail="Geocoding service error")
+        raise HTTPException(status_code=500, detail="Geocoding service error") from None
 
 
 @router.get("/zipcode_closest_courses/")
@@ -141,7 +143,7 @@ async def zipcode_closest_courses(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=500, detail="Geocoding service error")
+        raise HTTPException(status_code=500, detail="Geocoding service error") from None
 
 
 @router.get("/city_closest_courses/")
@@ -166,4 +168,4 @@ async def city_closest_courses(
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=500, detail="Geocoding service error")
+        raise HTTPException(status_code=500, detail="Geocoding service error") from None
