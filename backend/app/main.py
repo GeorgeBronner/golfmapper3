@@ -15,7 +15,7 @@ from app.config import settings
 from app.database import engine
 from app.limiter import limiter
 from app.models import Base
-from app.routers import admin, auth, garmin_courses, map, password_reset, user_courses, users
+from app.routers import admin, auth, course_requests, garmin_courses, map, password_reset, user_courses, users
 
 try:
     import sentry_sdk
@@ -95,6 +95,7 @@ app.include_router(users.router, prefix=API_PREFIX)
 app.include_router(user_courses.router, prefix=API_PREFIX)
 app.include_router(map.router, prefix=API_PREFIX)
 app.include_router(password_reset.router, prefix=API_PREFIX)
+app.include_router(course_requests.router, prefix=API_PREFIX)
 
 # --- Static assets ---
 if assets_path.exists() and assets_path.is_dir():

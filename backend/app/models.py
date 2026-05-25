@@ -92,6 +92,43 @@ class UserCourses(Base):
     )
 
 
+class CourseRequests(Base):
+    __tablename__ = "course_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_type = Column(String, nullable=False)   # "new_course" | "location_change"
+    status = Column(String, default="pending", nullable=False)  # "pending" | "approved" | "rejected"
+
+    submitted_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Only for location_change
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
+    original_latitude = Column(Float, nullable=True)
+    original_longitude = Column(Float, nullable=True)
+
+    # Proposed values (all fields for new_course; lat/lng for location_change)
+    club_name = Column(String, nullable=True)
+    course_name = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+
+    # Admin review
+    reviewed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    review_message = Column(String, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
+
+    submitted_by = relationship("Users", foreign_keys=[submitted_by_user_id])
+    reviewed_by = relationship("Users", foreign_keys=[reviewed_by_user_id])
+    course = relationship("Courses", foreign_keys=[course_id])
+
+
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
