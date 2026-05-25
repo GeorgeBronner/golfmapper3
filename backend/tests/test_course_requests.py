@@ -180,13 +180,16 @@ def test_admin_approve_new_course_creates_course_and_user_courses(admin_user):
 
     resp = client.post(f"/api/v1/course-requests/admin/{req_id}/approve")
     assert resp.status_code == status.HTTP_200_OK
-    assert resp.json()["status"] == "approved"
+    data = resp.json()
+    assert data["status"] == "approved"
+    assert data["approved_course_id"] is not None
 
     # Course should now exist in the DB
     db = TestingSessionLocal()
     course = db.query(Courses).filter(Courses.club_name == "Approved Club").first()
     assert course is not None
     assert course.latitude == pytest.approx(29.7604)
+    assert data["approved_course_id"] == course.id
 
     # And be added to the submitting user's course list
     uc = db.query(UserCourses).filter(UserCourses.course_id == course.id, UserCourses.user_id == 1).first()

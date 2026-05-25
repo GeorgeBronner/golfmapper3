@@ -106,6 +106,9 @@ function RequestCard({ req, onAction }) {
                 <span><strong>{courseName}</strong></span>
                 <div className="d-flex align-items-center gap-2">
                     <StatusBadge status={req.status} />
+                    {req.status === 'approved' && req.request_type === 'new_course' && req.approved_course_id && (
+                        <span className="text-muted" style={{ fontSize: '0.8rem' }}>Course ID: {req.approved_course_id}</span>
+                    )}
                     <span className="text-muted" style={{ fontSize: '0.8rem' }}>
                         {req.created_at ? new Date(req.created_at).toLocaleDateString() : ''}
                     </span>

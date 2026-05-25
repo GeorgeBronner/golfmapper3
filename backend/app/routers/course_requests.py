@@ -60,6 +60,7 @@ class CourseRequestOut(BaseModel):
     original_longitude: float | None
     review_message: str | None
     reviewed_at: datetime | None
+    approved_course_id: int | None = None
     created_at: datetime | None
     # Resolved display name for location_change requests
     course_display_name: str | None = None
@@ -207,6 +208,7 @@ async def admin_approve(user: user_dependency, db: db_dependency, request_id: in
             year=None,
         )
         db.add(user_course)
+        req.approved_course_id = course.id
 
     elif req.request_type == "location_change":
         course = db.query(Courses).filter(Courses.id == req.course_id).first()
