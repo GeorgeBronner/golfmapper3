@@ -14,6 +14,7 @@ import AdminUsers from './components/AdminUsers';
 import AdminAddCourse from './components/AdminAddCourse';
 import AdminEditCourse from './components/AdminEditCourse';
 import AdminReviewRequests from './components/AdminReviewRequests';
+import AdminEditCourseInfo from './components/AdminEditCourseInfo';
 import CourseEdits from './components/CourseEdits';
 import CourseEditsNewCourse from './components/CourseEditsNewCourse';
 import CourseEditsLocationChange from './components/CourseEditsLocationChange';
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
             { path: '/admin/users', element: <AdminUsers /> },
             { path: '/admin/add-course', element: <AdminAddCourse /> },
             { path: '/admin/edit-course', element: <AdminEditCourse /> },
+            { path: '/admin/edit-course-info', element: <AdminEditCourseInfo /> },
             { path: '/admin/review-requests', element: <AdminReviewRequests /> },
         ],
     },
