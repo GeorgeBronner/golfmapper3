@@ -15,6 +15,12 @@ const AdminNav = () => (
         <NavLink to="/admin/edit-course" className={adminNavLinkClass}>
             Edit Course Location
         </NavLink>
+        <NavLink to="/admin/edit-course-info" className={adminNavLinkClass}>
+            Edit Course Info
+        </NavLink>
+        <NavLink to="/admin/review-requests" className={adminNavLinkClass}>
+            Review Requests
+        </NavLink>
     </nav>
 );
 

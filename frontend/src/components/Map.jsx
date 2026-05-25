@@ -8,12 +8,10 @@ function Map() {
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
 
-    const loadMap = useCallback(async () => {
-        const callId = {};
-        activeCallRef.current = callId;
+    const renderMap = useCallback(async (callId, forceGenerate = false) => {
         const isCurrent = () => activeCallRef.current === callId;
 
-        setStatus('loading');
+        setStatus(forceGenerate ? 'generating' : 'loading');
         try {
             const coursesRes = await api.get('/user_courses/readall_ids_w_year');
             if (!isCurrent()) return;
@@ -27,6 +25,11 @@ function Map() {
         }
 
         try {
+            if (forceGenerate) {
+                await api.get('/map/user_map_generate');
+                if (!isCurrent()) return;
+            }
+
             let response;
             try {
                 response = await api.get('/map/usermap?rand=' + new Date());
@@ -52,13 +55,25 @@ function Map() {
         }
     }, []);
 
+    const loadMap = useCallback(() => {
+        const callId = {};
+        activeCallRef.current = callId;
+        renderMap(callId, false);
+    }, [renderMap]);
+
+    const regenerateMap = useCallback(() => {
+        const callId = {};
+        activeCallRef.current = callId;
+        renderMap(callId, true);
+    }, [renderMap]);
+
     useEffect(() => { loadMap(); }, [token, loadMap]);
 
     return (
         <div className="map-wrapper">
             <div className="map-overlay-bar">
                 <div className="map-title-chip">🗺 Your Golf Map</div>
-                <button className="btn-ghost" onClick={loadMap}>
+                <button className="btn-ghost" onClick={regenerateMap}>
                     ⟳ Regenerate Map
                 </button>
             </div>

@@ -34,8 +34,8 @@ function Header({ isOpen, onClose }) {
                 <NavLink to="/course_search" className={navLinkClass} onClick={onClose}>
                     <span className="nav-icon">🔍</span> Course Search
                 </NavLink>
-                <NavLink to="/add_course_by_id" className={navLinkClass} onClick={onClose}>
-                    <span className="nav-icon">➕</span> Add Course
+                <NavLink to="/course_edits" className={navLinkClass} onClick={onClose}>
+                    <span className="nav-icon">✏️</span> Course Edits
                 </NavLink>
                 {userRole === 'admin' && (
                     <NavLink to="/admin/users" className={navLinkClass} onClick={onClose}>

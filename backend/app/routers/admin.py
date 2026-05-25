@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette import status
 
 from app.dependencies import db_dependency, user_dependency
-from app.models import Courses, Users
+from app.models import CourseRequests, Courses, Users
 from app.routers.garmin_courses import CourseBase
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -47,6 +47,15 @@ class LocationUpdate(BaseModel):
     longitude: float = Field(..., ge=-180.0, le=180.0)
 
 
+class CourseInfoUpdate(BaseModel):
+    club_name: str | None = None
+    course_name: str | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+
+
 @router.get("/")
 async def root(user: user_dependency):
     if user is None or user.get("role") != "admin":
@@ -68,6 +77,11 @@ async def delete_course(user: user_dependency, db: db_dependency, course_id: int
     course_model = db.query(Courses).filter(Courses.id == course_id).first()
     if course_model is None:
         raise HTTPException(status_code=404, detail="Course not found")
+    db.query(CourseRequests).filter(
+        (CourseRequests.course_id == course_id) |
+        (CourseRequests.approved_course_id == course_id),
+        CourseRequests.status == "approved",
+    ).delete(synchronize_session=False)
     db.delete(course_model)
     db.commit()
 
@@ -88,6 +102,25 @@ async def create_course(user: user_dependency, db: db_dependency, course_data: C
         created_at=datetime.now(timezone.utc),
     )
     db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+@router.put("/courses/{course_id}/info", status_code=status.HTTP_200_OK, response_model=CourseBase)
+async def update_course_info(
+    user: user_dependency,
+    db: db_dependency,
+    info: CourseInfoUpdate,
+    course_id: int = Path(ge=1),
+):
+    if user is None or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    course = db.query(Courses).filter(Courses.id == course_id).first()
+    if course is None:
+        raise HTTPException(status_code=404, detail="Course not found")
+    for field, value in info.model_dump(exclude_unset=True).items():
+        setattr(course, field, value)
     db.commit()
     db.refresh(course)
     return course

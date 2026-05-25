@@ -62,7 +62,13 @@ function CourseCard({ id, display_name, city, state, country, year, onDelete, on
                     </span>
                 )}
             </td>
-            <td>
+            <td style={{ whiteSpace: 'nowrap' }}>
+                <span
+                    title={`Course ID: ${id}`}
+                    style={{ marginRight: '4px', cursor: 'default', color: 'var(--text-muted)', fontSize: '0.75rem', userSelect: 'none' }}
+                >
+                    ❓
+                </span>
                 <button
                     type="button"
                     className="btn-delete-icon"
