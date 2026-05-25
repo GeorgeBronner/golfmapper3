@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette import status
 
 from app.dependencies import db_dependency, user_dependency
-from app.models import Courses, Users
+from app.models import CourseRequests, Courses, Users
 from app.routers.garmin_courses import CourseBase
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -77,6 +77,11 @@ async def delete_course(user: user_dependency, db: db_dependency, course_id: int
     course_model = db.query(Courses).filter(Courses.id == course_id).first()
     if course_model is None:
         raise HTTPException(status_code=404, detail="Course not found")
+    db.query(CourseRequests).filter(
+        (CourseRequests.course_id == course_id) |
+        (CourseRequests.approved_course_id == course_id),
+        CourseRequests.status == "approved",
+    ).delete(synchronize_session=False)
     db.delete(course_model)
     db.commit()
 

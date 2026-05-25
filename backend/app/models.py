@@ -120,7 +120,7 @@ class CourseRequests(Base):
     reviewed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     review_message = Column(String, nullable=True)
     reviewed_at = Column(DateTime, nullable=True)
-    approved_course_id = Column(Integer, nullable=True)  # ID of course created on new_course approval
+    approved_course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
 
     created_at = Column(DateTime, default=_now)
     updated_at = Column(DateTime, default=_now, onupdate=_now)
