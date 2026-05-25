@@ -38,7 +38,7 @@ function StatusBadge({ status }) {
 function NewCourseMap({ lat, lng }) {
     return (
         <MapContainer center={[lat, lng]} zoom={12} style={{ height: '200px', borderRadius: '6px' }} zoomControl={false} dragging={false} scrollWheelZoom={false}>
-            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <Marker position={[lat, lng]} />
         </MapContainer>
     );
@@ -51,7 +51,7 @@ function LocationChangeMap({ origLat, origLng, newLat, newLng }) {
     const midLng = (origLng + newLng) / 2;
     return (
         <MapContainer center={[midLat, midLng]} zoom={11} style={{ height: '200px', borderRadius: '6px' }} zoomControl={false} dragging={false} scrollWheelZoom={false}>
-            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <Marker position={[origLat, origLng]} icon={blueIcon}>
                 <Tooltip permanent direction="top" offset={[0, -40]}>Original</Tooltip>
             </Marker>
@@ -221,14 +221,16 @@ export default function AdminReviewRequests() {
     const [loading, setLoading] = useState(true);
     const [pendingOnly, setPendingOnly] = useState(true);
     const [error, setError] = useState(null);
+    const fetchSeq = useRef(0);
 
     const fetchRequests = (pendingOnlyFlag) => {
+        const seq = ++fetchSeq.current;
         setLoading(true);
         setError(null);
         api.get(`/course-requests/admin/all?pending_only=${pendingOnlyFlag}`)
-            .then(res => setRequests(res.data))
-            .catch(err => setError(err.response?.data?.detail || 'Failed to load requests.'))
-            .finally(() => setLoading(false));
+            .then(res => { if (seq === fetchSeq.current) setRequests(res.data); })
+            .catch(err => { if (seq === fetchSeq.current) setError(err.response?.data?.detail || 'Failed to load requests.'); })
+            .finally(() => { if (seq === fetchSeq.current) setLoading(false); });
     };
 
     useEffect(() => { fetchRequests(pendingOnly); }, [pendingOnly]);

@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Path
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from starlette import status as http_status
+
+from sqlalchemy.exc import IntegrityError
 
 from app.dependencies import db_dependency, user_dependency
 from app.models import Courses, CourseRequests, UserCourses
@@ -23,6 +25,12 @@ class NewCourseRequest(BaseModel):
     country: str | None = None
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
+
+    @model_validator(mode='after')
+    def require_at_least_one_name(self):
+        if not (self.club_name and self.club_name.strip()) and not (self.course_name and self.course_name.strip()):
+            raise ValueError('Either club_name or course_name is required')
+        return self
 
 
 class LocationChangeRequest(BaseModel):
@@ -125,9 +133,16 @@ async def submit_location_change(user: user_dependency, db: db_dependency, body:
         latitude=body.latitude,
         longitude=body.longitude,
     )
-    db.add(req)
-    db.commit()
-    db.refresh(req)
+    try:
+        db.add(req)
+        db.commit()
+        db.refresh(req)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="You already have a pending location change request for this course.",
+        )
     return _to_out(req)
 
 

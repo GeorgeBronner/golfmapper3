@@ -93,11 +93,20 @@ def test_submit_new_course(admin_user):
 
 def test_submit_new_course_unauthenticated():
     app.dependency_overrides[get_current_user] = lambda: None
+    try:
+        resp = client.post("/api/v1/course-requests/new-course", json={
+            "club_name": "Some Club", "latitude": 32.0, "longitude": -97.0,
+        })
+    finally:
+        app.dependency_overrides[get_current_user] = override_get_current_user
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_submit_new_course_requires_name(admin_user):
     resp = client.post("/api/v1/course-requests/new-course", json={
         "latitude": 32.0, "longitude": -97.0,
     })
-    app.dependency_overrides[get_current_user] = override_get_current_user
-    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+    assert resp.status_code == 422
 
 
 # ── Submit location change ────────────────────────────────────────────────────
@@ -143,15 +152,15 @@ def test_my_requests_only_own(admin_user, normal_user, existing_course):
         "course_id": 300, "latitude": 31.0, "longitude": -96.0,
     })
 
-    # Switch to normal user (id=2) who submits a different request
+    # Switch to normal user (id=2) who submits a different request and checks their own list
     app.dependency_overrides[get_current_user] = lambda: NORMAL_USER
-    client.post("/api/v1/course-requests/new-course", json={
-        "club_name": "Other Club", "latitude": 29.0, "longitude": -95.0,
-    })
-
-    # Normal user should only see their own request
-    resp = client.get("/api/v1/course-requests/my-requests")
-    app.dependency_overrides[get_current_user] = override_get_current_user
+    try:
+        client.post("/api/v1/course-requests/new-course", json={
+            "club_name": "Other Club", "latitude": 29.0, "longitude": -95.0,
+        })
+        resp = client.get("/api/v1/course-requests/my-requests")
+    finally:
+        app.dependency_overrides[get_current_user] = override_get_current_user
 
     data = resp.json()
     assert len(data) == 1
@@ -281,6 +290,8 @@ def test_admin_list_all_when_flag_false(admin_user, existing_course):
 
 def test_non_admin_cannot_access_admin_list(admin_user):
     app.dependency_overrides[get_current_user] = lambda: NORMAL_USER
-    resp = client.get("/api/v1/course-requests/admin/all")
-    app.dependency_overrides[get_current_user] = override_get_current_user
+    try:
+        resp = client.get("/api/v1/course-requests/admin/all")
+    finally:
+        app.dependency_overrides[get_current_user] = override_get_current_user
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
