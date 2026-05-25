@@ -99,7 +99,7 @@ export default function CourseEditsNewCourse() {
                             <Form.Control name="club_name" value={form.club_name} onChange={handleField} placeholder="e.g. Augusta National" />
                         </Form.Group>
                         <Form.Group className="mb-2">
-                            <Form.Label>Course Name</Form.Label>
+                            <Form.Label>Course Name <span className="text-muted" style={{ fontSize: '0.85em' }}>(Optional)</span></Form.Label>
                             <Form.Control name="course_name" value={form.course_name} onChange={handleField} placeholder="e.g. Championship Course" />
                         </Form.Group>
                         <Form.Group className="mb-2">
