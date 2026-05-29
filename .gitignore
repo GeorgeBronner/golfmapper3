@@ -200,3 +200,6 @@ backend/app/golf_mapper.db
 CLAUDE.md
 
 plans/
+
+# Local shortcuts
+*.lnk
