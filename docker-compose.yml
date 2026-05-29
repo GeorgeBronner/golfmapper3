@@ -4,8 +4,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: gm3-backend
-    ports:
-      - "8005:8005"
     volumes:
       - type: bind
         source: ${DB_PATH:-./backend/golf_mapper.db}
