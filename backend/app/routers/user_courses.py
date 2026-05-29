@@ -3,6 +3,7 @@ from pathlib import Path as FilePath
 
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy.exc import IntegrityError
 from starlette import status
 
 from app.config import settings
@@ -117,7 +118,11 @@ async def add_user_course(user: user_dependency, db: db_dependency, user_course_
         user_id=user.get("id"),
     )
     db.add(user_course_model)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Course already logged for this year")
     _invalidate_user_map(user.get("id"))
 
 
