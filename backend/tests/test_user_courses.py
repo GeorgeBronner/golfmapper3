@@ -38,6 +38,12 @@ def test_read_one_authenticated(test_user_courses):
     ]
 
 
+def test_add_course_duplicate_returns_409(test_user_courses):
+    response = client.post("/api/v1/user_courses/add_course", json={"garmin_id": 200, "year": 2021})
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert "already logged" in response.json()["detail"]
+
+
 def test_readall_ids_w_year_datetime_created_at(test_user_courses_with_datetime):
     # Regression: CourseResponse.created_at must accept datetime objects, not just str.
     # A str type annotation caused Pydantic v2 to raise string_type validation errors
