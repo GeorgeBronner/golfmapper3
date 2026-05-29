@@ -11,6 +11,8 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.cors import CORSMiddleware
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 from app.config import settings
 from app.database import engine
 from app.limiter import limiter
@@ -53,6 +55,7 @@ if sentry_sdk_available and settings.SENTRY_DSN:
 app = FastAPI()
 add_pagination(app)
 Base.metadata.create_all(bind=engine)
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # --- Rate limiting ---
 app.state.limiter = limiter
