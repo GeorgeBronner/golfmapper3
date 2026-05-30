@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "golfmapper3"
-version = "0.1.0"
+version = "0.2.0"
 description = "golfmapper3 Backend"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.103.1",
     "uvicorn>=0.23.2",
