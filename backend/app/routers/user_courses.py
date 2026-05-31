@@ -105,7 +105,15 @@ async def readall(user: user_dependency, db: db_dependency):
         .all()
     )
     course_ids = [course_id for course_id, in course_ids]
-    return db.query(Courses).filter(Courses.id.in_(course_ids)).all()
+    return (
+        db.query(Courses)
+        .filter(
+            Courses.id.in_(course_ids),
+            Courses.latitude.isnot(None),
+            Courses.longitude.isnot(None),
+        )
+        .all()
+    )
 
 
 @router.post("/add_course", status_code=status.HTTP_201_CREATED)

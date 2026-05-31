@@ -29,6 +29,8 @@ async def generate_user_map(user: dict, db) -> Path:
     if user_courses:
         fg = folium.FeatureGroup(name=user['username'])
         for course in user_courses:
+            if course.latitude is None or course.longitude is None:
+                continue
             description = course.display_name + ' ' + str(course.id)
             fg.add_child(
                 folium.CircleMarker(
