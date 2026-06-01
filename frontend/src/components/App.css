@@ -870,9 +870,14 @@
     padding: 10px 12px;
   }
 
-  /* Touch targets */
+  /* Touch targets — enforce 44px minimum per iOS HIG */
   .btn-delete-icon {
     padding: 10px 12px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Course List — hide Country column (4th) on mobile */
@@ -896,6 +901,11 @@
 
   .pagination-btn {
     padding: 10px 14px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .pagination-info {
