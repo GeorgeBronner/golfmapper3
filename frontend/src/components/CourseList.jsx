@@ -49,13 +49,13 @@ function CourseList() {
     if (loading) return <p className="loading-text">Loading courses…</p>;
 
     return (
-        <div>
+        <div className="course-list">
             <div className="page-header">
                 <div>
                     <div className="page-title">My Courses</div>
                     <div className="page-subtitle">{courses.length} course{courses.length !== 1 ? 's' : ''} tracked</div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="page-header-actions">
                     <Link to="/course_search" className="btn-primary">＋ Add Course</Link>
                     <Link to="/all_map" className="btn-ghost">🌍 All Users Map</Link>
                 </div>

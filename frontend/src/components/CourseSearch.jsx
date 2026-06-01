@@ -69,7 +69,7 @@ function CourseSearch() {
     if (loading) return <p className="loading-text">Loading courses…</p>;
 
     return (
-        <div>
+        <div className="course-search">
             <div className="page-header">
                 <div>
                     <div className="page-title">Course Search</div>
