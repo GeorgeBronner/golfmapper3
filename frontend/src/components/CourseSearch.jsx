@@ -180,7 +180,7 @@ function ColumnFilter({ column }) {
             value={value}
             onChange={e => column.setFilterValue(e.target.value)}
             placeholder="Filter…"
-            style={{ width: '100%', fontSize: '11px', padding: '3px 6px' }}
+            style={{ width: '100%' }}
         />
     );
 }

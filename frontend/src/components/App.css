@@ -431,6 +431,12 @@
 
 .filter-input::placeholder { color: var(--text-muted); }
 
+/* Column header filters stay compact on desktop */
+.fairway-table th .filter-input {
+  font-size: 11px;
+  padding: 3px 6px;
+}
+
 /* ══════════════════════════════════════════════
    ALERTS / FEEDBACK
 ══════════════════════════════════════════════ */
@@ -791,6 +797,7 @@
 
   .login-form-panel {
     padding: calc(40px + env(safe-area-inset-top)) 28px calc(40px + env(safe-area-inset-bottom));
+    min-height: 100vh;
     min-height: 100dvh;
     justify-content: center;
   }
@@ -842,6 +849,12 @@
     padding: 10px 12px;
   }
 
+  /* Override compact desktop rule for column header filters on mobile */
+  .fairway-table th .filter-input {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
   /* Touch targets */
   .btn-delete-icon {
     padding: 10px 12px;
@@ -864,11 +877,15 @@
   /* Pagination */
   .pagination-row {
     padding: 10px 12px;
-    justify-content: center;
   }
 
   .pagination-btn {
     padding: 10px 14px;
+  }
+
+  .pagination-info {
+    flex: 1;
+    text-align: center;
   }
 
   .pagination-count {
@@ -879,7 +896,7 @@
 
   /* Map — fill most of the viewport height */
   .map-iframe {
-    min-height: calc(100dvh - 180px);
+    min-height: calc(100dvh - 240px);
   }
 
   /* Forms */
