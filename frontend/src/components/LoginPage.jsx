@@ -49,6 +49,7 @@ function LoginPage() {
 
             {/* Right form panel */}
             <div className="login-form-panel">
+                <div className="login-mobile-logo">⛳ GolfMapper</div>
                 <div>
                     <div className="login-form-title">Welcome back</div>
                     <div className="login-form-subtitle">Sign in to your GolfMapper account</div>

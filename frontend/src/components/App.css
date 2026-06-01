@@ -431,6 +431,12 @@
 
 .filter-input::placeholder { color: var(--text-muted); }
 
+/* Column header filters stay compact on desktop */
+.fairway-table th .filter-input {
+  font-size: 11px;
+  padding: 3px 6px;
+}
+
 /* ══════════════════════════════════════════════
    ALERTS / FEEDBACK
 ══════════════════════════════════════════════ */
@@ -717,9 +723,32 @@
 }
 
 /* ══════════════════════════════════════════════
-   RESPONSIVE — MOBILE
+   PAGE HEADER ACTIONS — button group in page header
 ══════════════════════════════════════════════ */
-@media (max-width: 768px) {
+.page-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ══════════════════════════════════════════════
+   LOGIN MOBILE LOGO — hidden on desktop
+══════════════════════════════════════════════ */
+.login-mobile-logo {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — HIDE SIDEBAR (≤1100px)
+   Collapses sidebar to hamburger drawer on tablets
+   and small laptops as well as phones.
+══════════════════════════════════════════════ */
+@media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 1fr;
     display: flex;
@@ -745,15 +774,34 @@
     display: block;
   }
 
+  /* Safe area insets for Dynamic Island and home bar */
   .mobile-topbar {
     display: flex;
+    padding-top: env(safe-area-inset-top);
+    height: calc(52px + env(safe-area-inset-top));
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
   }
 
+  /* Admin nav */
+  .admin-topnav {
+    flex-wrap: wrap;
+    padding: 0 16px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — COMPACT MOBILE LAYOUT (≤768px)
+   Tightens spacing, adjusts inputs, hides table
+   columns, and improves touch targets on phones.
+══════════════════════════════════════════════ */
+@media (max-width: 768px) {
   .main-content {
     flex: 1;
-    padding: 20px 16px;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
   }
 
+  /* Login */
   .login-shell {
     grid-template-columns: 1fr;
   }
@@ -763,26 +811,39 @@
   }
 
   .login-form-panel {
-    padding: 40px 28px;
+    padding: calc(40px + env(safe-area-inset-top)) 28px calc(40px + env(safe-area-inset-bottom));
     min-height: 100vh;
+    min-height: 100dvh;
     justify-content: center;
   }
 
+  .login-mobile-logo {
+    display: flex;
+  }
+
+  /* Stats */
   .stat-row {
     gap: 8px;
   }
 
   .stat-chip {
+    flex: 1;
     padding: 12px 14px;
     min-width: 80px;
   }
 
   .stat-value { font-size: 22px; }
 
+  /* Page header */
   .page-header {
     flex-wrap: wrap;
   }
 
+  .page-header-actions {
+    flex-wrap: wrap;
+  }
+
+  /* Table */
   .table-card-header {
     flex-direction: column;
     align-items: flex-start;
@@ -793,21 +854,79 @@
     padding: 10px 12px;
   }
 
+  /* Prevent iOS auto-zoom on inputs (requires ≥16px font) */
+  .form-input {
+    font-size: 16px;
+  }
+
+  .filter-input {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  /* Override compact desktop rule for column header filters on mobile */
+  .fairway-table th .filter-input {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  /* Touch targets — enforce 44px minimum per iOS HIG */
+  .btn-delete-icon {
+    padding: 10px 12px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Course List — hide Country column (4th) on mobile */
+  .course-list .fairway-table th:nth-child(4),
+  .course-list .fairway-table td:nth-child(4) {
+    display: none;
+  }
+
+  /* Course Search — hide Country (4th) and ID (5th) columns on mobile */
+  .course-search .fairway-table th:nth-child(4),
+  .course-search .fairway-table td:nth-child(4),
+  .course-search .fairway-table th:nth-child(5),
+  .course-search .fairway-table td:nth-child(5) {
+    display: none;
+  }
+
+  /* Pagination */
   .pagination-row {
     padding: 10px 12px;
   }
 
+  .pagination-btn {
+    padding: 10px 14px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pagination-info {
+    flex: 1;
+    text-align: center;
+  }
+
+  .pagination-count {
+    margin-left: 0;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Map — fill most of the viewport height */
+  .map-iframe {
+    min-height: calc(100dvh - 240px);
+  }
+
+  /* Forms */
   .form-card {
     padding: 20px 18px;
     max-width: 100%;
-  }
-
-  .map-iframe {
-    min-height: 300px;
-  }
-
-  .admin-topnav {
-    flex-wrap: wrap;
-    padding: 0 16px;
   }
 }

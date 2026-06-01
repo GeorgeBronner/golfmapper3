@@ -34,7 +34,7 @@ const ProtectedRoute = () => {
             )}
 
             {/* Right-hand content column */}
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', flex: 1 }}>
                 <div className="mobile-topbar">
                     <span className="mobile-brand">⛳ GolfMapper</span>
                     <button

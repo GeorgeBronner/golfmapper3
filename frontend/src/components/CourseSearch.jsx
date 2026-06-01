@@ -69,7 +69,7 @@ function CourseSearch() {
     if (loading) return <p className="loading-text">Loading courses…</p>;
 
     return (
-        <div>
+        <div className="course-search">
             <div className="page-header">
                 <div>
                     <div className="page-title">Course Search</div>
@@ -180,7 +180,7 @@ function ColumnFilter({ column }) {
             value={value}
             onChange={e => column.setFilterValue(e.target.value)}
             placeholder="Filter…"
-            style={{ width: '100%', fontSize: '11px', padding: '3px 6px' }}
+            style={{ width: '100%' }}
         />
     );
 }
