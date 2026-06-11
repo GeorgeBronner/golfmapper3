@@ -2,12 +2,11 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy.exc import IntegrityError
 from starlette import status as http_status
 
-from sqlalchemy.exc import IntegrityError
-
 from app.dependencies import db_dependency, user_dependency
-from app.models import Courses, CourseRequests, UserCourses
+from app.models import CourseRequests, Courses, UserCourses
 
 router = APIRouter(prefix="/course-requests", tags=["course-requests"])
 
@@ -143,7 +142,7 @@ async def submit_location_change(user: user_dependency, db: db_dependency, body:
         raise HTTPException(
             status_code=409,
             detail="You already have a pending location change request for this course.",
-        )
+        ) from None
     return _to_out(req)
 
 

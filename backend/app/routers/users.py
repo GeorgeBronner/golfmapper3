@@ -41,6 +41,8 @@ async def update_password(user: user_dependency, db: db_dependency, user_verific
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_model = db.query(Users).filter(Users.id == user.get("id")).first()
+    if user_model is None:
+        raise HTTPException(status_code=404, detail="User not found")
     if not bcrypt.checkpw(user_verification.password.encode(), user_model.hashed_password.encode()):
         raise HTTPException(status_code=401, detail="Error on password verification")
     user_model.hashed_password = bcrypt.hashpw(user_verification.new_password.encode(), bcrypt.gensalt()).decode()

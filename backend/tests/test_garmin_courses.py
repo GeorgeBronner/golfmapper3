@@ -1,52 +1,28 @@
-from unittest.mock import MagicMock, patch
-
 from fastapi import status
-from fastapi.testclient import TestClient
 
-from app.main import app
+from app.dependencies import get_current_user, get_db
 
-client = TestClient(app)
+from .utils import app, client, override_get_current_user, override_get_db
 
-
-def _mock_location(lat=40.7128, lon=-74.0060):
-    loc = MagicMock()
-    loc.latitude = lat
-    loc.longitude = lon
-    return loc
+app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_current_user] = override_get_current_user
 
 
-def test_zipcode_coordinates_found():
-    with patch("app.routers.garmin_courses.geolocator.geocode", return_value=_mock_location()):
-        response = client.get("/api/v1/garmin_courses/zipcode_coordinates/", params={"zipcode": "10005", "country": "US"})
+def test_readall_courses(test_user_courses):
+    response = client.get("/api/v1/garmin_courses/readall")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["latitude"] == 40.7128
-    assert data["longitude"] == -74.0060
+    assert isinstance(data, list)
+    assert any(c["id"] == 200 for c in data)
 
 
-def test_zipcode_coordinates_not_found():
-    with patch("app.routers.garmin_courses.geolocator.geocode", return_value=None):
-        response = client.get("/api/v1/garmin_courses/zipcode_coordinates/", params={"zipcode": "notarealplace99999"})
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["detail"] == "Location not found"
-
-
-def test_zipcode_coordinates_missing_param():
-    response = client.get("/api/v1/garmin_courses/zipcode_coordinates/", params={"country": "US"})
-    assert response.status_code == 422
-
-
-def test_city_coordinates_found():
-    with patch("app.routers.garmin_courses.geolocator.geocode", return_value=_mock_location(33.4484, -112.0740)):
-        response = client.get("/api/v1/garmin_courses/city_coordinates/", params={"city": "Phoenix", "state": "AZ"})
+def test_read_course_found(test_user_courses):
+    response = client.get("/api/v1/garmin_courses/course/200")
     assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert data["latitude"] == 33.4484
-    assert data["longitude"] == -112.0740
+    assert response.json()["id"] == 200
 
 
-def test_city_coordinates_not_found():
-    with patch("app.routers.garmin_courses.geolocator.geocode", return_value=None):
-        response = client.get("/api/v1/garmin_courses/city_coordinates/", params={"city": "NotARealCityXYZ"})
+def test_read_course_not_found():
+    response = client.get("/api/v1/garmin_courses/course/99999")
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["detail"] == "Location not found"
+    assert response.json()["detail"] == "Course not found"

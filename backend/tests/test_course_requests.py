@@ -4,7 +4,7 @@ from fastapi import status
 from sqlalchemy import text
 
 from app.dependencies import get_current_user, get_db
-from app.models import Courses, CourseRequests, UserCourses, Users
+from app.models import Courses, UserCourses, Users
 
 from .utils import TestingSessionLocal, app, client, engine, override_get_current_user, override_get_db
 

@@ -7,11 +7,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
+from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.cors import CORSMiddleware
-
-from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import settings
 from app.database import engine

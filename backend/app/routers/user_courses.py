@@ -130,7 +130,7 @@ async def add_user_course(user: user_dependency, db: db_dependency, user_course_
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Course already logged for this year")
+        raise HTTPException(status_code=409, detail="Course already logged for this year") from None
     _invalidate_user_map(user.get("id"))
 
 
