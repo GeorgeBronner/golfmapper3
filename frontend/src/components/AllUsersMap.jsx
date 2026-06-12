@@ -3,10 +3,10 @@ import api from '../services/api';
 import { useAuth } from './AuthProvider';
 
 function AllUsersMap() {
-    const iframeRef = useRef(null);
     const activeCallRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
+    const [mapHtml, setMapHtml] = useState('');
 
     const loadMap = useCallback(async () => {
         const callId = {};
@@ -17,10 +17,7 @@ function AllUsersMap() {
         try {
             const response = await api.get('/map/allmap?rand=' + new Date());
             if (!isCurrent()) return;
-            const doc = iframeRef.current.contentWindow.document;
-            doc.open();
-            doc.write(response.data);
-            doc.close();
+            setMapHtml(response.data);
             setStatus('loaded');
         } catch {
             if (isCurrent()) setStatus('error');
@@ -42,9 +39,9 @@ function AllUsersMap() {
             {status === 'error' && <p className="map-status">Failed to load map. Please try again later.</p>}
 
             <iframe
-                ref={iframeRef}
                 title="All Users Golf Map"
                 className="map-iframe"
+                srcDoc={mapHtml}
                 style={{ display: status === 'loaded' ? 'block' : 'none' }}
             />
         </div>

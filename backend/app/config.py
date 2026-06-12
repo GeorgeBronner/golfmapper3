@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     MAP_FILES_DIR: str = "./static/user_maps"
     TRACES_SAMPLE_RATE: float = 0.1
     TOKEN_EXPIRE_MINUTES: int = 90
+    # Overridable per deployment without a code change via the CORS_ORIGINS
+    # env var (JSON list), e.g. CORS_ORIGINS='["https://golf.bronnerapp.com"]'
     CORS_ORIGINS: list[str] = [
+        # Local development
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://localhost:3000",
@@ -31,19 +34,19 @@ class Settings(BaseSettings):
         "https://localhost",
         "https://127.0.0.1",
         "https://127.0.0.1:8005",
+        "http://localhost:23441",
+        # LAN / cloud dev hosts
         "https://10.9.8.221:3000",
         "http://10.9.8.221:3000",
-        "https://golf.bronnerapp.com",
-        "http://golf.bronnerapp.com",
-        "https://golf.bronnerapp.com:80",
-        "http://golf.bronnerapp.com:80",
         "https://132.145.156.224:3000",
         "http://132.145.156.224:3000",
+        # Deployed environments
+        "https://golf.bronnerapp.com",
+        "http://golf.bronnerapp.com",
         "https://backend.bronnerapp.com",
         "http://backend.bronnerapp.com",
         "https://golf-stage.lab.bronnerapp.com",
         "http://golf-stage.lab.bronnerapp.com",
-        "http://localhost:23441",
     ]
 
     model_config = SettingsConfigDict(

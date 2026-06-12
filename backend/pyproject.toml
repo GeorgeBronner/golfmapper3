@@ -13,7 +13,6 @@ dependencies = [
     "pydantic>=2.3.0",
     "httpx>=0.28.1",
     "geopy",
-    "python-jose",
     "SQLAlchemy>=1.4.0",
     "starlette",
     "bcrypt",
@@ -29,6 +28,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "mailtrap>=2.0.0",
     "prometheus-fastapi-instrumentator>=8.0.0",
+    "pyjwt>=2.13.0",
 ]
 
 [tool.pytest.ini_options]
