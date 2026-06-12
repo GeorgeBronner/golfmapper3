@@ -92,7 +92,9 @@ def test_submit_new_course(admin_user):
 
 
 def test_submit_new_course_unauthenticated():
-    app.dependency_overrides[get_current_user] = lambda: None
+    # Remove the auth override so the real bearer-token dependency runs:
+    # a request without an Authorization header must get a 401.
+    app.dependency_overrides.pop(get_current_user, None)
     try:
         resp = client.post("/api/v1/course-requests/new-course", json={
             "club_name": "Some Club", "latitude": 32.0, "longitude": -97.0,
@@ -297,4 +299,4 @@ def test_non_admin_cannot_access_admin_list(admin_user):
         resp = client.get("/api/v1/course-requests/admin/all")
     finally:
         app.dependency_overrides[get_current_user] = override_get_current_user
-    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+    assert resp.status_code == status.HTTP_403_FORBIDDEN

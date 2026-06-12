@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -107,7 +107,7 @@ if assets_path.exists() and assets_path.is_dir():
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_frontend(request: Request, full_path: str):
     if request.url.path.startswith(API_PREFIX + "/"):
-        return {"detail": "Not Found"}
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
     index_file = static_path / "index.html"
     if index_file.exists():
         response = FileResponse(str(index_file))

@@ -3,15 +3,15 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import bcrypt
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from starlette import status
 
 from app.config import settings
-from app.database import SessionLocal
+from app.database import get_db
 from app.limiter import limiter
 from app.models import Users
 
@@ -25,15 +25,6 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
@@ -62,7 +53,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
         return {"username": username, "id": user_id, "role": user_role}
-    except JWTError:
+    except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials") from None
 
 
@@ -71,7 +62,7 @@ class CreateUserRequest(BaseModel):
     email: str
     first_name: str
     last_name: str
-    password: str
+    password: str = Field(min_length=8)
 
 
 class Token(BaseModel):

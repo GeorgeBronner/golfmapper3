@@ -6,12 +6,15 @@ import CourseCard from './CourseCard';
 function CourseList() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'year', direction: 'desc' });
 
     const fetchCourses = useCallback(() => {
         setLoading(true);
+        setError('');
         api.get('/user_courses/readall_ids_w_year')
             .then(res => setCourses(res.data))
+            .catch(() => setError('Failed to load your courses. Please try again.'))
             .finally(() => setLoading(false));
     }, []);
 
@@ -47,6 +50,14 @@ function CourseList() {
     const latestYear = uniqueYears.length ? Math.max(...uniqueYears) : '—';
 
     if (loading) return <p className="loading-text">Loading courses…</p>;
+    if (error) {
+        return (
+            <div className="course-list">
+                <div className="alert-danger" role="alert">{error}</div>
+                <button className="btn-primary" onClick={fetchCourses}>Retry</button>
+            </div>
+        );
+    }
 
     return (
         <div className="course-list">

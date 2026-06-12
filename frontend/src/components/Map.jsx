@@ -3,10 +3,10 @@ import api from '../services/api';
 import { useAuth } from './AuthProvider';
 
 function Map() {
-    const iframeRef = useRef(null);
     const activeCallRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
+    const [mapHtml, setMapHtml] = useState('');
 
     const renderMap = useCallback(async (callId, forceGenerate = false) => {
         const isCurrent = () => activeCallRef.current === callId;
@@ -45,10 +45,7 @@ function Map() {
                 }
             }
             if (!isCurrent()) return;
-            const doc = iframeRef.current.contentWindow.document;
-            doc.open();
-            doc.write(response.data);
-            doc.close();
+            setMapHtml(response.data);
             setStatus('loaded');
         } catch {
             if (isCurrent()) setStatus('error');
@@ -89,9 +86,9 @@ function Map() {
             {status === 'error' && <p className="map-status">Failed to load map. Please try again later.</p>}
 
             <iframe
-                ref={iframeRef}
                 title="Golf Course Map"
                 className="map-iframe"
+                srcDoc={mapHtml}
                 style={{ display: status === 'loaded' ? 'block' : 'none' }}
             />
         </div>

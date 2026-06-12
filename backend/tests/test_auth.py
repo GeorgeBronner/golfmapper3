@@ -1,8 +1,8 @@
 from datetime import timedelta
 
+import jwt
 import pytest
 from fastapi import HTTPException, status
-from jose import jwt
 
 from app.routers.auth import (
     ALGORITHM,

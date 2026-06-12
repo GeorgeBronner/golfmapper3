@@ -18,7 +18,7 @@ def test_admin_root_as_non_admin():
     app.dependency_overrides[get_current_user] = lambda: {"username": "other", "id": 2, "role": "user"}
     response = client.get("/api/v1/admin/")
     app.dependency_overrides[get_current_user] = override_get_current_user
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_admin_read_all_courses(test_user_courses):
@@ -79,4 +79,4 @@ def test_admin_update_course_info_non_admin(test_user_courses):
         response = client.put("/api/v1/admin/courses/200/info", json={"city": "Sneaky"})
     finally:
         app.dependency_overrides[get_current_user] = override_get_current_user
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_403_FORBIDDEN

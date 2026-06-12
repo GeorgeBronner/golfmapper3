@@ -203,3 +203,6 @@ plans/
 
 # Local shortcuts
 *.lnk
+
+# macOS
+.DS_Store

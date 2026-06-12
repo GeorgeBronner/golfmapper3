@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.exc import IntegrityError
 from starlette import status as http_status
 
-from app.dependencies import db_dependency, user_dependency
+from app.dependencies import admin_dependency, db_dependency, user_dependency
 from app.models import CourseRequests, Courses, UserCourses
 
 router = APIRouter(prefix="/course-requests", tags=["course-requests"])
@@ -79,8 +79,6 @@ def _to_out(req: CourseRequests) -> CourseRequestOut:
 
 @router.post("/new-course", status_code=http_status.HTTP_201_CREATED, response_model=CourseRequestOut)
 async def submit_new_course(user: user_dependency, db: db_dependency, body: NewCourseRequest):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     req = CourseRequests(
         request_type="new_course",
         submitted_by_user_id=user["id"],
@@ -101,8 +99,6 @@ async def submit_new_course(user: user_dependency, db: db_dependency, body: NewC
 
 @router.post("/location-change", status_code=http_status.HTTP_201_CREATED, response_model=CourseRequestOut)
 async def submit_location_change(user: user_dependency, db: db_dependency, body: LocationChangeRequest):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
     course = db.query(Courses).filter(Courses.id == body.course_id).first()
     if course is None:
@@ -148,8 +144,6 @@ async def submit_location_change(user: user_dependency, db: db_dependency, body:
 
 @router.get("/my-requests", status_code=http_status.HTTP_200_OK, response_model=list[CourseRequestOut])
 async def my_requests(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     rows = (
         db.query(CourseRequests)
         .filter(CourseRequests.submitted_by_user_id == user["id"])
@@ -163,14 +157,8 @@ async def my_requests(user: user_dependency, db: db_dependency):
 # Admin endpoints
 # ---------------------------------------------------------------------------
 
-def _require_admin(user):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-
 @router.get("/admin/all", status_code=http_status.HTTP_200_OK, response_model=list[CourseRequestOut])
-async def admin_list_requests(user: user_dependency, db: db_dependency, pending_only: bool = True):
-    _require_admin(user)
+async def admin_list_requests(user: admin_dependency, db: db_dependency, pending_only: bool = True):
     q = db.query(CourseRequests)
     if pending_only:
         q = q.filter(CourseRequests.status == "pending")
@@ -179,8 +167,7 @@ async def admin_list_requests(user: user_dependency, db: db_dependency, pending_
 
 
 @router.post("/admin/{request_id}/approve", status_code=http_status.HTTP_200_OK, response_model=CourseRequestOut)
-async def admin_approve(user: user_dependency, db: db_dependency, request_id: int = Path(ge=1)):
-    _require_admin(user)
+async def admin_approve(user: admin_dependency, db: db_dependency, request_id: int = Path(ge=1)):
     req = db.query(CourseRequests).filter(CourseRequests.id == request_id).first()
     if req is None:
         raise HTTPException(status_code=404, detail="Request not found")
@@ -226,12 +213,11 @@ async def admin_approve(user: user_dependency, db: db_dependency, request_id: in
 
 @router.post("/admin/{request_id}/reject", status_code=http_status.HTTP_200_OK, response_model=CourseRequestOut)
 async def admin_reject(
-    user: user_dependency,
+    user: admin_dependency,
     db: db_dependency,
     body: RejectBody,
     request_id: int = Path(ge=1),
 ):
-    _require_admin(user)
     req = db.query(CourseRequests).filter(CourseRequests.id == request_id).first()
     if req is None:
         raise HTTPException(status_code=404, detail="Request not found")

@@ -88,7 +88,10 @@ class UserCourses(Base):
     course = relationship("Courses", back_populates="user_courses")
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'course_id', 'year', name='uq_user_course_year'),
+        # One entry per course per user (applies to freshly created databases;
+        # existing DBs keep the old constraint — the application-level check in
+        # add_user_course enforces the rule either way).
+        UniqueConstraint('user_id', 'course_id', name='uq_user_course'),
     )
 
 

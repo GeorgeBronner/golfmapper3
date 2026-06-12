@@ -28,22 +28,16 @@ class CourseBase(BaseModel):
 
 @router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
 async def readall(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     return db.query(Courses).all()
 
 
 @router.get("/readall_page", status_code=status.HTTP_200_OK, response_model=Page[CourseBase])
 async def readall_page(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     return paginate(db, select(Courses))
 
 
 @router.get("/course/{course_id}", status_code=status.HTTP_200_OK, response_model=CourseBase)
 async def read_course(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     course_model = db.query(Courses).filter(Courses.id == course_id).first()
     if course_model is not None:
         return course_model

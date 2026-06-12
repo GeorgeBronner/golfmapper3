@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import Header from '../components/Header';
 import AdminNav from '../components/AdminNav';
+import { useAuth } from '../components/AuthProvider';
 
 function getTokenPayload(token) {
     try {
@@ -13,13 +14,12 @@ function getTokenPayload(token) {
 
 const AdminRoute = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { token } = useAuth();
 
-    const token = localStorage.getItem('token');
     if (!token) return <Navigate to="/" />;
 
     const payload = getTokenPayload(token);
     if (!payload || payload.exp * 1000 <= Date.now()) {
-        localStorage.removeItem('token');
         return <Navigate to="/" />;
     }
     if (payload.role !== 'admin') return <Navigate to="/course_list" />;

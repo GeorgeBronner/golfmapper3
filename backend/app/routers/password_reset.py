@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from app.config import settings
-from app.database import SessionLocal
+from app.database import get_db
 from app.limiter import limiter
 from app.models import PasswordResetToken, Users
 
@@ -21,15 +21,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 TOKEN_EXPIRY_MINUTES = 15
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 db_dependency = Annotated[Session, Depends(get_db)]
 

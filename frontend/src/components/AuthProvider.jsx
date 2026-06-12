@@ -1,4 +1,3 @@
-import axios from "axios";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const AuthContext = createContext();
@@ -24,13 +23,13 @@ const AuthProvider = ({ children }) => {
         setToken_(newToken);
     };
 
+    // The api service (services/api.js) reads the token from localStorage on
+    // every request, so keeping localStorage in sync is all that's needed here.
     useEffect(() => {
         if (token) {
-            axios.defaults.headers.common["Authorization"] = "Bearer " + token;
-            localStorage.setItem('token',token);
+            localStorage.setItem('token', token);
         } else {
-            delete axios.defaults.headers.common["Authorization"];
-            localStorage.removeItem('token')
+            localStorage.removeItem('token');
         }
     }, [token]);
 

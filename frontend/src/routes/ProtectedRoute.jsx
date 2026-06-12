@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import Header from '../components/Header';
+import { useAuth } from '../components/AuthProvider';
 
 function isTokenValid(token) {
     try {
@@ -13,10 +14,9 @@ function isTokenValid(token) {
 
 const ProtectedRoute = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { token } = useAuth();
 
-    const token = localStorage.getItem('token');
     if (!token || !isTokenValid(token)) {
-        localStorage.removeItem('token');
         return <Navigate to="/" />;
     }
 

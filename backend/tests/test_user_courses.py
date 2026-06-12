@@ -41,7 +41,20 @@ def test_read_one_authenticated(test_user_courses):
 def test_add_course_duplicate_returns_409(test_user_courses):
     response = client.post("/api/v1/user_courses/add_course", json={"garmin_id": 200, "year": 2021})
     assert response.status_code == status.HTTP_409_CONFLICT
-    assert "already logged" in response.json()["detail"]
+    assert "already added" in response.json()["detail"]
+
+
+def test_add_course_same_course_different_year_returns_409(test_user_courses):
+    # A course can only be added once per user, regardless of year.
+    response = client.post("/api/v1/user_courses/add_course", json={"garmin_id": 200, "year": 2023})
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert "already added" in response.json()["detail"]
+
+
+def test_add_course_nonexistent_course_returns_404(test_user_courses):
+    response = client.post("/api/v1/user_courses/add_course", json={"garmin_id": 99999, "year": 2023})
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == "Course not found"
 
 
 def test_readall_ids_w_year_datetime_created_at(test_user_courses_with_datetime):

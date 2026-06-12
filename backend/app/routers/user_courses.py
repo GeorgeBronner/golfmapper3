@@ -70,15 +70,11 @@ class YearUpdateRequest(BaseModel):
 
 @router.get("/readall_ids", status_code=status.HTTP_200_OK, response_model=list[UserCourseOut])
 async def readall_ids(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     return db.query(UserCourses).filter(UserCourses.user_id == user.get("id")).all()
 
 
 @router.get("/readall_ids_w_year", status_code=status.HTTP_200_OK, response_model=list[CourseResponse])
 async def readall_ids_w_year(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     results = (
         db.query(Courses, UserCourses.year, UserCourses.id)
         .join(UserCourses, Courses.id == UserCourses.course_id)
@@ -86,18 +82,20 @@ async def readall_ids_w_year(user: user_dependency, db: db_dependency):
         .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
         .all()
     )
+    # Build response models per row rather than mutating the ORM objects:
+    # SQLAlchemy's identity map returns the same Courses instance for repeated
+    # rows, so attribute writes would leak across entries.
     courses = []
     for course, year, uc_id in results:
-        course.year = year
-        course.user_course_id = uc_id
-        courses.append(course)
+        item = CourseResponse.model_validate(course)
+        item.year = year
+        item.user_course_id = uc_id
+        courses.append(item)
     return courses
 
 
 @router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseResponse])
 async def readall(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     course_ids = (
         db.query(UserCourses.course_id)
         .filter(UserCourses.user_id == user.get("id"))
@@ -118,8 +116,19 @@ async def readall(user: user_dependency, db: db_dependency):
 
 @router.post("/add_course", status_code=status.HTTP_201_CREATED)
 async def add_user_course(user: user_dependency, db: db_dependency, user_course_request: UserCourseRequest):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    course = db.query(Courses).filter(Courses.id == user_course_request.garmin_id).first()
+    if course is None:
+        raise HTTPException(status_code=404, detail="Course not found")
+    existing = (
+        db.query(UserCourses)
+        .filter(
+            UserCourses.user_id == user.get("id"),
+            UserCourses.course_id == user_course_request.garmin_id,
+        )
+        .first()
+    )
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Course already added")
     user_course_model = UserCourses(
         course_id=user_course_request.garmin_id,
         year=user_course_request.year,
@@ -130,7 +139,7 @@ async def add_user_course(user: user_dependency, db: db_dependency, user_course_
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Course already logged for this year") from None
+        raise HTTPException(status_code=409, detail="Course already added") from None
     _invalidate_user_map(user.get("id"))
 
 
@@ -141,8 +150,6 @@ async def update_user_course_year(
     year_update: YearUpdateRequest,
     user_course_id: int = Path(ge=1),
 ):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     uc = (
         db.query(UserCourses)
         .filter(UserCourses.id == user_course_id, UserCourses.user_id == user.get("id"))
@@ -157,8 +164,6 @@ async def update_user_course_year(
 
 @router.delete("/delete/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_course(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     user_course_model = (
         db.query(UserCourses)
         .filter(UserCourses.course_id == course_id, UserCourses.user_id == user.get("id"))
