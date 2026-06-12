@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from app.config import settings
-from app.database import SessionLocal
+from app.database import get_db
 from app.limiter import limiter
 from app.models import Users
 
@@ -25,15 +25,6 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 db_dependency = Annotated[Session, Depends(get_db)]
 

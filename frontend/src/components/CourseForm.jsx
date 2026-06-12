@@ -30,7 +30,9 @@ function CourseForm() {
             .catch(err => {
                 const status = err.response?.status;
                 if (status === 409) {
-                    setError('You have already added this course for that year.');
+                    setError('You have already added this course.');
+                } else if (status === 404) {
+                    setError('No course exists with that ID.');
                 } else if (status === 422) {
                     setError('Invalid course ID or year.');
                 } else {

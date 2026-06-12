@@ -52,23 +52,28 @@ async def generate_user_map(user: dict, db) -> Path:
 
 
 def generate_all_users_map(db) -> str:
-    users = db.query(Users).filter(Users.is_active.is_(True)).all()
+    rows = (
+        db.query(Users.username, Courses, UserCourses.year)
+        .join(UserCourses, UserCourses.user_id == Users.id)
+        .join(Courses, Courses.id == UserCourses.course_id)
+        .filter(Users.is_active.is_(True))
+        .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
+        .order_by(Users.id)
+        .all()
+    )
+    courses_by_user = {}
+    for username, course, year in rows:
+        courses_by_user.setdefault(username, []).append((course, year))
+
     all_map = folium.Map(location=[40, -90], zoom_start=4, control_scale=True)
 
-    for i, user in enumerate(users):
-        results = (
-            db.query(Courses, UserCourses.year)
-            .join(UserCourses, Courses.id == UserCourses.course_id)
-            .filter(UserCourses.user_id == user.id)
-            .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
-            .all()
-        )
-        if not results:
-            continue
-
+    for i, (username, results) in enumerate(courses_by_user.items()):
         color = _USER_COLORS[i % len(_USER_COLORS)]
-        dot = f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{color};margin-right:6px;vertical-align:middle;"></span>'
-        fg = folium.FeatureGroup(name=dot + user.username)
+        dot = (
+            f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;'
+            f'background:{color};margin-right:6px;vertical-align:middle;"></span>'
+        )
+        fg = folium.FeatureGroup(name=dot + username)
         for course, year in results:
             label = course.display_name
             if year:
@@ -93,8 +98,6 @@ def generate_all_users_map(db) -> str:
 
 @router.get("/usermap")
 async def get_usermap(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     map_path = MAP_DIR / f"user_map_{user['id']}.html"
     if not map_path.exists():
         map_path = await generate_user_map(user, db)
@@ -103,15 +106,11 @@ async def get_usermap(user: user_dependency, db: db_dependency):
 
 @router.get("/user_map_generate", status_code=status.HTTP_200_OK)
 async def user_map_generate(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     await generate_user_map(user, db)
     return {"message": "Map generated"}
 
 
 @router.get("/allmap")
 async def get_allmap(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     html = generate_all_users_map(db)
     return HTMLResponse(content=html)

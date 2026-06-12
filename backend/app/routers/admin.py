@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 from starlette import status
 
-from app.dependencies import db_dependency, user_dependency
+from app.dependencies import admin_dependency, db_dependency
 from app.models import CourseRequests, Courses, UserCourses, Users
 from app.routers.garmin_courses import CourseBase
 
@@ -57,23 +57,17 @@ class CourseInfoUpdate(BaseModel):
 
 
 @router.get("/")
-async def root(user: user_dependency):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+async def root(user: admin_dependency):
     return {"message": "Hello Admin"}
 
 
 @router.get("/courses", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
-async def readall(user: user_dependency, db: db_dependency):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+async def readall(user: admin_dependency, db: db_dependency):
     return db.query(Courses).all()
 
 
 @router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_course(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+async def delete_course(user: admin_dependency, db: db_dependency, course_id: int = Path(ge=1)):
     course_model = db.query(Courses).filter(Courses.id == course_id).first()
     if course_model is None:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -88,9 +82,7 @@ async def delete_course(user: user_dependency, db: db_dependency, course_id: int
 
 
 @router.post("/courses", status_code=status.HTTP_201_CREATED, response_model=CourseBase)
-async def create_course(user: user_dependency, db: db_dependency, course_data: CourseCreate):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+async def create_course(user: admin_dependency, db: db_dependency, course_data: CourseCreate):
     course = Courses(
         club_name=course_data.club_name,
         course_name=course_data.course_name,
@@ -110,13 +102,11 @@ async def create_course(user: user_dependency, db: db_dependency, course_data: C
 
 @router.put("/courses/{course_id}/info", status_code=status.HTTP_200_OK, response_model=CourseBase)
 async def update_course_info(
-    user: user_dependency,
+    user: admin_dependency,
     db: db_dependency,
     info: CourseInfoUpdate,
     course_id: int = Path(ge=1),
 ):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
     course = db.query(Courses).filter(Courses.id == course_id).first()
     if course is None:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -129,13 +119,11 @@ async def update_course_info(
 
 @router.put("/courses/{course_id}/location", status_code=status.HTTP_200_OK, response_model=CourseBase)
 async def update_course_location(
-    user: user_dependency,
+    user: admin_dependency,
     db: db_dependency,
     location: LocationUpdate,
     course_id: int = Path(ge=1),
 ):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
     course = db.query(Courses).filter(Courses.id == course_id).first()
     if course is None:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -147,21 +135,17 @@ async def update_course_location(
 
 
 @router.get("/users", status_code=status.HTTP_200_OK, response_model=list[UserSummary])
-async def list_users(user: user_dependency, db: db_dependency):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+async def list_users(user: admin_dependency, db: db_dependency):
     return db.query(Users).all()
 
 
 @router.patch("/users/{user_id}/role", status_code=status.HTTP_200_OK, response_model=UserSummary)
 async def update_user_role(
-    user: user_dependency,
+    user: admin_dependency,
     db: db_dependency,
     role_update: RoleUpdate,
     user_id: int = Path(ge=1),
 ):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
     if role_update.role not in ("admin", "user"):
         raise HTTPException(status_code=400, detail="Role must be 'admin' or 'user'")
     target = db.query(Users).filter(Users.id == user_id).first()
@@ -175,13 +159,11 @@ async def update_user_role(
 
 @router.patch("/users/{user_id}/password", status_code=status.HTTP_200_OK)
 async def reset_user_password(
-    user: user_dependency,
+    user: admin_dependency,
     db: db_dependency,
     password_reset: PasswordReset,
     user_id: int = Path(ge=1),
 ):
-    if user is None or user.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="Unauthorized")
     target = db.query(Users).filter(Users.id == user_id).first()
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
