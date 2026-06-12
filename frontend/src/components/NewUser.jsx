@@ -124,6 +124,7 @@ function NewUser() {
                             onChange={handleChange}
                             placeholder="••••••••"
                             autoComplete="new-password"
+                            minLength={8}
                             required
                         />
                     </div>
