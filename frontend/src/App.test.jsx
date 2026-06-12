@@ -18,8 +18,8 @@ function renderWithProviders(ui, { initialEntries = ['/'] } = {}) {
 describe('LoginPage', () => {
     it('renders username and password fields', () => {
         renderWithProviders(<LoginPage />);
-        expect(screen.getByText(/username/i)).toBeInTheDocument();
-        expect(screen.getByText(/password/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
     });
 
     it('renders a login submit button', () => {
