@@ -1,8 +1,11 @@
+import pytest
 from fastapi import status
+from sqlalchemy import text
 
 from app.dependencies import get_current_user, get_db
+from app.models import Courses, UserCourses
 
-from .utils import app, client, override_get_current_user, override_get_db
+from .utils import TestingSessionLocal, app, client, engine, override_get_current_user, override_get_db
 
 app.dependency_overrides[get_db] = override_get_db
 app.dependency_overrides[get_current_user] = override_get_current_user
@@ -55,6 +58,35 @@ def test_add_course_nonexistent_course_returns_404(test_user_courses):
     response = client.post("/api/v1/user_courses/add_course", json={"garmin_id": 99999, "year": 2023})
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json()["detail"] == "Course not found"
+
+
+@pytest.fixture
+def sparse_course():
+    # Mirrors a course created from an approved new-course request: only one
+    # name and coordinates, everything else NULL.
+    db = TestingSessionLocal()
+    db.add(Courses(id=300, club_name=None, course_name="Solo Course", city=None,
+                   state=None, country=None, latitude=30.0, longitude=-88.0))
+    db.add(UserCourses(id=3, course_id=300, user_id=1, year=2025))
+    db.commit()
+    yield
+    with engine.connect() as con:
+        con.execute(text("DELETE FROM user_courses;"))
+        con.execute(text("DELETE FROM courses;"))
+        con.commit()
+
+
+def test_readall_with_null_fields_returns_200(sparse_course):
+    # Regression: CourseResponse required club_name/city/state/country, so one
+    # course with NULLs in those columns 500'd the whole course list.
+    for endpoint in ("/api/v1/user_courses/readall", "/api/v1/user_courses/readall_ids_w_year"):
+        response = client.get(endpoint)
+        assert response.status_code == status.HTTP_200_OK, endpoint
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["display_name"] == "Solo Course"
+        assert data[0]["club_name"] is None
+        assert data[0]["city"] is None
 
 
 def test_readall_ids_w_year_datetime_created_at(test_user_courses_with_datetime):

@@ -4,7 +4,6 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-import bcrypt
 import mailtrap as mt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
@@ -15,6 +14,7 @@ from app.config import settings
 from app.database import get_db
 from app.limiter import limiter
 from app.models import PasswordResetToken, Users
+from app.security import BCRYPT_MAX_PASSWORD_BYTES, hash_password
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +135,11 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: db_de
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Password must be at least 8 characters.",
         )
+    if len(body.new_password.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} characters.",
+        )
 
     user = db.query(Users).filter(Users.id == reset_token.user_id).first()
     if not user:
@@ -143,7 +148,7 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: db_de
             detail="Invalid or expired reset link.",
         )
 
-    user.hashed_password = bcrypt.hashpw(body.new_password.encode(), bcrypt.gensalt()).decode()
+    user.hashed_password = hash_password(body.new_password)
     reset_token.used = True
     db.commit()
 

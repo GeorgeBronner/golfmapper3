@@ -44,12 +44,15 @@ class CourseResponse(BaseModel):
     id: int
     user_course_id: int | None = None
     display_name: str
-    club_name: str
-    course_name: str
+    # All of these are nullable in the DB (admin-created courses and approved
+    # new-course requests only require one name and a location), so the
+    # response model must accept None or the whole list endpoint 500s.
+    club_name: str | None
+    course_name: str | None
     address: str | None
-    city: str
-    state: str
-    country: str
+    city: str | None
+    state: str | None
+    country: str | None
     latitude: float
     longitude: float
     created_at: datetime | None = None

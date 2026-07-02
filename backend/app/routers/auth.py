@@ -2,11 +2,10 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-import bcrypt
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -14,6 +13,7 @@ from app.config import settings
 from app.database import get_db
 from app.limiter import limiter
 from app.models import Users
+from app.security import NewPassword, hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,9 @@ def authenticate_user(username: str, password: str, db: Session) -> Users | bool
     user = db.query(Users).filter(Users.username == username).first()
     if user is None:
         return False
-    if not bcrypt.checkpw(password.encode(), user.hashed_password.encode()):
+    if not user.is_active:
+        return False
+    if not verify_password(password, user.hashed_password):
         return False
     return user
 
@@ -44,17 +46,24 @@ def create_access_token(username: str, user_id: int, role: str, expires_delta: t
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_bearer)],
+    db: Annotated[Session, Depends(get_db)],
+):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
         user_id: int = payload.get("id")
-        user_role: str = payload.get("role")
-        if username is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-        return {"username": username, "id": user_id, "role": user_role}
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials") from None
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    # Identity, role, and account status come from the DB rather than token
+    # claims, so demotions, deactivations, and deletions take effect
+    # immediately instead of only when the token expires.
+    user = db.query(Users).filter(Users.id == user_id).first()
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    return {"username": user.username, "id": user.id, "role": user.role}
 
 
 class CreateUserRequest(BaseModel):
@@ -62,7 +71,7 @@ class CreateUserRequest(BaseModel):
     email: str
     first_name: str
     last_name: str
-    password: str = Field(min_length=8)
+    password: NewPassword
 
 
 class Token(BaseModel):
@@ -86,7 +95,7 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
         email=create_user_request.email,
         first_name=create_user_request.first_name,
         last_name=create_user_request.last_name,
-        hashed_password=bcrypt.hashpw(create_user_request.password.encode(), bcrypt.gensalt()).decode(),
+        hashed_password=hash_password(create_user_request.password),
         role='user',
         is_active=True,
     )

@@ -33,6 +33,24 @@ def test_authenticate_user(test_user):
     assert wrong_password is False
 
 
+def test_authenticate_user_over_72_bytes_returns_false(test_user):
+    # bcrypt 5.x raises ValueError for >72-byte passwords; login must return
+    # False (→ 401), not crash with a 500.
+    db = TestingSessionLocal()
+    result = authenticate_user(test_user.username, "x" * 100, db)
+    assert result is False
+
+
+def test_authenticate_inactive_user_returns_false(test_user):
+    db = TestingSessionLocal()
+    user = db.merge(test_user)
+    user.is_active = False
+    db.commit()
+
+    result = authenticate_user(test_user.username, "password", db)
+    assert result is False
+
+
 def test_create_access_token(test_user):
     access_token = create_access_token(test_user.username, test_user.id, test_user.role, timedelta(minutes=15))
 
@@ -43,10 +61,10 @@ def test_create_access_token(test_user):
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_valid_token():
+async def test_get_current_user_valid_token(test_user):
     encode = {"sub": "georgetest", "id": 1, "role": "admin"}
     token = jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
-    user = await get_current_user(token)
+    user = await get_current_user(token, TestingSessionLocal())
     assert user["username"] == "georgetest"
 
 
@@ -55,7 +73,45 @@ async def test_get_current_user_bad_token():
     encode = {"role": "admin"}
     token = jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
     with pytest.raises(HTTPException) as e:
-        await get_current_user(token)
+        await get_current_user(token, TestingSessionLocal())
 
     assert e.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert e.value.detail == "Invalid credentials"
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_role_comes_from_db(test_user):
+    # A stale "admin" claim in the token must not grant admin after demotion.
+    db = TestingSessionLocal()
+    user = db.merge(test_user)
+    user.role = "user"
+    db.commit()
+
+    encode = {"sub": "georgetest", "id": 1, "role": "admin"}
+    token = jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+    current = await get_current_user(token, TestingSessionLocal())
+    assert current["role"] == "user"
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_inactive_user_rejected(test_user):
+    db = TestingSessionLocal()
+    user = db.merge(test_user)
+    user.is_active = False
+    db.commit()
+
+    encode = {"sub": "georgetest", "id": 1, "role": "admin"}
+    token = jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+    with pytest.raises(HTTPException) as e:
+        await get_current_user(token, TestingSessionLocal())
+    assert e.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_deleted_user_rejected():
+    # Token is signed and unexpired, but the user no longer exists.
+    encode = {"sub": "ghost", "id": 424242, "role": "admin"}
+    token = jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+    with pytest.raises(HTTPException) as e:
+        await get_current_user(token, TestingSessionLocal())
+    assert e.value.status_code == status.HTTP_401_UNAUTHORIZED

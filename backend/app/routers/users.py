@@ -1,11 +1,11 @@
 from datetime import datetime
 
-import bcrypt
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from app.dependencies import db_dependency, user_dependency
 from app.models import Users
+from app.security import NewPassword, hash_password, verify_password
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -26,7 +26,7 @@ class UserResponse(BaseModel):
 
 class UserVerification(BaseModel):
     password: str
-    new_password: str = Field(min_length=8)
+    new_password: NewPassword
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=UserResponse)
@@ -39,7 +39,7 @@ async def update_password(user: user_dependency, db: db_dependency, user_verific
     user_model = db.query(Users).filter(Users.id == user.get("id")).first()
     if user_model is None:
         raise HTTPException(status_code=404, detail="User not found")
-    if not bcrypt.checkpw(user_verification.password.encode(), user_model.hashed_password.encode()):
+    if not verify_password(user_verification.password, user_model.hashed_password):
         raise HTTPException(status_code=401, detail="Error on password verification")
-    user_model.hashed_password = bcrypt.hashpw(user_verification.new_password.encode(), bcrypt.gensalt()).decode()
+    user_model.hashed_password = hash_password(user_verification.new_password)
     db.commit()
