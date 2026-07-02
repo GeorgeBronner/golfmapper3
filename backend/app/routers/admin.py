@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 
-import bcrypt
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 from starlette import status
@@ -8,6 +7,7 @@ from starlette import status
 from app.dependencies import admin_dependency, db_dependency
 from app.models import CourseRequests, Courses, UserCourses, Users
 from app.routers.garmin_courses import CourseBase
+from app.security import NewPassword, hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -28,7 +28,11 @@ class RoleUpdate(BaseModel):
 
 
 class PasswordReset(BaseModel):
-    new_password: str = Field(min_length=8)
+    new_password: NewPassword
+
+
+class ActiveUpdate(BaseModel):
+    is_active: bool
 
 
 class CourseCreate(BaseModel):
@@ -167,8 +171,24 @@ async def reset_user_password(
     target = db.query(Users).filter(Users.id == user_id).first()
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
-    target.hashed_password = bcrypt.hashpw(
-        password_reset.new_password.encode(), bcrypt.gensalt()
-    ).decode()
+    target.hashed_password = hash_password(password_reset.new_password)
     db.commit()
     return {"message": "Password updated"}
+
+
+@router.patch("/users/{user_id}/active", status_code=status.HTTP_200_OK, response_model=UserSummary)
+async def update_user_active(
+    user: admin_dependency,
+    db: db_dependency,
+    active_update: ActiveUpdate,
+    user_id: int = Path(ge=1),
+):
+    if user_id == user["id"] and not active_update.is_active:
+        raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
+    target = db.query(Users).filter(Users.id == user_id).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    target.is_active = active_update.is_active
+    db.commit()
+    db.refresh(target)
+    return target

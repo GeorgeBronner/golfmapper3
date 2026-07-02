@@ -36,6 +36,17 @@ const AdminUsers = () => {
         }
     };
 
+    const toggleActive = async (user) => {
+        const activating = !user.is_active;
+        try {
+            await api.patch(`/admin/users/${user.id}/active`, { is_active: activating });
+            showAlert('success', `${user.username} is now ${activating ? 'active' : 'deactivated'}.`);
+            loadUsers();
+        } catch (err) {
+            showAlert('danger', err.response?.data?.detail || 'Failed to update account status.');
+        }
+    };
+
     const openPasswordModal = (user) => {
         setPasswordModal({ userId: user.id, username: user.username });
         setNewPassword('');
@@ -88,6 +99,9 @@ const AdminUsers = () => {
                                 <Badge bg={u.role === 'admin' ? 'danger' : 'secondary'}>
                                     {u.role}
                                 </Badge>
+                                {!u.is_active && (
+                                    <Badge bg="dark" className="ms-1">inactive</Badge>
+                                )}
                             </td>
                             <td className="d-flex gap-2">
                                 <Button
@@ -103,6 +117,13 @@ const AdminUsers = () => {
                                     onClick={() => openPasswordModal(u)}
                                 >
                                     Reset Password
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant={u.is_active ? 'outline-danger' : 'outline-success'}
+                                    onClick={() => toggleActive(u)}
+                                >
+                                    {u.is_active ? 'Deactivate' : 'Activate'}
                                 </Button>
                             </td>
                         </tr>

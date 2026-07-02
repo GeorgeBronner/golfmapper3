@@ -36,3 +36,10 @@ def test_password_change_invalid_current_password(test_user):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Error on password verification"}
 
+
+def test_password_change_over_72_bytes_returns_422(test_user):
+    # bcrypt rejects >72-byte passwords; must be a validation error, not a 500.
+    request_body = {"password": "password", "new_password": "x" * 100}
+    response = client.put("/api/v1/user/password", json=request_body)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+

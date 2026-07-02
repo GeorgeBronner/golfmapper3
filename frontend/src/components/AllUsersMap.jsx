@@ -42,6 +42,9 @@ function AllUsersMap() {
                 title="All Users Golf Map"
                 className="map-iframe"
                 srcDoc={mapHtml}
+                // No allow-same-origin: keeps the folium document in an opaque
+                // origin so injected content can't reach localStorage/the token.
+                sandbox="allow-scripts"
                 style={{ display: status === 'loaded' ? 'block' : 'none' }}
             />
         </div>

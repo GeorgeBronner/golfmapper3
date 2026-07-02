@@ -1,8 +1,11 @@
+import pytest
 from fastapi import status
+from sqlalchemy import text
 
 from app.dependencies import get_current_user, get_db
+from app.models import Users
 
-from .utils import app, client, override_get_current_user, override_get_db
+from .utils import TestingSessionLocal, app, client, engine, override_get_current_user, override_get_db
 
 app.dependency_overrides[get_db] = override_get_db
 app.dependency_overrides[get_current_user] = override_get_current_user
@@ -80,3 +83,40 @@ def test_admin_update_course_info_non_admin(test_user_courses):
     finally:
         app.dependency_overrides[get_current_user] = override_get_current_user
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ── Activate / deactivate users ───────────────────────────────────────────────
+
+@pytest.fixture
+def second_user():
+    db = TestingSessionLocal()
+    db.add(Users(
+        id=2, email="other@mail.com", username="other", first_name="o", last_name="u",
+        hashed_password="not-used", is_active=True, role="user",
+    ))
+    db.commit()
+    yield
+    with engine.connect() as con:
+        con.execute(text("DELETE FROM users;"))
+        con.commit()
+
+
+def test_admin_deactivate_and_reactivate_user(second_user):
+    response = client.patch("/api/v1/admin/users/2/active", json={"is_active": False})
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["is_active"] is False
+
+    response = client.patch("/api/v1/admin/users/2/active", json={"is_active": True})
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["is_active"] is True
+
+
+def test_admin_cannot_deactivate_self():
+    # override_get_current_user is user id 1
+    response = client.patch("/api/v1/admin/users/1/active", json={"is_active": False})
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_admin_deactivate_user_not_found():
+    response = client.patch("/api/v1/admin/users/99999/active", json={"is_active": False})
+    assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -1,3 +1,4 @@
+import html
 from pathlib import Path
 
 import folium
@@ -31,7 +32,8 @@ async def generate_user_map(user: dict, db) -> Path:
         for course in user_courses:
             if course.latitude is None or course.longitude is None:
                 continue
-            description = course.display_name + ' ' + str(course.id)
+            # Popups render as raw HTML — escape user-supplied course names.
+            description = html.escape(course.display_name) + ' ' + str(course.id)
             fg.add_child(
                 folium.CircleMarker(
                     location=[course.latitude, course.longitude],
@@ -73,9 +75,11 @@ def generate_all_users_map(db) -> str:
             f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;'
             f'background:{color};margin-right:6px;vertical-align:middle;"></span>'
         )
-        fg = folium.FeatureGroup(name=dot + username)
+        # Layer-control names and popups render as raw HTML (the colored dot
+        # span relies on that) — escape the user-supplied parts.
+        fg = folium.FeatureGroup(name=dot + html.escape(username))
         for course, year in results:
-            label = course.display_name
+            label = html.escape(course.display_name)
             if year:
                 label += f' ({year})'
             fg.add_child(
