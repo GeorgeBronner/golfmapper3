@@ -13,6 +13,7 @@ services:
       - STATIC_FILES_DIR=./dist
       - SECRET_KEY_AUTH=${SECRET_KEY_AUTH}
       - MAILTRAP_API_KEY=${MAILTRAP_API_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
     restart: unless-stopped
     networks:
       - nginx-proxy
