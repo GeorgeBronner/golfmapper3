@@ -6,23 +6,23 @@ import { Row, Col, Card, Badge, Button, Form, Spinner, Alert } from 'react-boots
 import api from '../services/api';
 
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import blueMarker from '../assets/markers/marker-icon-blue.png';
+import blueMarker2x from '../assets/markers/marker-icon-2x-blue.png';
+import redMarker from '../assets/markers/marker-icon-red.png';
+import redMarker2x from '../assets/markers/marker-icon-2x-red.png';
 import '../utils/leafletIcons';
 
-// Blue marker for original location
-const blueIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-    iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+// Colored pins from pointhi/leaflet-color-markers (BSD-2-Clause — see
+// assets/markers/LICENSE), vendored so these maps don't depend on a remote host.
+const coloredIcon = (iconUrl, iconRetinaUrl) => new L.Icon({
+    iconUrl,
+    iconRetinaUrl,
     shadowUrl: markerShadow,
     iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
 
-// Red marker for proposed location
-const redIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-    iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    shadowUrl: markerShadow,
-    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
-});
+const blueIcon = coloredIcon(blueMarker, blueMarker2x);   // original location
+const redIcon = coloredIcon(redMarker, redMarker2x);      // proposed location
 
 function StatusBadge({ status }) {
     const map = { pending: 'warning', approved: 'success', rejected: 'danger' };
