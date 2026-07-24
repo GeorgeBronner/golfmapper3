@@ -60,6 +60,16 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# --- Security headers ---
+# CSP and HSTS are handled at the reverse proxy for deployed environments.
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,

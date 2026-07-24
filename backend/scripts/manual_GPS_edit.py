@@ -46,24 +46,25 @@ class courses(Base):
 Session_sqlite = sessionmaker(bind=engine_sqlite)
 session_sqlite = Session_sqlite()
 
-result = int(input("Which course id to you want to edit? "))
-i = session_sqlite.get(courses, result)
-# j = session.get(courses, result)
+try:
+    result = int(input("Which course id to you want to edit? "))
+    i = session_sqlite.get(courses, result)
+    # j = session.get(courses, result)
 
-print(f'Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}')
-result = input("Is this the course you want to edit? ")
-if result == 'y':
-    new_lat = float(input('Enter Latitude: '))
-    new_long = float(input('Enter Longitude: '))
-    confirm = input(f'Do you want to update Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}, with lat: {new_lat}, long={new_long} ? ')
-    if confirm == 'y':
-        i.latitude = new_lat
-        i.longitude = new_long
-        session_sqlite.commit()
+    print(f'Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}')
+    result = input("Is this the course you want to edit? ")
+    if result == 'y':
+        new_lat = float(input('Enter Latitude: '))
+        new_long = float(input('Enter Longitude: '))
+        confirm = input(f'Do you want to update Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}, with lat: {new_lat}, long={new_long} ? ')
+        if confirm == 'y':
+            i.latitude = new_lat
+            i.longitude = new_long
+            session_sqlite.commit()
 
-        #update postgres database
-        # j.latitude = new_lat
-        # j.longitude = new_long
-        # session.commit()
-else:
-    pass
+            #update postgres database
+            # j.latitude = new_lat
+            # j.longitude = new_long
+            # session.commit()
+finally:
+    session_sqlite.close()

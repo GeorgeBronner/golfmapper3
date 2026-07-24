@@ -5,7 +5,7 @@ Uses OpenStreetMaps with Leaflet and reverse geocoding
 """
 
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -178,7 +178,7 @@ async def create_course(course: CourseCreate):
     db = SessionLocal()
     try:
         # Create timestamp in ISO format
-        created_at = datetime.utcnow().isoformat()
+        created_at = datetime.now(timezone.utc).isoformat()
 
         # Create new course record
         new_course = Courses(
@@ -686,14 +686,20 @@ HTML_TEMPLATE = """
             showConfirmation();
         }
 
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value;
+            return div.innerHTML;
+        }
+
         function showConfirmation() {
             const details = `
-                <p><strong>Club Name:</strong> ${pendingCourseData.club_name}</p>
-                <p><strong>Course Name:</strong> ${pendingCourseData.course_name}</p>
-                ${pendingCourseData.address ? `<p><strong>Address:</strong> ${pendingCourseData.address}</p>` : ''}
-                <p><strong>City:</strong> ${pendingCourseData.city}</p>
-                <p><strong>State:</strong> ${pendingCourseData.state}</p>
-                <p><strong>Country:</strong> ${pendingCourseData.country}</p>
+                <p><strong>Club Name:</strong> ${escapeHtml(pendingCourseData.club_name)}</p>
+                <p><strong>Course Name:</strong> ${escapeHtml(pendingCourseData.course_name)}</p>
+                ${pendingCourseData.address ? `<p><strong>Address:</strong> ${escapeHtml(pendingCourseData.address)}</p>` : ''}
+                <p><strong>City:</strong> ${escapeHtml(pendingCourseData.city)}</p>
+                <p><strong>State:</strong> ${escapeHtml(pendingCourseData.state)}</p>
+                <p><strong>Country:</strong> ${escapeHtml(pendingCourseData.country)}</p>
                 <p><strong>Coordinates:</strong> ${pendingCourseData.latitude.toFixed(6)}, ${pendingCourseData.longitude.toFixed(6)}</p>
             `;
 
@@ -760,4 +766,5 @@ if __name__ == "__main__":
     print("🌐 Open your browser to: http://localhost:8889")
     print("⌨️  Press CTRL+C to stop the server\n")
 
-    uvicorn.run(app, host="0.0.0.0", port=8889)
+    # Local admin tool with no auth — must not be reachable from the network.
+    uvicorn.run(app, host="127.0.0.1", port=8889)

@@ -120,3 +120,18 @@ def test_admin_cannot_deactivate_self():
 def test_admin_deactivate_user_not_found():
     response = client.patch("/api/v1/admin/users/99999/active", json={"is_active": False})
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# ── Role changes ──────────────────────────────────────────────────────────────
+
+def test_admin_update_user_role(second_user):
+    response = client.patch("/api/v1/admin/users/2/role", json={"role": "admin"})
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["role"] == "admin"
+
+
+def test_admin_cannot_demote_self():
+    # override_get_current_user is user id 1
+    response = client.patch("/api/v1/admin/users/1/role", json={"role": "user"})
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"detail": "You cannot remove your own admin role"}

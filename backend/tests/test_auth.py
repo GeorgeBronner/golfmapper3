@@ -3,6 +3,7 @@ from datetime import timedelta
 import jwt
 import pytest
 from fastapi import HTTPException, status
+from sqlalchemy import text
 
 from app.routers.auth import (
     ALGORITHM,
@@ -13,7 +14,7 @@ from app.routers.auth import (
     get_db,
 )
 
-from .utils import TestingSessionLocal, app, override_get_db
+from .utils import TestingSessionLocal, app, client, engine, override_get_db
 
 app.dependency_overrides[get_db] = override_get_db
 
@@ -105,6 +106,37 @@ async def test_get_current_user_inactive_user_rejected(test_user):
     with pytest.raises(HTTPException) as e:
         await get_current_user(token, TestingSessionLocal())
     assert e.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_create_user_rejects_invalid_email():
+    response = client.post(
+        "/api/v1/auth/",
+        json={
+            "username": "newuser",
+            "email": "not-an-email",
+            "first_name": "New",
+            "last_name": "User",
+            "password": "password123",
+        },
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_create_user_accepts_valid_email():
+    response = client.post(
+        "/api/v1/auth/",
+        json={
+            "username": "newuser",
+            "email": "newuser@example.com",
+            "first_name": "New",
+            "last_name": "User",
+            "password": "password123",
+        },
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    with engine.connect() as con:
+        con.execute(text("DELETE FROM users;"))
+        con.commit()
 
 
 @pytest.mark.asyncio

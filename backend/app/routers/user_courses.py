@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path as FilePath
 
 from fastapi import APIRouter, HTTPException, Path
@@ -20,6 +20,13 @@ def _invalidate_user_map(user_id: int) -> None:
 router = APIRouter(prefix="/user_courses", tags=["user_courses"])
 
 
+def _validate_year(v: int) -> int:
+    max_year = datetime.now(timezone.utc).year + 1
+    if v < 1900 or v > max_year:
+        raise ValueError(f'Year must be between 1900 and {max_year}')
+    return v
+
+
 class UserCourseOut(BaseModel):
     id: int
     course_id: int
@@ -35,9 +42,7 @@ class UserCourseRequest(BaseModel):
 
     @field_validator('year')
     def check_year(cls, v):
-        if v < 1900 or v > 2070:
-            raise ValueError('Year must be between 1900 and 2070')
-        return v
+        return _validate_year(v)
 
 
 class CourseResponse(BaseModel):
@@ -66,9 +71,7 @@ class YearUpdateRequest(BaseModel):
 
     @field_validator('year')
     def check_year(cls, v):
-        if v < 1900 or v > 2070:
-            raise ValueError('Year must be between 1900 and 2070')
-        return v
+        return _validate_year(v)
 
 
 @router.get("/readall_ids", status_code=status.HTTP_200_OK, response_model=list[UserCourseOut])

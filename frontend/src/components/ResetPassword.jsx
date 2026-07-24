@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
 function ResetPassword() {
     const [searchParams] = useSearchParams();
-    const token = searchParams.get('token');
+    // Capture the token once, then scrub it from the address bar so it
+    // doesn't linger in browser history or get leaked via referrer.
+    const [token] = useState(() => searchParams.get('token'));
+    useEffect(() => {
+        if (searchParams.get('token')) {
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+    }, [searchParams]);
 
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');

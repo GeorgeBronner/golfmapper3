@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
 function NewUser() {
-    const [form, setForm] = useState({ username: '', email: '', first_name: '', last_name: '', password: '' });
+    const [form, setForm] = useState({ username: '', email: '', first_name: '', last_name: '', password: '', confirm_password: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
@@ -18,13 +18,18 @@ function NewUser() {
             setError('Please enter a valid email address.');
             return;
         }
+        if (form.password !== form.confirm_password) {
+            setError('Passwords do not match.');
+            return;
+        }
+        const { confirm_password, ...payload } = form;
         try {
-            await api.post('/auth/', form);
+            await api.post('/auth/', payload);
             navigate('/');
         } catch {
             setError('Registration failed. That username or email may already be taken.');
         }
-        setForm({ username: '', email: '', first_name: '', last_name: '', password: '' });
+        setForm({ username: '', email: '', first_name: '', last_name: '', password: '', confirm_password: '' });
     };
 
     return (
@@ -67,6 +72,7 @@ function NewUser() {
                                 onChange={handleChange}
                                 placeholder="Jane"
                                 autoComplete="given-name"
+                                maxLength={50}
                                 required
                             />
                         </div>
@@ -81,6 +87,7 @@ function NewUser() {
                                 onChange={handleChange}
                                 placeholder="Doe"
                                 autoComplete="family-name"
+                                maxLength={50}
                                 required
                             />
                         </div>
@@ -96,6 +103,7 @@ function NewUser() {
                             onChange={handleChange}
                             placeholder="jane@example.com"
                             autoComplete="email"
+                            maxLength={100}
                             required
                         />
                     </div>
@@ -110,6 +118,7 @@ function NewUser() {
                             onChange={handleChange}
                             placeholder="choose_a_username"
                             autoComplete="username"
+                            maxLength={50}
                             required
                         />
                     </div>
@@ -125,6 +134,23 @@ function NewUser() {
                             placeholder="••••••••"
                             autoComplete="new-password"
                             minLength={8}
+                            maxLength={72}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="reg-confirm-password">Confirm Password</label>
+                        <input
+                            id="reg-confirm-password"
+                            className="form-input"
+                            type="password"
+                            name="confirm_password"
+                            value={form.confirm_password}
+                            onChange={handleChange}
+                            placeholder="••••••••"
+                            autoComplete="new-password"
+                            minLength={8}
+                            maxLength={72}
                             required
                         />
                     </div>

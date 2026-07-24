@@ -5,7 +5,7 @@ from typing import Annotated
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -68,7 +68,7 @@ async def get_current_user(
 
 class CreateUserRequest(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     first_name: str
     last_name: str
     password: NewPassword
@@ -80,7 +80,8 @@ class Token(BaseModel):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(db: db_dependency, create_user_request: CreateUserRequest):
+@limiter.limit("5/minute")
+async def create_user(request: Request, db: db_dependency, create_user_request: CreateUserRequest):
     existing_user = db.query(Users).filter(
         (Users.username == create_user_request.username) |
         (Users.email == create_user_request.email)
