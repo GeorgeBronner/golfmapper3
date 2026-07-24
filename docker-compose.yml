@@ -14,6 +14,8 @@ services:
       - SECRET_KEY_AUTH=${SECRET_KEY_AUTH}
       - MAILTRAP_API_KEY=${MAILTRAP_API_KEY}
       - SENTRY_DSN=${SENTRY_DSN}
+      # Required for reset emails — the app refuses to send without it
+      - APP_BASE_URL=https://golf.bronnerapp.com
     restart: unless-stopped
     networks:
       - nginx-proxy

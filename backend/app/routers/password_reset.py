@@ -78,6 +78,12 @@ async def forgot_password(
     body: ForgotPasswordRequest,
     db: db_dependency,
 ):
+    if not settings.APP_BASE_URL:
+        # Refuse rather than falling back to a hardcoded URL, which would
+        # send links pointing at the wrong environment.
+        logger.warning("APP_BASE_URL not set — password reset emails are disabled")
+        return {"message": "If that email is registered, a reset link has been sent."}
+
     # Always return success to avoid user enumeration
     user = db.query(Users).filter(Users.email == body.email).first()
     if user:

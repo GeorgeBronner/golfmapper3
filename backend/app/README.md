@@ -26,7 +26,7 @@ SQLite (default) or PostgreSQL.
 - `CORS_ORIGINS`: JSON list of allowed origins, overrides the built-in list
   (e.g. `CORS_ORIGINS='["https://golf.bronnerapp.com"]'`)
 - `MAILTRAP_API_KEY`: Enables password-reset emails (skipped if unset)
-- `APP_BASE_URL`: Base URL used in password-reset links (default: `https://golf.bronnerapp.com`)
+- `APP_BASE_URL`: Base URL used in password-reset links. No default — if unset, reset emails are not sent (prevents misconfigured environments from emailing production links)
 - `FROM_EMAIL` / `FROM_NAME`: Password-reset email sender (defaults: `noreply@bronnerapp.com` / `GolfMapper`)
 - `SENTRY_DSN`: Sentry DSN (default: disabled)
 - `TRACES_SAMPLE_RATE`: Sentry traces sample rate (default: `0.1`)
