@@ -9,12 +9,15 @@ services:
         source: ${DB_PATH:-./backend/golf_mapper.db}
         target: /app/app/golf_mapper.db
     environment:
-      - ENVIRONMENT=development
+      - ENVIRONMENT=production
       - STATIC_FILES_DIR=./dist
       - SECRET_KEY_AUTH=${SECRET_KEY_AUTH}
       - MAILTRAP_API_KEY=${MAILTRAP_API_KEY}
       - SENTRY_DSN=${SENTRY_DSN}
-      # Required for reset emails — the app refuses to send without it
+      # Required for reset emails — the app refuses to send without it.
+      # Hard-coded rather than substituted: this file is the production
+      # deployment (oracle → golf.bronnerapp.com), same as the stage file
+      # pins the staging origin. Only secrets come from the server .env.
       - APP_BASE_URL=https://golf.bronnerapp.com
     restart: unless-stopped
     networks:

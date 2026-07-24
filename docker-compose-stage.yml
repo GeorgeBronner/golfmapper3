@@ -15,6 +15,6 @@ services:
       - STATIC_FILES_DIR=./dist
       - SECRET_KEY_AUTH=${SECRET_KEY_AUTH}
       - MAILTRAP_API_KEY=${MAILTRAP_API_KEY}
-      # Without this, reset emails would use the code default (production URL)
+      # Required to enable staging reset links; without it, reset emails are disabled
       - APP_BASE_URL=https://golf-stage.lab.bronnerapp.com
     restart: unless-stopped

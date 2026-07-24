@@ -25,11 +25,11 @@ function NewUser() {
         const { confirm_password, ...payload } = form;
         try {
             await api.post('/auth/', payload);
+            setForm({ username: '', email: '', first_name: '', last_name: '', password: '', confirm_password: '' });
             navigate('/');
         } catch {
             setError('Registration failed. That username or email may already be taken.');
         }
-        setForm({ username: '', email: '', first_name: '', last_name: '', password: '', confirm_password: '' });
     };
 
     return (
