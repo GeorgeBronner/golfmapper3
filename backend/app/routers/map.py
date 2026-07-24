@@ -16,8 +16,16 @@ MAP_DIR = Path(settings.MAP_FILES_DIR)
 router = APIRouter(prefix="/map", tags=["map"])
 
 _USER_COLORS = [
-    '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f39c12',
-    '#1abc9c', '#e67e22', '#e91e8c', '#00bcd4', '#8d6e63',
+    "#e74c3c",
+    "#3498db",
+    "#2ecc71",
+    "#9b59b6",
+    "#f39c12",
+    "#1abc9c",
+    "#e67e22",
+    "#e91e8c",
+    "#00bcd4",
+    "#8d6e63",
 ]
 
 
@@ -28,17 +36,17 @@ async def generate_user_map(user: dict, db) -> Path:
 
     user_map = folium.Map(location=[40, -90], zoom_start=4, control_scale=True)
     if user_courses:
-        fg = folium.FeatureGroup(name=user['username'])
+        fg = folium.FeatureGroup(name=user["username"])
         for course in user_courses:
             if course.latitude is None or course.longitude is None:
                 continue
             # Popups render as raw HTML — escape user-supplied course names.
-            description = html.escape(course.display_name) + ' ' + str(course.id)
+            description = html.escape(course.display_name) + " " + str(course.id)
             fg.add_child(
                 folium.CircleMarker(
                     location=[course.latitude, course.longitude],
                     popup=description,
-                    color='red',
+                    color="red",
                     opacity=0.7,
                     radius=7,
                 )
@@ -81,7 +89,7 @@ def generate_all_users_map(db) -> str:
         for course, year in results:
             label = html.escape(course.display_name)
             if year:
-                label += f' ({year})'
+                label += f" ({year})"
             fg.add_child(
                 folium.CircleMarker(
                     location=[course.latitude, course.longitude],

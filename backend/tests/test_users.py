@@ -42,4 +42,3 @@ def test_password_change_over_72_bytes_returns_422(test_user):
     request_body = {"password": "password", "new_password": "x" * 100}
     response = client.put("/api/v1/user/password", json=request_body)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-

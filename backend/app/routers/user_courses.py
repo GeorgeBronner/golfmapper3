@@ -23,7 +23,7 @@ router = APIRouter(prefix="/user_courses", tags=["user_courses"])
 def _validate_year(v: int) -> int:
     max_year = datetime.now(timezone.utc).year + 1
     if v < 1900 or v > max_year:
-        raise ValueError(f'Year must be between 1900 and {max_year}')
+        raise ValueError(f"Year must be between 1900 and {max_year}")
     return v
 
 
@@ -40,7 +40,7 @@ class UserCourseRequest(BaseModel):
     garmin_id: int = Field(...)
     year: int = Field(...)
 
-    @field_validator('year')
+    @field_validator("year")
     def check_year(cls, v):
         return _validate_year(v)
 
@@ -69,7 +69,7 @@ class CourseResponse(BaseModel):
 class YearUpdateRequest(BaseModel):
     year: int = Field(...)
 
-    @field_validator('year')
+    @field_validator("year")
     def check_year(cls, v):
         return _validate_year(v)
 
@@ -102,13 +102,8 @@ async def readall_ids_w_year(user: user_dependency, db: db_dependency):
 
 @router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseResponse])
 async def readall(user: user_dependency, db: db_dependency):
-    course_ids = (
-        db.query(UserCourses.course_id)
-        .filter(UserCourses.user_id == user.get("id"))
-        .distinct()
-        .all()
-    )
-    course_ids = [course_id for course_id, in course_ids]
+    course_ids = db.query(UserCourses.course_id).filter(UserCourses.user_id == user.get("id")).distinct().all()
+    course_ids = [course_id for (course_id,) in course_ids]
     return (
         db.query(Courses)
         .filter(
@@ -156,11 +151,7 @@ async def update_user_course_year(
     year_update: YearUpdateRequest,
     user_course_id: int = Path(ge=1),
 ):
-    uc = (
-        db.query(UserCourses)
-        .filter(UserCourses.id == user_course_id, UserCourses.user_id == user.get("id"))
-        .first()
-    )
+    uc = db.query(UserCourses).filter(UserCourses.id == user_course_id, UserCourses.user_id == user.get("id")).first()
     if uc is None:
         raise HTTPException(status_code=404, detail="Not found")
     uc.year = year_update.year
@@ -171,9 +162,7 @@ async def update_user_course_year(
 @router.delete("/delete/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_course(user: user_dependency, db: db_dependency, course_id: int = Path(ge=1)):
     user_course_model = (
-        db.query(UserCourses)
-        .filter(UserCourses.course_id == course_id, UserCourses.user_id == user.get("id"))
-        .first()
+        db.query(UserCourses).filter(UserCourses.course_id == course_id, UserCourses.user_id == user.get("id")).first()
     )
     if user_course_model is None:
         raise HTTPException(status_code=404, detail="Course_id not found")

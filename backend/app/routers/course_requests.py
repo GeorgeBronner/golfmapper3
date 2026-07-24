@@ -15,6 +15,7 @@ router = APIRouter(prefix="/course-requests", tags=["course-requests"])
 # Pydantic schemas
 # ---------------------------------------------------------------------------
 
+
 class NewCourseRequest(BaseModel):
     club_name: str | None = None
     course_name: str | None = None
@@ -25,10 +26,10 @@ class NewCourseRequest(BaseModel):
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def require_at_least_one_name(self):
         if not (self.club_name and self.club_name.strip()) and not (self.course_name and self.course_name.strip()):
-            raise ValueError('Either club_name or course_name is required')
+            raise ValueError("Either club_name or course_name is required")
         return self
 
 
@@ -76,6 +77,7 @@ def _to_out(req: CourseRequests) -> CourseRequestOut:
 # ---------------------------------------------------------------------------
 # User endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.post("/new-course", status_code=http_status.HTTP_201_CREATED, response_model=CourseRequestOut)
 async def submit_new_course(user: user_dependency, db: db_dependency, body: NewCourseRequest):
@@ -156,6 +158,7 @@ async def my_requests(user: user_dependency, db: db_dependency):
 # ---------------------------------------------------------------------------
 # Admin endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/admin/all", status_code=http_status.HTTP_200_OK, response_model=list[CourseRequestOut])
 async def admin_list_requests(user: admin_dependency, db: db_dependency, pending_only: bool = True):

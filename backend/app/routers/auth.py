@@ -82,14 +82,16 @@ class Token(BaseModel):
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def create_user(request: Request, db: db_dependency, create_user_request: CreateUserRequest):
-    existing_user = db.query(Users).filter(
-        (Users.username == create_user_request.username) |
-        (Users.email == create_user_request.email)
-    ).first()
+    existing_user = (
+        db.query(Users)
+        .filter((Users.username == create_user_request.username) | (Users.email == create_user_request.email))
+        .first()
+    )
 
     if existing_user is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail="User with the same username or email already exists")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="User with the same username or email already exists"
+        )
 
     create_user_model = Users(
         username=create_user_request.username,
@@ -97,7 +99,7 @@ async def create_user(request: Request, db: db_dependency, create_user_request: 
         first_name=create_user_request.first_name,
         last_name=create_user_request.last_name,
         hashed_password=hash_password(create_user_request.password),
-        role='user',
+        role="user",
         is_active=True,
     )
     db.add(create_user_model)
@@ -117,7 +119,9 @@ async def login_for_access_token(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     logger.info("Successful login for username=%s", user.username)
     token = create_access_token(
-        user.username, user.id, user.role,
+        user.username,
+        user.id,
+        user.role,
         timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),
     )
     return {"access_token": token, "token_type": "bearer"}
@@ -127,7 +131,9 @@ async def login_for_access_token(
 async def refresh_token(current_user: Annotated[dict, Depends(get_current_user)]):
     """Issue a fresh token for an already-authenticated user."""
     token = create_access_token(
-        current_user["username"], current_user["id"], current_user["role"],
+        current_user["username"],
+        current_user["id"],
+        current_user["role"],
         timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),
     )
     return {"access_token": token, "token_type": "bearer"}

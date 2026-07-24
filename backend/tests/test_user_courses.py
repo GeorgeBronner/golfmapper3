@@ -36,9 +36,7 @@ def test_readall_authenticated(test_user_courses):
 def test_read_one_authenticated(test_user_courses):
     response = client.get("/api/v1/user_courses/readall_ids")
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == [
-        {'course_id': 200, 'user_id': 1, 'year': 2021, 'id': 1}
-    ]
+    assert response.json() == [{"course_id": 200, "user_id": 1, "year": 2021, "id": 1}]
 
 
 def test_add_course_duplicate_returns_409(test_user_courses):
@@ -65,8 +63,18 @@ def sparse_course():
     # Mirrors a course created from an approved new-course request: only one
     # name and coordinates, everything else NULL.
     db = TestingSessionLocal()
-    db.add(Courses(id=300, club_name=None, course_name="Solo Course", city=None,
-                   state=None, country=None, latitude=30.0, longitude=-88.0))
+    db.add(
+        Courses(
+            id=300,
+            club_name=None,
+            course_name="Solo Course",
+            city=None,
+            state=None,
+            country=None,
+            latitude=30.0,
+            longitude=-88.0,
+        )
+    )
     db.add(UserCourses(id=3, course_id=300, user_id=1, year=2025))
     db.commit()
     yield

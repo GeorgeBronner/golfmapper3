@@ -77,8 +77,7 @@ async def delete_course(user: admin_dependency, db: db_dependency, course_id: in
         raise HTTPException(status_code=404, detail="Course not found")
     db.query(UserCourses).filter(UserCourses.course_id == course_id).delete(synchronize_session=False)
     db.query(CourseRequests).filter(
-        (CourseRequests.course_id == course_id) |
-        (CourseRequests.approved_course_id == course_id),
+        (CourseRequests.course_id == course_id) | (CourseRequests.approved_course_id == course_id),
         CourseRequests.status == "approved",
     ).delete(synchronize_session=False)
     db.delete(course_model)

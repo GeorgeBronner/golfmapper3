@@ -51,7 +51,7 @@ def _send_reset_email(to_email: str, to_name: str, reset_url: str) -> None:
         html=(
             f"<p>Hi {html.escape(to_name)},</p>"
             "<p>We received a request to reset your GolfMapper password.</p>"
-            f"<p><a href=\"{reset_url}\">Reset my password</a></p>"
+            f'<p><a href="{reset_url}">Reset my password</a></p>'
             f"<p>This link is valid for {TOKEN_EXPIRY_MINUTES} minutes. "
             "If you didn't request this, ignore this email.</p>"
             "<p>— The GolfMapper Team</p>"
