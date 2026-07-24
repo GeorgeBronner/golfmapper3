@@ -14,12 +14,12 @@ __pycache__/
 *.sln
 *.sw?
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment variables — **/ is required: unlike .gitignore, a bare
+# pattern in .dockerignore only matches at the context root, so plain
+# ".env" would NOT exclude app/.env and its secrets would end up in the
+# image. Runtime config comes from compose `environment:` instead.
+**/.env
+**/.env.*
 
 **/garmin.db
 **/golf_mapper.db

@@ -20,6 +20,7 @@ from app.routers import admin, auth, course_requests, garmin_courses, map, passw
 
 try:
     import sentry_sdk
+
     sentry_sdk_available = True
 except ImportError:
     sentry_sdk_available = False
@@ -37,6 +38,7 @@ class _JsonFormatter(logging.Formatter):
         if record.exc_info:
             entry["exc"] = self.formatException(record.exc_info)
         return json.dumps(entry)
+
 
 _handler = logging.StreamHandler()
 _handler.setFormatter(_JsonFormatter())
@@ -60,6 +62,18 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
+# --- Security headers ---
+# CSP and HSTS are handled at the reverse proxy for deployed environments.
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
@@ -73,10 +87,12 @@ app.add_middleware(
 static_path = Path(settings.STATIC_FILES_DIR).resolve()
 assets_path = static_path / "assets"
 
+
 # --- Health check (outside /api/v1 intentionally) ---
 @app.get("/healthy", status_code=200)
 def health_check():
     return {"message": "I'm healthy"}
+
 
 # --- Root SPA handler ---
 @app.get("/", include_in_schema=False)
@@ -87,6 +103,7 @@ async def serve_root_frontend():
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         return response
     return {"detail": "Frontend not available"}
+
 
 # --- API routers under /api/v1 ---
 API_PREFIX = "/api/v1"
@@ -102,6 +119,7 @@ app.include_router(course_requests.router, prefix=API_PREFIX)
 # --- Static assets ---
 if assets_path.exists() and assets_path.is_dir():
     app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
+
 
 # --- SPA catch-all: serve index.html for any non-API path ---
 @app.get("/{full_path:path}", include_in_schema=False)

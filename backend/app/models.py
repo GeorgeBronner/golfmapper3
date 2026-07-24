@@ -47,10 +47,10 @@ class Courses(Base):
         return ""
 
     def __repr__(self):
-        return f'<course: {self.display_name}, {self.state}>'
+        return f"<course: {self.display_name}, {self.state}>"
+
 
 class Users(Base):
-
     def __repr__(self):
         return f"User({self.username}, {self.email}, {self.first_name}, {self.last_name}, {self.role})"
 
@@ -71,7 +71,6 @@ class Users(Base):
 
 
 class UserCourses(Base):
-
     def __repr__(self):
         return f"Course ({self.course_id}, {self.user_id}, {self.year})"
 
@@ -91,7 +90,7 @@ class UserCourses(Base):
         # One entry per course per user (applies to freshly created databases;
         # existing DBs keep the old constraint — the application-level check in
         # add_user_course enforces the rule either way).
-        UniqueConstraint('user_id', 'course_id', name='uq_user_course'),
+        UniqueConstraint("user_id", "course_id", name="uq_user_course"),
     )
 
 
@@ -99,7 +98,7 @@ class CourseRequests(Base):
     __tablename__ = "course_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    request_type = Column(String, nullable=False)   # "new_course" | "location_change"
+    request_type = Column(String, nullable=False)  # "new_course" | "location_change"
     status = Column(String, default="pending", nullable=False)  # "pending" | "approved" | "rejected"
 
     submitted_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -143,6 +142,4 @@ class PasswordResetToken(Base):
     used = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=_now)
 
-    __table_args__ = (
-        Index("ix_prt_token_hash", "token_hash"),
-    )
+    __table_args__ = (Index("ix_prt_token_hash", "token_hash"),)

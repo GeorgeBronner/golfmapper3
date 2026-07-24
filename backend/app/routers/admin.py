@@ -77,8 +77,7 @@ async def delete_course(user: admin_dependency, db: db_dependency, course_id: in
         raise HTTPException(status_code=404, detail="Course not found")
     db.query(UserCourses).filter(UserCourses.course_id == course_id).delete(synchronize_session=False)
     db.query(CourseRequests).filter(
-        (CourseRequests.course_id == course_id) |
-        (CourseRequests.approved_course_id == course_id),
+        (CourseRequests.course_id == course_id) | (CourseRequests.approved_course_id == course_id),
         CourseRequests.status == "approved",
     ).delete(synchronize_session=False)
     db.delete(course_model)
@@ -152,6 +151,8 @@ async def update_user_role(
 ):
     if role_update.role not in ("admin", "user"):
         raise HTTPException(status_code=400, detail="Role must be 'admin' or 'user'")
+    if user_id == user["id"] and role_update.role != "admin":
+        raise HTTPException(status_code=400, detail="You cannot remove your own admin role")
     target = db.query(Users).filter(Users.id == user_id).first()
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")

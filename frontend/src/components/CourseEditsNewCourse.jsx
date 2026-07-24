@@ -1,18 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import api from '../services/api';
 import { nominatimToGeoFields } from '../utils/geoLookup';
-
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
+import '../utils/leafletIcons';
 
 const EMPTY_FORM = { club_name: '', course_name: '', address: '', city: '', state: '', country: '' };
 

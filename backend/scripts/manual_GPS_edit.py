@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 from sqlalchemy import Column, Float, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-load_dotenv(dotenv_path=Path(__file__).parent / '.env')
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
-SQLITE_DB_URL = os.getenv('SQLITE_DB_URL')
+SQLITE_DB_URL = os.getenv("SQLITE_DB_URL")
 if SQLITE_DB_URL:
-    db_url = f'sqlite:///{SQLITE_DB_URL}'
+    db_url = f"sqlite:///{SQLITE_DB_URL}"
 else:
     db_url = f"sqlite:///{Path(__file__).parent / 'golf_mapper.db'}"
 
@@ -17,8 +17,9 @@ engine_sqlite = create_engine(db_url, echo=True)
 
 Base = declarative_base()
 
+
 class courses(Base):
-    __tablename__ = 'courses'
+    __tablename__ = "courses"
     id = Column(Integer, primary_key=True)
     club_name = Column(String)
     course_name = Column(String)
@@ -41,29 +42,33 @@ class courses(Base):
             return self.club_name
         return ""
 
+
 # Session = sessionmaker(bind=engine)
 # session = Session()
 Session_sqlite = sessionmaker(bind=engine_sqlite)
 session_sqlite = Session_sqlite()
 
-result = int(input("Which course id to you want to edit? "))
-i = session_sqlite.get(courses, result)
-# j = session.get(courses, result)
+try:
+    result = int(input("Which course id to you want to edit? "))
+    i = session_sqlite.get(courses, result)
+    # j = session.get(courses, result)
 
-print(f'Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}')
-result = input("Is this the course you want to edit? ")
-if result == 'y':
-    new_lat = float(input('Enter Latitude: '))
-    new_long = float(input('Enter Longitude: '))
-    confirm = input(f'Do you want to update Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}, with lat: {new_lat}, long={new_long} ? ')
-    if confirm == 'y':
-        i.latitude = new_lat
-        i.longitude = new_long
-        session_sqlite.commit()
+    print(f"Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}")
+    result = input("Is this the course you want to edit? ")
+    if result == "y":
+        new_lat = float(input("Enter Latitude: "))
+        new_long = float(input("Enter Longitude: "))
+        confirm = input(
+            f"Do you want to update Course: {i.display_name}, city: {i.city}, country: {i.country}, id: {i.id}, with lat: {new_lat}, long={new_long} ? "
+        )
+        if confirm == "y":
+            i.latitude = new_lat
+            i.longitude = new_long
+            session_sqlite.commit()
 
-        #update postgres database
-        # j.latitude = new_lat
-        # j.longitude = new_long
-        # session.commit()
-else:
-    pass
+            # update postgres database
+            # j.latitude = new_lat
+            # j.longitude = new_long
+            # session.commit()
+finally:
+    session_sqlite.close()

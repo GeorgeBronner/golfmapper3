@@ -5,7 +5,7 @@ Uses OpenStreetMaps with Leaflet and reverse geocoding
 """
 
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -18,34 +18,83 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Fix encoding for Windows console
 if sys.platform == "win32":
-    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding="utf-8")
 
 # US state abbreviations mapping
 US_STATE_ABBREVIATIONS = {
-    "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR",
-    "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE",
-    "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID",
-    "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS",
-    "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD",
-    "Massachusetts": "MA", "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS",
-    "Missouri": "MO", "Montana": "MT", "Nebraska": "NE", "Nevada": "NV",
-    "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY",
-    "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK",
-    "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
-    "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT",
-    "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV",
-    "Wisconsin": "WI", "Wyoming": "WY", "District of Columbia": "DC",
-    "Puerto Rico": "PR", "Guam": "GU", "American Samoa": "AS",
-    "U.S. Virgin Islands": "VI", "Northern Mariana Islands": "MP"
+    "Alabama": "AL",
+    "Alaska": "AK",
+    "Arizona": "AZ",
+    "Arkansas": "AR",
+    "California": "CA",
+    "Colorado": "CO",
+    "Connecticut": "CT",
+    "Delaware": "DE",
+    "Florida": "FL",
+    "Georgia": "GA",
+    "Hawaii": "HI",
+    "Idaho": "ID",
+    "Illinois": "IL",
+    "Indiana": "IN",
+    "Iowa": "IA",
+    "Kansas": "KS",
+    "Kentucky": "KY",
+    "Louisiana": "LA",
+    "Maine": "ME",
+    "Maryland": "MD",
+    "Massachusetts": "MA",
+    "Michigan": "MI",
+    "Minnesota": "MN",
+    "Mississippi": "MS",
+    "Missouri": "MO",
+    "Montana": "MT",
+    "Nebraska": "NE",
+    "Nevada": "NV",
+    "New Hampshire": "NH",
+    "New Jersey": "NJ",
+    "New Mexico": "NM",
+    "New York": "NY",
+    "North Carolina": "NC",
+    "North Dakota": "ND",
+    "Ohio": "OH",
+    "Oklahoma": "OK",
+    "Oregon": "OR",
+    "Pennsylvania": "PA",
+    "Rhode Island": "RI",
+    "South Carolina": "SC",
+    "South Dakota": "SD",
+    "Tennessee": "TN",
+    "Texas": "TX",
+    "Utah": "UT",
+    "Vermont": "VT",
+    "Virginia": "VA",
+    "Washington": "WA",
+    "West Virginia": "WV",
+    "Wisconsin": "WI",
+    "Wyoming": "WY",
+    "District of Columbia": "DC",
+    "Puerto Rico": "PR",
+    "Guam": "GU",
+    "American Samoa": "AS",
+    "U.S. Virgin Islands": "VI",
+    "Northern Mariana Islands": "MP",
 }
 
 # Canadian province abbreviations
 CANADIAN_PROVINCE_ABBREVIATIONS = {
-    "Alberta": "AB", "British Columbia": "BC", "Manitoba": "MB",
-    "New Brunswick": "NB", "Newfoundland and Labrador": "NL",
-    "Northwest Territories": "NT", "Nova Scotia": "NS", "Nunavut": "NU",
-    "Ontario": "ON", "Prince Edward Island": "PE", "Quebec": "QC",
-    "Saskatchewan": "SK", "Yukon": "YT"
+    "Alberta": "AB",
+    "British Columbia": "BC",
+    "Manitoba": "MB",
+    "New Brunswick": "NB",
+    "Newfoundland and Labrador": "NL",
+    "Northwest Territories": "NT",
+    "Nova Scotia": "NS",
+    "Nunavut": "NU",
+    "Ontario": "ON",
+    "Prince Edward Island": "PE",
+    "Quebec": "QC",
+    "Saskatchewan": "SK",
+    "Yukon": "YT",
 }
 
 # Database setup
@@ -55,6 +104,7 @@ DATABASE_URL = f"sqlite:///{SQLITE_DB_PATH}"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
 
 # Database Model
 class Courses(Base):
@@ -71,6 +121,7 @@ class Courses(Base):
     latitude = Column(Float)
     longitude = Column(Float)
 
+
 # Pydantic Models
 class CourseCreate(BaseModel):
     club_name: str
@@ -82,19 +133,23 @@ class CourseCreate(BaseModel):
     latitude: float
     longitude: float
 
+
 class ReverseGeocodeResponse(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
 
+
 # FastAPI app
 app = FastAPI(title="Golf Course Map Entry", version="1.0.0")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the map interface"""
     return HTML_TEMPLATE
+
 
 @app.get("/api/reverse-geocode")
 async def reverse_geocode(lat: float, lon: float):
@@ -103,25 +158,13 @@ async def reverse_geocode(lat: float, lon: float):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 "https://nominatim.openstreetmap.org/reverse",
-                params={
-                    "lat": lat,
-                    "lon": lon,
-                    "format": "json",
-                    "addressdetails": 1
-                },
-                headers={
-                    "User-Agent": "GolfMapper3/1.0"
-                },
-                timeout=10.0
+                params={"lat": lat, "lon": lon, "format": "json", "addressdetails": 1},
+                headers={"User-Agent": "GolfMapper3/1.0"},
+                timeout=10.0,
             )
 
             if response.status_code != 200:
-                return {
-                    "address": None,
-                    "city": None,
-                    "state": None,
-                    "country": None
-                }
+                return {"address": None, "city": None, "state": None, "country": None}
 
             data = response.json()
             address_data = data.get("address", {})
@@ -131,20 +174,15 @@ async def reverse_geocode(lat: float, lon: float):
 
             # Extract city (try multiple fields)
             city = (
-                address_data.get("city") or
-                address_data.get("town") or
-                address_data.get("village") or
-                address_data.get("municipality") or
-                None
+                address_data.get("city")
+                or address_data.get("town")
+                or address_data.get("village")
+                or address_data.get("municipality")
+                or None
             )
 
             # Extract state/province
-            state = (
-                address_data.get("state") or
-                address_data.get("province") or
-                address_data.get("region") or
-                None
-            )
+            state = address_data.get("state") or address_data.get("province") or address_data.get("region") or None
 
             # Convert state name to two-letter code
             if state:
@@ -156,21 +194,12 @@ async def reverse_geocode(lat: float, lon: float):
             # Extract country
             country = address_data.get("country") or None
 
-            return {
-                "address": full_address,
-                "city": city,
-                "state": state,
-                "country": country
-            }
+            return {"address": full_address, "city": city, "state": state, "country": country}
 
     except Exception as e:
         print(f"Reverse geocoding error: {e}")
-        return {
-            "address": None,
-            "city": None,
-            "state": None,
-            "country": None
-        }
+        return {"address": None, "city": None, "state": None, "country": None}
+
 
 @app.post("/api/courses")
 async def create_course(course: CourseCreate):
@@ -178,7 +207,7 @@ async def create_course(course: CourseCreate):
     db = SessionLocal()
     try:
         # Create timestamp in ISO format
-        created_at = datetime.utcnow().isoformat()
+        created_at = datetime.now(timezone.utc).isoformat()
 
         # Create new course record
         new_course = Courses(
@@ -190,24 +219,21 @@ async def create_course(course: CourseCreate):
             state=course.state,
             country=course.country,
             latitude=course.latitude,
-            longitude=course.longitude
+            longitude=course.longitude,
         )
 
         db.add(new_course)
         db.commit()
         db.refresh(new_course)
 
-        return {
-            "success": True,
-            "id": new_course.id,
-            "message": "Course added successfully"
-        }
+        return {"success": True, "id": new_course.id, "message": "Course added successfully"}
 
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
     finally:
         db.close()
+
 
 # HTML Template
 HTML_TEMPLATE = """
@@ -686,14 +712,20 @@ HTML_TEMPLATE = """
             showConfirmation();
         }
 
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value;
+            return div.innerHTML;
+        }
+
         function showConfirmation() {
             const details = `
-                <p><strong>Club Name:</strong> ${pendingCourseData.club_name}</p>
-                <p><strong>Course Name:</strong> ${pendingCourseData.course_name}</p>
-                ${pendingCourseData.address ? `<p><strong>Address:</strong> ${pendingCourseData.address}</p>` : ''}
-                <p><strong>City:</strong> ${pendingCourseData.city}</p>
-                <p><strong>State:</strong> ${pendingCourseData.state}</p>
-                <p><strong>Country:</strong> ${pendingCourseData.country}</p>
+                <p><strong>Club Name:</strong> ${escapeHtml(pendingCourseData.club_name)}</p>
+                <p><strong>Course Name:</strong> ${escapeHtml(pendingCourseData.course_name)}</p>
+                ${pendingCourseData.address ? `<p><strong>Address:</strong> ${escapeHtml(pendingCourseData.address)}</p>` : ''}
+                <p><strong>City:</strong> ${escapeHtml(pendingCourseData.city)}</p>
+                <p><strong>State:</strong> ${escapeHtml(pendingCourseData.state)}</p>
+                <p><strong>Country:</strong> ${escapeHtml(pendingCourseData.country)}</p>
                 <p><strong>Coordinates:</strong> ${pendingCourseData.latitude.toFixed(6)}, ${pendingCourseData.longitude.toFixed(6)}</p>
             `;
 
@@ -760,4 +792,5 @@ if __name__ == "__main__":
     print("🌐 Open your browser to: http://localhost:8889")
     print("⌨️  Press CTRL+C to stop the server\n")
 
-    uvicorn.run(app, host="0.0.0.0", port=8889)
+    # Local admin tool with no auth — must not be reachable from the network.
+    uvicorn.run(app, host="127.0.0.1", port=8889)

@@ -14,7 +14,10 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
     STATIC_FILES_DIR: str = "./dist"
     MAILTRAP_API_KEY: str = ""
-    APP_BASE_URL: str = "https://golf.bronnerapp.com"
+    # Base URL for password-reset links. No default on purpose: falling back
+    # to the production URL would make misconfigured environments email
+    # production links. Unset ⇒ reset emails are not sent.
+    APP_BASE_URL: str = ""
     FROM_EMAIL: str = "noreply@bronnerapp.com"
     FROM_NAME: str = "GolfMapper"
     MAP_FILES_DIR: str = "./static/user_maps"

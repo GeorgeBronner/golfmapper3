@@ -1,17 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Form, Button, Row, Col, Alert, Spinner, Card } from 'react-bootstrap';
 import api from '../services/api';
-
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
+import '../utils/leafletIcons';
 
 const DEFAULT_CENTER = [39, -98];
 

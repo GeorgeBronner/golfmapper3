@@ -1,4 +1,5 @@
 import hashlib
+import html
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -48,9 +49,9 @@ def _send_reset_email(to_email: str, to_name: str, reset_url: str) -> None:
             "— The GolfMapper Team"
         ),
         html=(
-            f"<p>Hi {to_name},</p>"
+            f"<p>Hi {html.escape(to_name)},</p>"
             "<p>We received a request to reset your GolfMapper password.</p>"
-            f"<p><a href=\"{reset_url}\">Reset my password</a></p>"
+            f'<p><a href="{reset_url}">Reset my password</a></p>'
             f"<p>This link is valid for {TOKEN_EXPIRY_MINUTES} minutes. "
             "If you didn't request this, ignore this email.</p>"
             "<p>— The GolfMapper Team</p>"
@@ -77,6 +78,12 @@ async def forgot_password(
     body: ForgotPasswordRequest,
     db: db_dependency,
 ):
+    if not settings.APP_BASE_URL:
+        # Refuse rather than falling back to a hardcoded URL, which would
+        # send links pointing at the wrong environment.
+        logger.warning("APP_BASE_URL not set — password reset emails are disabled")
+        return {"message": "If that email is registered, a reset link has been sent."}
+
     # Always return success to avoid user enumeration
     user = db.query(Users).filter(Users.email == body.email).first()
     if user:

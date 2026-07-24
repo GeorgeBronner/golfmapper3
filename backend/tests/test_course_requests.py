@@ -18,6 +18,7 @@ NORMAL_USER = {"username": "normaluser", "id": 2, "role": "user"}
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def clean_requests():
     """Wipe course_requests (and dependent tables) between every test."""
@@ -33,10 +34,14 @@ def clean_requests():
 @pytest.fixture
 def admin_user():
     user = Users(
-        id=1, email="admin@test.com", username="georgetest",
-        first_name="Admin", last_name="User",
+        id=1,
+        email="admin@test.com",
+        username="georgetest",
+        first_name="Admin",
+        last_name="User",
         hashed_password=bcrypt.hashpw(b"password", bcrypt.gensalt()).decode(),
-        is_active=True, role="admin",
+        is_active=True,
+        role="admin",
     )
     db = TestingSessionLocal()
     db.add(user)
@@ -47,10 +52,14 @@ def admin_user():
 @pytest.fixture
 def normal_user():
     user = Users(
-        id=2, email="normal@test.com", username="normaluser",
-        first_name="Normal", last_name="User",
+        id=2,
+        email="normal@test.com",
+        username="normaluser",
+        first_name="Normal",
+        last_name="User",
         hashed_password=bcrypt.hashpw(b"password", bcrypt.gensalt()).decode(),
-        is_active=True, role="user",
+        is_active=True,
+        role="user",
     )
     db = TestingSessionLocal()
     db.add(user)
@@ -61,9 +70,14 @@ def normal_user():
 @pytest.fixture
 def existing_course():
     course = Courses(
-        id=300, club_name="Test Club", course_name="Test Course",
-        city="Testville", state="TX", country="US",
-        latitude=30.0, longitude=-97.0,
+        id=300,
+        club_name="Test Club",
+        course_name="Test Course",
+        city="Testville",
+        state="TX",
+        country="US",
+        latitude=30.0,
+        longitude=-97.0,
     )
     db = TestingSessionLocal()
     db.add(course)
@@ -73,16 +87,20 @@ def existing_course():
 
 # ── Submit new course ─────────────────────────────────────────────────────────
 
+
 def test_submit_new_course(admin_user):
-    resp = client.post("/api/v1/course-requests/new-course", json={
-        "club_name": "New Club",
-        "course_name": "New Course",
-        "city": "Dallas",
-        "state": "TX",
-        "country": "US",
-        "latitude": 32.7767,
-        "longitude": -96.7970,
-    })
+    resp = client.post(
+        "/api/v1/course-requests/new-course",
+        json={
+            "club_name": "New Club",
+            "course_name": "New Course",
+            "city": "Dallas",
+            "state": "TX",
+            "country": "US",
+            "latitude": 32.7767,
+            "longitude": -96.7970,
+        },
+    )
     assert resp.status_code == status.HTTP_201_CREATED
     data = resp.json()
     assert data["request_type"] == "new_course"
@@ -96,29 +114,42 @@ def test_submit_new_course_unauthenticated():
     # a request without an Authorization header must get a 401.
     app.dependency_overrides.pop(get_current_user, None)
     try:
-        resp = client.post("/api/v1/course-requests/new-course", json={
-            "club_name": "Some Club", "latitude": 32.0, "longitude": -97.0,
-        })
+        resp = client.post(
+            "/api/v1/course-requests/new-course",
+            json={
+                "club_name": "Some Club",
+                "latitude": 32.0,
+                "longitude": -97.0,
+            },
+        )
     finally:
         app.dependency_overrides[get_current_user] = override_get_current_user
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_submit_new_course_requires_name(admin_user):
-    resp = client.post("/api/v1/course-requests/new-course", json={
-        "latitude": 32.0, "longitude": -97.0,
-    })
+    resp = client.post(
+        "/api/v1/course-requests/new-course",
+        json={
+            "latitude": 32.0,
+            "longitude": -97.0,
+        },
+    )
     assert resp.status_code == 422
 
 
 # ── Submit location change ────────────────────────────────────────────────────
 
+
 def test_submit_location_change(admin_user, existing_course):
-    resp = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300,
-        "latitude": 31.0,
-        "longitude": -96.0,
-    })
+    resp = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
     assert resp.status_code == status.HTTP_201_CREATED
     data = resp.json()
     assert data["request_type"] == "location_change"
@@ -130,11 +161,14 @@ def test_submit_location_change(admin_user, existing_course):
 
 
 def test_submit_location_change_course_not_found(admin_user):
-    resp = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 9999,
-        "latitude": 31.0,
-        "longitude": -96.0,
-    })
+    resp = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 9999,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
     assert resp.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -148,18 +182,29 @@ def test_submit_location_change_duplicate_pending_blocked(admin_user, existing_c
 
 # ── My requests ───────────────────────────────────────────────────────────────
 
+
 def test_my_requests_only_own(admin_user, normal_user, existing_course):
     # Admin user (id=1) submits one request
-    client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.0, "longitude": -96.0,
-    })
+    client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
 
     # Switch to normal user (id=2) who submits a different request and checks their own list
     app.dependency_overrides[get_current_user] = lambda: NORMAL_USER
     try:
-        client.post("/api/v1/course-requests/new-course", json={
-            "club_name": "Other Club", "latitude": 29.0, "longitude": -95.0,
-        })
+        client.post(
+            "/api/v1/course-requests/new-course",
+            json={
+                "club_name": "Other Club",
+                "latitude": 29.0,
+                "longitude": -95.0,
+            },
+        )
         resp = client.get("/api/v1/course-requests/my-requests")
     finally:
         app.dependency_overrides[get_current_user] = override_get_current_user
@@ -172,12 +217,20 @@ def test_my_requests_only_own(admin_user, normal_user, existing_course):
 
 # ── Admin approve ─────────────────────────────────────────────────────────────
 
+
 def test_admin_approve_new_course_creates_course_and_user_courses(admin_user):
-    submit = client.post("/api/v1/course-requests/new-course", json={
-        "club_name": "Approved Club", "course_name": "Approved Course",
-        "city": "Houston", "state": "TX", "country": "US",
-        "latitude": 29.7604, "longitude": -95.3698,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/new-course",
+        json={
+            "club_name": "Approved Club",
+            "course_name": "Approved Course",
+            "city": "Houston",
+            "state": "TX",
+            "country": "US",
+            "latitude": 29.7604,
+            "longitude": -95.3698,
+        },
+    )
     req_id = submit.json()["id"]
 
     resp = client.post(f"/api/v1/course-requests/admin/{req_id}/approve")
@@ -201,9 +254,14 @@ def test_admin_approve_new_course_creates_course_and_user_courses(admin_user):
 
 
 def test_admin_approve_location_change_updates_course(admin_user, existing_course):
-    submit = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.5, "longitude": -96.5,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.5,
+            "longitude": -96.5,
+        },
+    )
     req_id = submit.json()["id"]
 
     resp = client.post(f"/api/v1/course-requests/admin/{req_id}/approve")
@@ -218,9 +276,14 @@ def test_admin_approve_location_change_updates_course(admin_user, existing_cours
 
 
 def test_admin_approve_already_actioned_returns_409(admin_user, existing_course):
-    submit = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.5, "longitude": -96.5,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.5,
+            "longitude": -96.5,
+        },
+    )
     req_id = submit.json()["id"]
     client.post(f"/api/v1/course-requests/admin/{req_id}/approve")
 
@@ -230,15 +293,21 @@ def test_admin_approve_already_actioned_returns_409(admin_user, existing_course)
 
 # ── Admin reject ──────────────────────────────────────────────────────────────
 
+
 def test_admin_reject_stores_message(admin_user, existing_course):
-    submit = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.0, "longitude": -96.0,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
     req_id = submit.json()["id"]
 
-    resp = client.post(f"/api/v1/course-requests/admin/{req_id}/reject", json={
-        "message": "Location appears incorrect."
-    })
+    resp = client.post(
+        f"/api/v1/course-requests/admin/{req_id}/reject", json={"message": "Location appears incorrect."}
+    )
     assert resp.status_code == status.HTTP_200_OK
     data = resp.json()
     assert data["status"] == "rejected"
@@ -246,9 +315,14 @@ def test_admin_reject_stores_message(admin_user, existing_course):
 
 
 def test_admin_reject_requires_message(admin_user, existing_course):
-    submit = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.0, "longitude": -96.0,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
     req_id = submit.json()["id"]
 
     resp = client.post(f"/api/v1/course-requests/admin/{req_id}/reject", json={"message": ""})
@@ -256,9 +330,14 @@ def test_admin_reject_requires_message(admin_user, existing_course):
 
 
 def test_admin_reject_already_actioned_returns_409(admin_user, existing_course):
-    submit = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.0, "longitude": -96.0,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
     req_id = submit.json()["id"]
     client.post(f"/api/v1/course-requests/admin/{req_id}/reject", json={"message": "No."})
 
@@ -268,10 +347,16 @@ def test_admin_reject_already_actioned_returns_409(admin_user, existing_course):
 
 # ── Admin list ────────────────────────────────────────────────────────────────
 
+
 def test_admin_list_pending_only_by_default(admin_user, existing_course):
-    submit = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.0, "longitude": -96.0,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
     req_id = submit.json()["id"]
     client.post(f"/api/v1/course-requests/admin/{req_id}/reject", json={"message": "No."})
 
@@ -282,9 +367,14 @@ def test_admin_list_pending_only_by_default(admin_user, existing_course):
 
 
 def test_admin_list_all_when_flag_false(admin_user, existing_course):
-    submit = client.post("/api/v1/course-requests/location-change", json={
-        "course_id": 300, "latitude": 31.0, "longitude": -96.0,
-    })
+    submit = client.post(
+        "/api/v1/course-requests/location-change",
+        json={
+            "course_id": 300,
+            "latitude": 31.0,
+            "longitude": -96.0,
+        },
+    )
     req_id = submit.json()["id"]
     client.post(f"/api/v1/course-requests/admin/{req_id}/reject", json={"message": "No."})
 

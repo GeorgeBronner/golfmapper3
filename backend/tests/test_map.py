@@ -7,7 +7,7 @@ from app.routers.map import generate_all_users_map, generate_user_map
 from .utils import TestingSessionLocal, engine
 
 XSS_NAME = '<script>alert("xss")</script>'
-XSS_USERNAME = '<img src=x onerror=alert(1)>'
+XSS_USERNAME = "<img src=x onerror=alert(1)>"
 
 
 @pytest.fixture
