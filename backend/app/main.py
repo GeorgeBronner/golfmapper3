@@ -64,13 +64,29 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # --- Security headers ---
-# CSP and HSTS are handled at the reverse proxy for deployed environments.
+# Set here rather than relying on the reverse proxy, so they apply
+# consistently regardless of which NPM host config is deployed.
+CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data: https://*.tile.openstreetmap.org; "
+    "connect-src 'self' https://nominatim.openstreetmap.org; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'"
+)
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = CSP
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; preload"
     return response
 
 
