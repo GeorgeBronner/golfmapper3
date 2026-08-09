@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "golfmapper3 Backend"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi>=0.103,<0.137",  # 0.137 adds _IncludedRouter, incompatible with prometheus-fastapi-instrumentator 8.0.0
+    "fastapi>=0.103,<0.137",  # fastapi-pagination 0.15.x depends on a FastAPI internal removed in 0.137+
     "uvicorn>=0.23",
     "pydantic>=2.3",
     "email-validator>=2.0",
@@ -21,7 +21,7 @@ dependencies = [
     "dotenv",
     "sentry-sdk[fastapi]",
     "python-dotenv>=0.19",
-    "fastapi-pagination>=0.8",
+    "fastapi-pagination==0.15.14",  # 0.15.15+ calls a removed FastAPI internal kwarg and crashes on startup
     "psycopg2-binary",
     "python-multipart",
     "certifi",
