@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config import settings
@@ -30,3 +31,24 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_columns(table_name: str, columns: dict[str, str]) -> None:
+    """Add columns missing from an already-existing table.
+
+    There's no migration tool in this project — `Base.metadata.create_all`
+    creates missing tables but never alters existing ones, so newly added
+    model columns need this to reach databases that predate them.
+    """
+    existing = {col["name"] for col in inspect(engine).get_columns(table_name)}
+    for name, ddl_type in columns.items():
+        if name in existing:
+            continue
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {name} {ddl_type}"))
+        except DBAPIError:
+            # Another worker/replica racing the same startup migration
+            # already added it — the column existing is the only outcome
+            # we're trying to guarantee here, so that's fine.
+            pass

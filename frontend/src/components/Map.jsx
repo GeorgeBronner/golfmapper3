@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthProvider';
+import { nonceScriptTags } from '../utils/cspNonce';
 
 function Map() {
     const activeCallRef = useRef(null);
@@ -45,7 +46,7 @@ function Map() {
                 }
             }
             if (!isCurrent()) return;
-            setMapHtml(response.data);
+            setMapHtml(nonceScriptTags(response.data));
             setStatus('loaded');
         } catch {
             if (isCurrent()) setStatus('error');

@@ -40,8 +40,8 @@ def authenticate_user(username: str, password: str, db: Session) -> Users | bool
     return user
 
 
-def create_access_token(username: str, user_id: int, role: str, expires_delta: timedelta):
-    encode = {"sub": username, "id": user_id, "role": role}
+def create_access_token(username: str, user_id: int, role: str, expires_delta: timedelta, token_version: int = 0):
+    encode = {"sub": username, "id": user_id, "role": role, "tv": token_version}
     encode.update({"exp": datetime.now(timezone.utc) + expires_delta})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -63,7 +63,12 @@ async def get_current_user(
     user = db.query(Users).filter(Users.id == user_id).first()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    return {"username": user.username, "id": user.id, "role": user.role}
+    # Tokens issued before a password change carry the old token_version, so
+    # a leaked/stolen token stops working as soon as the password is reset
+    # instead of remaining valid until it naturally expires.
+    if payload.get("tv", 0) != user.token_version:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    return {"username": user.username, "id": user.id, "role": user.role, "token_version": user.token_version}
 
 
 class CreateUserRequest(BaseModel):
@@ -123,17 +128,20 @@ async def login_for_access_token(
         user.id,
         user.role,
         timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),
+        user.token_version,
     )
     return {"access_token": token, "token_type": "bearer"}
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(current_user: Annotated[dict, Depends(get_current_user)]):
+@limiter.limit("20/minute")
+async def refresh_token(request: Request, current_user: Annotated[dict, Depends(get_current_user)]):
     """Issue a fresh token for an already-authenticated user."""
     token = create_access_token(
         current_user["username"],
         current_user["id"],
         current_user["role"],
         timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),
+        current_user["token_version"],
     )
     return {"access_token": token, "token_type": "bearer"}

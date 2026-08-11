@@ -156,6 +156,7 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: db_de
         )
 
     user.hashed_password = hash_password(body.new_password)
+    user.token_version += 1
     reset_token.used = True
     db.commit()
 

@@ -173,6 +173,7 @@ async def reset_user_password(
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
     target.hashed_password = hash_password(password_reset.new_password)
+    target.token_version += 1
     db.commit()
     return {"message": "Password updated"}
 
