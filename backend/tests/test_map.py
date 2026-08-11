@@ -9,6 +9,15 @@ from .utils import TestingSessionLocal, engine
 XSS_NAME = '<script>alert("xss")</script>'
 XSS_USERNAME = "<img src=x onerror=alert(1)>"
 
+# frontend/src/utils/cspNonce.js only CSP-nonces the first N "<script" tags
+# in the map HTML it receives, on the assumption that folium's own
+# boilerplate (CDN links + init script) always renders exactly N tags,
+# independent of marker/layer count — so anything smuggled in beyond that
+# via a future escaping bug is left un-nonced and CSP blocks it. If folium
+# ever changes what it emits, this must be updated in lockstep with the
+# frontend constant, not just bumped to make the test pass.
+TRUSTED_MAP_SCRIPT_COUNT = 6
+
 
 @pytest.fixture
 def xss_user_course():
@@ -65,5 +74,21 @@ async def test_user_map_escapes_course_names(xss_user_course):
         html_out = map_path.read_text(encoding="utf-8")
         assert XSS_NAME not in html_out
         assert "&lt;script&gt;" in html_out
+    finally:
+        map_path.unlink(missing_ok=True)
+
+
+def test_all_users_map_script_tag_count_matches_frontend_trust_boundary(xss_user_course):
+    html_out = generate_all_users_map(TestingSessionLocal())
+    assert html_out.count("<script") == TRUSTED_MAP_SCRIPT_COUNT
+
+
+@pytest.mark.asyncio
+async def test_user_map_script_tag_count_matches_frontend_trust_boundary(xss_user_course):
+    user = {"id": 1, "username": "safe_name"}
+    map_path = await generate_user_map(user, TestingSessionLocal())
+    try:
+        html_out = map_path.read_text(encoding="utf-8")
+        assert html_out.count("<script") == TRUSTED_MAP_SCRIPT_COUNT
     finally:
         map_path.unlink(missing_ok=True)

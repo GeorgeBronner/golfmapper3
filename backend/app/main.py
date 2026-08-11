@@ -127,6 +127,12 @@ app.add_middleware(
 static_path = Path(settings.STATIC_FILES_DIR).resolve()
 assets_path = static_path / "assets"
 
+# Read once at startup rather than per-request: it's a static build artifact
+# that doesn't change while the process is running, and reading it from disk
+# inside an async route handler would block the event loop on every request.
+_index_file = static_path / "index.html"
+_INDEX_HTML = _index_file.read_text(encoding="utf-8") if _index_file.exists() else None
+
 
 # --- Health check (outside /api/v1 intentionally) ---
 @app.get("/healthy", status_code=200)
@@ -135,15 +141,12 @@ def health_check():
 
 
 def _serve_spa_shell():
-    index_file = static_path / "index.html"
-    if not index_file.exists():
+    if _INDEX_HTML is None:
         return {"detail": "Frontend not available"}
     # A fresh nonce per request lets this response's CSP allow the map's
     # inline init scripts (see build_csp) without a blanket 'unsafe-inline'.
     nonce = secrets.token_urlsafe(16)
-    html = index_file.read_text(encoding="utf-8").replace(
-        "<head>", f'<head><meta name="csp-nonce" content="{nonce}">', 1
-    )
+    html = _INDEX_HTML.replace("<head>", f'<head><meta name="csp-nonce" content="{nonce}">', 1)
     response = HTMLResponse(html)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Content-Security-Policy"] = build_csp(nonce=nonce)
