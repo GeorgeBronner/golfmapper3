@@ -45,4 +45,5 @@ async def update_password(user: user_dependency, db: db_dependency, user_verific
     if not verify_password(user_verification.password, user_model.hashed_password):
         raise HTTPException(status_code=401, detail="Error on password verification")
     user_model.hashed_password = hash_password(user_verification.new_password)
+    user_model.token_version += 1
     db.commit()

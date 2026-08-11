@@ -64,6 +64,9 @@ class Users(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     role = Column(String)
+    # Bumped whenever the password changes, so tokens issued before the
+    # change stop working instead of remaining valid until they expire.
+    token_version = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=_now)
     updated_at = Column(DateTime, default=_now, onupdate=_now)
 
