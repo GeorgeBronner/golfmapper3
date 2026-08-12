@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
@@ -63,6 +64,18 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 # --- Rate limiting ---
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# FastAPI's default 422 body puts a list of Pydantic error objects in
+# `detail`. Several frontend components render `err.response.data.detail`
+# directly as a string, which crashes React ("Objects are not valid as a
+# React child") the moment any validated field actually fails validation.
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    first = exc.errors()[0]
+    field = ".".join(str(p) for p in first["loc"] if p != "body")
+    message = f"{field}: {first['msg']}" if field else first["msg"]
+    return JSONResponse(status_code=422, content={"detail": message})
 
 
 # --- Security headers ---

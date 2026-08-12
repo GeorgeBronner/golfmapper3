@@ -4,9 +4,20 @@ import bcrypt
 import pytest
 from sqlalchemy import text
 
+from app.limiter import limiter
 from app.models import Courses, UserCourses, Users
 
 from .utils import TestingSessionLocal, engine
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    # The Limiter instance (app.limiter) is a process-wide singleton, so
+    # without this its in-memory counters persist across tests/files within
+    # the same pytest run — a test calling a limited endpoint more than once
+    # can trip a real 429 depending on what ran before it.
+    limiter.reset()
+    yield
 
 
 @pytest.fixture

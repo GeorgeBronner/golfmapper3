@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 from pathlib import Path as FilePath
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 
 from app.config import settings
 from app.dependencies import db_dependency, user_dependency
+from app.limiter import limiter
 from app.models import Courses, UserCourses
 
 _MAP_DIR = FilePath(settings.MAP_FILES_DIR)
@@ -37,7 +38,7 @@ class UserCourseOut(BaseModel):
 
 
 class UserCourseRequest(BaseModel):
-    garmin_id: int = Field(...)
+    garmin_id: int = Field(..., ge=1)
     year: int = Field(...)
 
     @field_validator("year")
@@ -116,7 +117,10 @@ async def readall(user: user_dependency, db: db_dependency):
 
 
 @router.post("/add_course", status_code=status.HTTP_201_CREATED)
-async def add_user_course(user: user_dependency, db: db_dependency, user_course_request: UserCourseRequest):
+@limiter.limit("10/minute")
+async def add_user_course(
+    request: Request, user: user_dependency, db: db_dependency, user_course_request: UserCourseRequest
+):
     course = db.query(Courses).filter(Courses.id == user_course_request.garmin_id).first()
     if course is None:
         raise HTTPException(status_code=404, detail="Course not found")

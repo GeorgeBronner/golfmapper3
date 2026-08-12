@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import html
 import logging
@@ -111,6 +112,16 @@ async def forgot_password(
         except (mt.AuthorizationError, mt.APIError) as e:
             logger.error("Password reset email failed for user_id=%s: %s", user.id, e)
             db.rollback()
+    elif settings.MAILTRAP_API_KEY:
+        # Unregistered emails skip the DB writes and the outbound email call
+        # that the registered-email branch above does, which otherwise
+        # produces a measurable timing gap despite the identical response
+        # body — approximate that branch's latency floor to narrow it.
+        # Only worth doing when an email would actually be sent: with no
+        # API key configured, the registered branch skips the network call
+        # too (see _send_reset_email), so sleeping here would flip this into
+        # a new, more reliable timing signal instead of closing the gap.
+        await asyncio.sleep(0.3)
 
     return {"message": "If that email is registered, a reset link has been sent."}
 

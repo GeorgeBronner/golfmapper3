@@ -2,12 +2,13 @@ import html
 from pathlib import Path
 
 import folium
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from starlette import status
 
 from app.config import settings
 from app.dependencies import db_dependency, user_dependency
+from app.limiter import limiter
 from app.models import Courses, UserCourses, Users
 from app.routers.user_courses import readall
 
@@ -109,7 +110,8 @@ def generate_all_users_map(db) -> str:
 
 
 @router.get("/usermap")
-async def get_usermap(user: user_dependency, db: db_dependency):
+@limiter.limit("30/minute")
+async def get_usermap(request: Request, user: user_dependency, db: db_dependency):
     map_path = MAP_DIR / f"user_map_{user['id']}.html"
     if not map_path.exists():
         map_path = await generate_user_map(user, db)
@@ -117,12 +119,14 @@ async def get_usermap(user: user_dependency, db: db_dependency):
 
 
 @router.get("/user_map_generate", status_code=status.HTTP_200_OK)
-async def user_map_generate(user: user_dependency, db: db_dependency):
+@limiter.limit("30/minute")
+async def user_map_generate(request: Request, user: user_dependency, db: db_dependency):
     await generate_user_map(user, db)
     return {"message": "Map generated"}
 
 
 @router.get("/allmap")
-async def get_allmap(user: user_dependency, db: db_dependency):
+@limiter.limit("30/minute")
+async def get_allmap(request: Request, user: user_dependency, db: db_dependency):
     html = generate_all_users_map(db)
     return HTMLResponse(content=html)
