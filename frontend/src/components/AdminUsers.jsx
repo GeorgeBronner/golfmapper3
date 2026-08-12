@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Table, Button, Badge, Modal, Form, Alert } from 'react-bootstrap';
 import api from '../services/api';
 
@@ -14,12 +14,15 @@ const AdminUsers = () => {
         setTimeout(() => setAlert(null), 3000);
     };
 
+    const loadUsersSeq = useRef(0);
+
     const loadUsers = useCallback(async () => {
+        const seq = ++loadUsersSeq.current;
         try {
             const res = await api.get('/admin/users');
-            setUsers(res.data);
+            if (seq === loadUsersSeq.current) setUsers(res.data);
         } catch {
-            showAlert('danger', 'Failed to load users.');
+            if (seq === loadUsersSeq.current) showAlert('danger', 'Failed to load users.');
         }
     }, []);
 

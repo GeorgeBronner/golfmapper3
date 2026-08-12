@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import api from '../services/api';
@@ -9,6 +9,14 @@ function LoginPage() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { setToken } = useAuth();
+
+    useEffect(() => {
+        const flashMessage = sessionStorage.getItem('flashMessage');
+        if (flashMessage) {
+            setError(flashMessage);
+            sessionStorage.removeItem('flashMessage');
+        }
+    }, []);
 
     const handleSubmit = (event) => {
         event.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import {
@@ -51,16 +51,21 @@ function CourseSearch() {
 
     const [courseData, setCourseData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const activeCallRef = useRef(null);
 
     const refreshData = useCallback(async () => {
+        const callId = {};
+        activeCallRef.current = callId;
+        const isCurrent = () => activeCallRef.current === callId;
+
         setLoading(true);
         try {
             const response = await api.get('/garmin_courses/readall');
-            setCourseData(response.data);
+            if (isCurrent()) setCourseData(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
-            setLoading(false);
+            if (isCurrent()) setLoading(false);
         }
     }, []);
 
