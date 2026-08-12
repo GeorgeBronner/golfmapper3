@@ -1,12 +1,14 @@
+import asyncio
 import hashlib
 import html
 import logging
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import mailtrap as mt
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
@@ -62,6 +64,16 @@ def _send_reset_email(to_email: str, to_name: str, reset_url: str) -> None:
     logger.info("Password reset email sent to %s", to_email)
 
 
+def _send_reset_email_background(user_id: int, to_email: str, to_name: str, reset_url: str) -> None:
+    # Runs after the response is already sent (see forgot_password) so its
+    # variable duration — dominated by the outbound Mailtrap call — can't
+    # leak whether the email was registered through response timing.
+    try:
+        _send_reset_email(to_email=to_email, to_name=to_name, reset_url=reset_url)
+    except (mt.AuthorizationError, mt.APIError) as e:
+        logger.error("Password reset email failed for user_id=%s: %s", user_id, e)
+
+
 class ForgotPasswordRequest(BaseModel):
     email: str
 
@@ -71,18 +83,30 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+MIN_RESPONSE_SECONDS = 0.2
+
+
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
 async def forgot_password(
     request: Request,
     body: ForgotPasswordRequest,
     db: db_dependency,
+    background_tasks: BackgroundTasks,
 ):
     if not settings.APP_BASE_URL:
         # Refuse rather than falling back to a hardcoded URL, which would
         # send links pointing at the wrong environment.
         logger.warning("APP_BASE_URL not set — password reset emails are disabled")
         return {"message": "If that email is registered, a reset link has been sent."}
+
+    # Both branches below only do bounded, roughly-constant-time work (a
+    # couple of indexed queries plus a write); the actual email send — the
+    # slow, network-latency-dependent part that would otherwise leak account
+    # existence through response timing — is deferred to a background task
+    # that runs after the response has already gone out. The elapsed-time
+    # padding at the bottom absorbs whatever small variance is left.
+    start = time.monotonic()
 
     # Always return success to avoid user enumeration
     user = db.query(Users).filter(Users.email == body.email).first()
@@ -98,19 +122,21 @@ async def forgot_password(
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=TOKEN_EXPIRY_MINUTES)
 
         db.add(PasswordResetToken(user_id=user.id, token_hash=token_hash, expires_at=expires_at))
+        db.commit()
+        logger.info("Password reset requested for user_id=%s", user.id)
 
         reset_url = f"{settings.APP_BASE_URL}/reset-password?token={raw_token}"
-        try:
-            _send_reset_email(
-                to_email=user.email,
-                to_name=user.first_name or user.username,
-                reset_url=reset_url,
-            )
-            db.commit()
-            logger.info("Password reset requested for user_id=%s", user.id)
-        except (mt.AuthorizationError, mt.APIError) as e:
-            logger.error("Password reset email failed for user_id=%s: %s", user.id, e)
-            db.rollback()
+        background_tasks.add_task(
+            _send_reset_email_background,
+            user.id,
+            user.email,
+            user.first_name or user.username,
+            reset_url,
+        )
+
+    elapsed = time.monotonic() - start
+    if elapsed < MIN_RESPONSE_SECONDS:
+        await asyncio.sleep(MIN_RESPONSE_SECONDS - elapsed)
 
     return {"message": "If that email is registered, a reset link has been sent."}
 

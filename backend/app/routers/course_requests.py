@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.exc import IntegrityError
 from starlette import status as http_status
 
 from app.dependencies import admin_dependency, db_dependency, user_dependency
+from app.limiter import limiter
 from app.models import CourseRequests, Courses, UserCourses
 
 router = APIRouter(prefix="/course-requests", tags=["course-requests"])
@@ -17,12 +18,12 @@ router = APIRouter(prefix="/course-requests", tags=["course-requests"])
 
 
 class NewCourseRequest(BaseModel):
-    club_name: str | None = None
-    course_name: str | None = None
-    address: str | None = None
-    city: str | None = None
-    state: str | None = None
-    country: str | None = None
+    club_name: str | None = Field(None, max_length=200)
+    course_name: str | None = Field(None, max_length=200)
+    address: str | None = Field(None, max_length=300)
+    city: str | None = Field(None, max_length=100)
+    state: str | None = Field(None, max_length=100)
+    country: str | None = Field(None, max_length=100)
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
 
@@ -40,7 +41,7 @@ class LocationChangeRequest(BaseModel):
 
 
 class RejectBody(BaseModel):
-    message: str = Field(..., min_length=1)
+    message: str = Field(..., min_length=1, max_length=1000)
 
 
 class CourseRequestOut(BaseModel):
@@ -80,7 +81,8 @@ def _to_out(req: CourseRequests) -> CourseRequestOut:
 
 
 @router.post("/new-course", status_code=http_status.HTTP_201_CREATED, response_model=CourseRequestOut)
-async def submit_new_course(user: user_dependency, db: db_dependency, body: NewCourseRequest):
+@limiter.limit("10/minute")
+async def submit_new_course(request: Request, user: user_dependency, db: db_dependency, body: NewCourseRequest):
     req = CourseRequests(
         request_type="new_course",
         submitted_by_user_id=user["id"],
@@ -100,7 +102,10 @@ async def submit_new_course(user: user_dependency, db: db_dependency, body: NewC
 
 
 @router.post("/location-change", status_code=http_status.HTTP_201_CREATED, response_model=CourseRequestOut)
-async def submit_location_change(user: user_dependency, db: db_dependency, body: LocationChangeRequest):
+@limiter.limit("10/minute")
+async def submit_location_change(
+    request: Request, user: user_dependency, db: db_dependency, body: LocationChangeRequest
+):
 
     course = db.query(Courses).filter(Courses.id == body.course_id).first()
     if course is None:

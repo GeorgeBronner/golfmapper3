@@ -7,6 +7,7 @@ function CourseList() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [actionError, setActionError] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'year', direction: 'desc' });
 
     const fetchCourses = useCallback(() => {
@@ -21,15 +22,23 @@ function CourseList() {
     useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
     const deleteUserCourse = (id) => {
+        setActionError('');
         api.delete(`/user_courses/delete/${id}`)
             .then(() => fetchCourses())
-            .catch(error => console.error(error));
+            .catch(error => {
+                console.error(error);
+                setActionError('Failed to delete course. Please try again.');
+            });
     };
 
     const updateYear = (userCourseId, year) => {
+        setActionError('');
         api.patch(`/user_courses/${userCourseId}/year`, { year })
             .then(() => fetchCourses())
-            .catch(error => console.error(error));
+            .catch(error => {
+                console.error(error);
+                setActionError('Failed to update year. Please try again.');
+            });
     };
 
     const sortData = (key) => {
@@ -61,6 +70,7 @@ function CourseList() {
 
     return (
         <div className="course-list">
+            {actionError && <div className="alert-danger" role="alert">{actionError}</div>}
             <div className="page-header">
                 <div>
                     <div className="page-title">My Courses</div>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { SESSION_EXPIRED_EVENT } from '../constants/authEvents';
 
 const AuthContext = createContext();
 
@@ -32,6 +33,14 @@ const AuthProvider = ({ children }) => {
             localStorage.removeItem('token');
         }
     }, [token]);
+
+    // api.js clears localStorage directly on a 401 (it has no access to this
+    // context) and dispatches this event so our own state stays in sync.
+    useEffect(() => {
+        const onSessionExpired = () => setToken_(null);
+        window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+        return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    }, []);
 
     const contextValue = useMemo(
         () => ({

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import { SESSION_EXPIRED_EVENT } from '../constants/authEvents';
 
 const api = axios.create({ baseURL: `${API_BASE_URL}/api/v1` });
 
@@ -21,7 +22,10 @@ api.interceptors.response.use(
         const isAuthEndpoint = AUTH_ENDPOINTS.some(path => url.includes(path));
         if (err.response?.status === 401 && !isAuthEndpoint) {
             localStorage.removeItem('token');
-            window.location.href = '/';
+            // Let AuthProvider clear its state and the router navigate away
+            // in-app instead of a hard reload, which would silently wipe
+            // any unsaved form data on the current page.
+            window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
         }
         return Promise.reject(err);
     }

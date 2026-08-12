@@ -81,7 +81,13 @@ function CourseForm() {
                         <button
                             type="button"
                             className="btn-ghost"
-                            onClick={() => generateUserMap().then(() => setTimeout(() => navigate('/map'), 50))}
+                            onClick={() => {
+                                setError('');
+                                setSuccess('');
+                                generateUserMap()
+                                    .then(() => setTimeout(() => navigate('/map'), 50))
+                                    .catch(() => setError('Failed to regenerate map. Please try again.'));
+                            }}
                         >
                             🗺 Regenerate Map
                         </button>

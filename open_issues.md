@@ -31,63 +31,89 @@ There's no token revocation/versioning. A leaked token (stored in plain `localSt
 
 ## Medium
 
-### 4. No rate limiting on authenticated, resource-intensive endpoints
+### 4. ✅ FIXED — No rate limiting on authenticated, resource-intensive endpoints
 `backend/app/routers/map.py:111-128`
 
 Map generation (folium + disk I/O), course-request submission, and course-add endpoints have zero `@limiter` protection, unlike `auth.py`/`password_reset.py`. A single scripted account can hammer these for CPU/disk exhaustion or flood the admin review queue.
 
-### 5. Free-text course-request fields have no `max_length` and no body-size cap
+**Fix:** added `@limiter.limit(...)` to `get_usermap`/`user_map_generate`/`get_allmap` (`30/minute` — started at `10/minute` but a code-review pass found that tripped 429s on ordinary double-clicks of "Regenerate Map", since each click fires two requests), `submit_new_course`/`submit_location_change` (`10/minute`), and `add_user_course` (`10/minute`). Also added an `autouse` fixture in `tests/conftest.py` that resets the shared `Limiter` between tests — it's a process-wide singleton, and one test file was already calling a newly-limited endpoint more than 10x.
+
+### 5. ✅ FIXED — Free-text course-request fields have no `max_length` and no body-size cap
 `backend/app/routers/course_requests.py:19-33`
 
 `club_name`, `course_name`, `address`, etc. are bare `str`, no length limit anywhere in the ASGI stack, and this route has no rate limit either. Any authenticated user can repeatedly POST arbitrarily large JSON bodies.
 
-### 6. Global 401 interceptor hard-redirects and silently discards in-progress form data
+**Fix:** added `max_length` to `NewCourseRequest`'s string fields (200/300/100 depending on field) and `RejectBody.message` (1000). Rate limiting from #4 covers the repeated-POST flooding angle. This surfaced a pre-existing, separate bug: FastAPI's default 422 body is a list of Pydantic error objects, and a couple of frontend components render `err.response.data.detail` directly as a string — which crashed the whole SPA (React "objects are not valid as a child") the moment a validated field actually failed. It was already reachable via the pre-existing lat/long bounds but effectively never hit through normal UI flow; the new `max_length` made it trivially reachable (paste a long address). Fixed at the root with a global `RequestValidationError` handler in `main.py` that reduces the error list to a single string message, rather than patching each frontend call site.
+
+CodeRabbit's review of the PR flagged that `max_length` only bounds the fields it validates — an oversized value in an *unknown* extra field isn't rejected by Pydantic's default config, so the "no body-size cap" half of this finding wasn't actually closed. Confirmed live (a script padding the JSON with an unrelated large field was accepted). Added a `limit_body_size` middleware in `main.py` (413 above 1 MiB, checked via `Content-Length` before the body is parsed) — a global fix rather than a per-route one, since the gap was never specific to this route.
+
+### 6. ✅ FIXED — Global 401 interceptor hard-redirects and silently discards in-progress form data
 `frontend/src/services/api.js:22`
 
 On any non-whitelisted 401, `window.location.href = '/'` fires a full page reload, wiping unsaved form state (e.g. a half-filled "Add Course" form) with zero warning, since JWTs expire after 90 min mid-session.
 
-### 7. Delete/year-update failures on the course list are silently swallowed
+**Fix:** `api.js` now dispatches a `SESSION_EXPIRED_EVENT` (`frontend/src/constants/authEvents.js`) instead of redirecting directly. `AuthProvider.jsx` listens and clears its own token state (previously bypassed entirely). `App.jsx` listens and does an in-app `router.navigate('/', { replace: true })` (no hard reload) plus leaves a flash message in `sessionStorage` that `LoginPage.jsx` displays via its existing `error`/`alert-danger` state. Split across two listeners rather than one shared module deliberately — `App.jsx` already imports the router singleton, and having `AuthProvider.jsx` import it too would create a real circular import (`AuthProvider.jsx` → `router.jsx` → route components → `useAuth` from `AuthProvider.jsx`).
+
+### 7. ✅ FIXED — Delete/year-update failures on the course list are silently swallowed
 `frontend/src/components/CourseList.jsx:23`
 
 `.catch(error => console.error(error))` only; no alert/error state shown, unlike almost every other mutating call in the codebase. Users get no feedback that a delete or edit failed.
 
-### 8. "Regenerate Map" navigates to `/map` even when generation failed
+**Fix:** added an `actionError` state, set on delete/year-update failure and rendered via the same `alert-danger` convention already used by this file's `fetchCourses` error state.
+
+### 8. ✅ FIXED — "Regenerate Map" navigates to `/map` even when generation failed
 `frontend/src/utils/mapUtils.js:3`
 
 The catch handler swallows the error and resolves anyway, so `CourseForm.jsx`'s `.then()` chain always navigates, masking backend failures.
 
-### 9. Vite dev proxy rewrite strips `/api` instead of `/api/v1`
+**Fix:** `generateUserMap` now rethrows instead of swallowing, and `CourseForm.jsx`'s button handler has a `.catch` that shows an error instead of navigating (and clears any stale success banner from a prior "Add Course" submit, so the two don't render contradictorily at once).
+
+### 9. ✅ FIXED — Vite dev proxy rewrite strips `/api` instead of `/api/v1`
 `frontend/vite.config.js:34-38`
 
 On a fresh clone following the documented `npm run dev` flow (no local `.env` override), API calls get rewritten to a path the backend doesn't serve and silently fall through to the SPA catch-all, returning HTML instead of JSON for every API call.
 
+**Fix:** removed the `rewrite` — the backend already mounts routers at `/api/v1`, matching what `services/api.js` requests, so no rewrite is needed. Also added `xfwd: true` to the proxy config (found in code review) — without it, the backend's rate limiter sees every proxied dev request as the same peer, so unrelated browser tabs would share one rate-limit bucket per endpoint.
+
 ## Low
 
-### 10. Password-reset endpoint has a timing side channel that reveals registered emails
+### 10. ✅ FIXED (partial mitigation) — Password-reset endpoint has a timing side channel that reveals registered emails
 `backend/app/routers/password_reset.py:74-115`
 
 Despite an identical response body, matching emails trigger extra DB writes plus a synchronous outbound email API call, creating a measurable latency gap that defeats the anti-enumeration design (rate-limited, so only a partial mitigation).
 
-### 11. TOCTOU race on duplicate pending location-change requests
+**Fix (first pass):** the non-existent-email branch `await`ed a constant delay approximating the registered-email branch's email-send latency, gated on `settings.MAILTRAP_API_KEY` being configured — a code-review pass caught that sleeping unconditionally would, with no Mailtrap key set (the default dev/test config, where the registered branch already skips its own network call), turn into a *new*, perfectly reliable timing oracle in the opposite direction.
+
+**Fix (revised, after CodeRabbit's PR review):** that first pass was still fundamentally a guess — a fixed 0.3s sleep doesn't actually match the registered branch's real, *variable* cost (DB writes plus however long Mailtrap's API takes to respond that request). CodeRabbit's suggested fix was the right one: stop doing the slow part in the response path at all. The email send now runs via FastAPI `BackgroundTasks` — scheduled after the DB write commits, executed after the response is already on the wire — so both branches only do bounded, roughly-constant DB work before returning, padded with `time.monotonic()`-measured `asyncio.sleep` up to a shared `MIN_RESPONSE_SECONDS` (0.2s) floor. This closes the gap in both Mailtrap-configured and unconfigured environments, and drops the previous `MAILTRAP_API_KEY` gate entirely — no longer needed. Trade-off: if the background email send fails, the reset token still exists in the DB (previously the whole write was rolled back on email failure); it just sits unused until its 15-minute expiry, which isn't a security concern, only a minor UX one for that failure case. Still not literally constant-time (DB query latency has some natural variance), but no longer has a structural, always-on signal.
+
+### 11. ✅ FIXED — TOCTOU race on duplicate pending location-change requests
 `backend/app/routers/course_requests.py:102-144`
 
 Check-then-insert with no backing `UniqueConstraint` in the schema, so the `except IntegrityError` handler is dead code; concurrent requests can create duplicate pending rows.
 
-### 12. `garmin_id` missing `ge=1` bound, inconsistent with the rest of the codebase
+**Fix:** added a partial unique index (`submitted_by_user_id`, `request_type`, `course_id` where `status = 'pending'`) to `CourseRequests` in `models.py`, so the existing `except IntegrityError` handler actually does something. First pass only reached freshly-created databases via `Base.metadata.create_all` — CodeRabbit's PR review correctly called out that this left the actual production DB with no real protection, same gap as `UserCourses.uq_user_course` before it. Unlike a missing *column*, though, a missing *index* doesn't need `ALTER TABLE` — `CREATE UNIQUE INDEX IF NOT EXISTS ... WHERE status = 'pending'` runs directly against an existing table. Added `database.ensure_index` (parallel to the existing `ensure_columns`) and call it at startup in `main.py`, so the index now actually gets backfilled onto pre-existing databases too. It fails safe: if a production DB already has duplicate pending rows from before this fix, creating the unique index over them raises, which is caught and logged rather than crashing app startup — resolving pre-existing duplicates is a data decision, not something to do silently at boot. Verified locally: created a DB via the current schema, dropped the index to simulate a pre-existing DB, ran `ensure_index`, confirmed it reappears.
+
+**Still not fixed** (found in code review, out of this finding's original scope): `submit_new_course` has no equivalent guard at all, and this index doesn't cover it either (SQL unique indexes treat `NULL course_id` — always `NULL` for new-course requests — as distinct every time), so duplicate new-course submissions are still fully possible. Needs its own dedup key (e.g. normalized club/course name) rather than a copy-paste of this index — left as a follow-up.
+
+### 12. ✅ FIXED — `garmin_id` missing `ge=1` bound, inconsistent with the rest of the codebase
 `backend/app/routers/user_courses.py:39-45`
 
 Harmless today (fails via 404 lookup) but inconsistent with the `Field(..., ge=1)` convention used everywhere else.
 
-### 13. No request-sequencing guards on some manual-refresh flows (stale data on double-click)
+**Fix:** `garmin_id: int = Field(..., ge=1)`, matching `course_requests.py`'s `course_id`.
+
+### 13. ✅ FIXED — No request-sequencing guards on some manual-refresh flows (stale data on double-click)
 `frontend/src/components/CourseSearch.jsx:55`, and `AdminUsers.jsx`'s `loadUsers`
 
 Unlike `AdminReviewRequests.jsx`/`Map.jsx`/`AllUsersMap.jsx`, which use sequence refs, these can show stale data on out-of-order responses.
 
-### 14. CSP `img-src` wildcard doesn't match folium's actual tile host
+**Fix:** `CourseSearch.jsx`'s `refreshData` got the `activeCallRef`/`callId` idiom from `Map.jsx`/`AllUsersMap.jsx` (single call site); `AdminUsers.jsx`'s `loadUsers` got the incrementing-`useRef` counter idiom from `AdminReviewRequests.jsx` (multiple call sites — mount, role toggle, active toggle). Deliberately kept as two different idioms rather than unifying into one shared hook — each already matches an existing precedent elsewhere in the codebase, and both were already coexisting before this change.
+
+### 14. Already fixed (no action needed)
 `backend/app/main.py:74`
 
-Allows `https://*.tile.openstreetmap.org` but folium's default tile layer requests the bare `https://tile.openstreetmap.org` (no subdomain), which the wildcard doesn't cover per CSP matching rules. Even after fixing #1, tiles would still be gray/missing.
+Originally: CSP `img-src` allowed `https://*.tile.openstreetmap.org` but folium's default tile layer requests the bare `https://tile.openstreetmap.org` (no subdomain), which the wildcard doesn't cover per CSP matching rules. Verified this was already resolved as a side effect of #1's fix — `build_csp()` lists both the wildcard and the bare host.
 
 ---
 
-**Suggested priority**: fix #1 (map completely broken) and #3 (PATCH/CORS breaks admin + course-year edits) first — both are live breakage, not theoretical. #2 (token revocation) is the one real security gap worth planning for, though it requires an architectural change (token versioning or a revocation list).
+**Remaining known gaps** (not fixed in this pass): the `submit_new_course` duplicate-submission gap noted under #11, and the production-DB caveat on the same fix. Both are pre-existing, not regressions.

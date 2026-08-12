@@ -134,6 +134,24 @@ class CourseRequests(Base):
     reviewed_by = relationship("Users", foreign_keys=[reviewed_by_user_id])
     course = relationship("Courses", foreign_keys=[course_id])
 
+    __table_args__ = (
+        # One pending location-change request per (user, course) — status is
+        # mutable (pending -> approved/rejected), so this has to be a partial
+        # index rather than a plain UniqueConstraint. Applies to freshly
+        # created databases only, same as uq_user_course above; the
+        # application-level check in submit_location_change enforces the
+        # rule for the existing production DB either way.
+        Index(
+            "uq_pending_location_change",
+            "submitted_by_user_id",
+            "request_type",
+            "course_id",
+            unique=True,
+            sqlite_where=status == "pending",
+            postgresql_where=status == "pending",
+        ),
+    )
+
 
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
