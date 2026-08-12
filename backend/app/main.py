@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from starlette.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import engine, ensure_columns
+from app.database import engine, ensure_columns, ensure_index
 from app.limiter import limiter
 from app.models import Base
 from app.routers import admin, auth, course_requests, garmin_courses, map, password_reset, user_courses, users
@@ -59,6 +59,14 @@ app = FastAPI()
 add_pagination(app)
 Base.metadata.create_all(bind=engine)
 ensure_columns("users", {"token_version": "INTEGER NOT NULL DEFAULT 0"})
+# create_all only creates the partial unique index below on fresh databases;
+# this backfills it onto ones that predate it (see ensure_index's docstring).
+ensure_index(
+    "uq_pending_location_change",
+    "CREATE UNIQUE INDEX IF NOT EXISTS uq_pending_location_change "
+    "ON course_requests (submitted_by_user_id, request_type, course_id) "
+    "WHERE status = 'pending'",
+)
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # --- Rate limiting ---
@@ -112,6 +120,22 @@ def build_csp(nonce: str | None = None) -> str:
 
 
 CSP = build_csp()
+
+
+# Pydantic's max_length only bounds the declared fields it validates —
+# extra/unknown JSON fields aren't rejected by default, so a request can carry
+# an arbitrarily large body alongside otherwise-valid data. Nothing else in
+# the stack enforces a size limit (Uvicorn has none by default), so reject
+# oversized requests here before they're parsed.
+MAX_BODY_BYTES = 1 * 1024 * 1024
+
+
+@app.middleware("http")
+async def limit_body_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_BODY_BYTES:
+        return JSONResponse(status_code=413, content={"detail": "Request body too large."})
+    return await call_next(request)
 
 
 @app.middleware("http")

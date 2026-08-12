@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from sqlalchemy import create_engine, inspect, text
@@ -5,6 +6,8 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 if settings.USE_SQLITE_DB:
     if settings.SQLITE_DB_URL:
@@ -52,3 +55,19 @@ def ensure_columns(table_name: str, columns: dict[str, str]) -> None:
             # already added it — the column existing is the only outcome
             # we're trying to guarantee here, so that's fine.
             pass
+
+
+def ensure_index(name: str, create_ddl: str) -> None:
+    """Run a `CREATE UNIQUE INDEX IF NOT EXISTS ...` against an already-existing
+    table — same rationale as ensure_columns, for indexes instead of columns.
+
+    Unlike a missing column, a missing *unique* index can fail to create on a
+    database that already has rows violating it (duplicates that predate the
+    constraint). That's logged and left as-is rather than crashing startup —
+    resolving those duplicates is a data decision, not something to do silently.
+    """
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(create_ddl))
+    except DBAPIError as e:
+        logger.warning("Could not create index %s — likely pre-existing duplicate rows violating it: %s", name, e)
