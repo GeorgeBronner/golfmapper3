@@ -127,26 +127,48 @@ def course_points(
     return {"fields": ["id", "lat", "lon", "name"], "points": points}
 
 
-@router.get("/courses/states", status_code=status.HTTP_200_OK)
+# Country is stored as an ISO 3166-1 alpha-3 code (imported Garmin data).
+US_COUNTRY = "USA"
+
+
+@router.get("/courses/regions", status_code=status.HTTP_200_OK)
 @limiter.limit("30/minute")
-def course_states(request: Request, user: admin_dependency, db: db_dependency):
-    """Distinct (normalized) state/country pairs with mappable-course counts,
-    for the admin course map's state picker."""
+def course_regions(request: Request, user: admin_dependency, db: db_dependency):
+    """Mappable-course counts for the admin course map's region picker:
+    US states individually, then every country as a whole.
+
+        {"us_states": [{"state": "AK", "count": 16}, ...],
+         "countries": [{"country": "ARG", "count": 217}, ..., {"country": null, "count": 3}]}
+
+    Blank and NULL countries both report as null (sorted last); pass
+    country="" to /courses/points to select them.
+    """
+    mappable = db.query(Courses).filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
+
     state_col = _normalized(Courses.state).label("state")
-    # Blank and NULL countries both report as null. A literal rather than a
-    # bind param, so SELECT and GROUP BY are the identical expression for
-    # Postgres even under a server-side-binding driver.
-    country_col = func.nullif(_normalized(Courses.country), literal_column("''")).label("country")
-    rows = (
-        db.query(state_col, country_col, func.count(Courses.id))
-        .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
-        .filter(Courses.state.isnot(None), func.trim(Courses.state) != "")
-        .group_by(state_col, country_col)
-        # Explicit NULLs-last: SQLite and Postgres default to opposite ends.
-        .order_by(country_col.is_(None), country_col, state_col)
+    us_states = (
+        mappable.with_entities(state_col, func.count(Courses.id))
+        .filter(_normalized(Courses.country) == US_COUNTRY)
+        .filter(func.coalesce(func.trim(Courses.state), "") != "")
+        .group_by(state_col)
+        .order_by(state_col)
         .all()
     )
-    return [{"state": s, "country": c, "count": n} for s, c, n in rows]
+
+    # A literal rather than a bind param, so SELECT and GROUP BY are the
+    # identical expression for Postgres even under a server-side-binding driver.
+    country_col = func.nullif(_normalized(Courses.country), literal_column("''")).label("country")
+    countries = (
+        mappable.with_entities(country_col, func.count(Courses.id))
+        .group_by(country_col)
+        # Explicit NULLs-last: SQLite and Postgres default to opposite ends.
+        .order_by(country_col.is_(None), country_col)
+        .all()
+    )
+    return {
+        "us_states": [{"state": s, "count": n} for s, n in us_states],
+        "countries": [{"country": c, "count": n} for c, n in countries],
+    }
 
 
 @router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)

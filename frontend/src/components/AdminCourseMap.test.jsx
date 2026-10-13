@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import api from '../services/api';
@@ -14,16 +14,26 @@ vi.mock('./CourseMap', () => ({
     ),
 }));
 
-const states = [
-    { state: 'FL', country: 'USA', count: 2 },
-    { state: 'GA', country: 'USA', count: 1 },
-];
+const regions = {
+    us_states: [
+        { state: 'FL', count: 2 },
+        { state: 'GA', count: 1 },
+    ],
+    countries: [
+        { country: 'CAN', count: 1747 },
+        { country: 'USA', count: 3 },
+        { country: null, count: 4 },
+    ],
+};
+
+const pick = async name =>
+    userEvent.selectOptions(screen.getByRole('combobox', { name: 'Region' }), screen.getByRole('option', { name }));
 
 describe('AdminCourseMap', () => {
     beforeEach(() => {
         api.get.mockReset();
         api.get.mockImplementation(url => {
-            if (url === '/admin/courses/states') return Promise.resolve({ data: states });
+            if (url === '/admin/courses/regions') return Promise.resolve({ data: regions });
             if (url === '/admin/courses/points') {
                 return Promise.resolve({
                     data: {
@@ -36,13 +46,24 @@ describe('AdminCourseMap', () => {
         });
     });
 
-    it('fetches points for the chosen state and renders them', async () => {
+    it('lists US states first, then countries', async () => {
         render(<AdminCourseMap />);
-        const select = screen.getByRole('combobox', { name: 'State' });
-        await screen.findByRole('option', { name: /FL, USA \(2\)/ });
+        await screen.findByRole('option', { name: 'FL (2)' });
+        const [us, countries] = screen.getAllByRole('group');
+        expect(us).toHaveAttribute('label', 'United States');
+        expect(within(us).getAllByRole('option').map(o => o.textContent)).toEqual(['FL (2)', 'GA (1)']);
+        expect(countries).toHaveAttribute('label', 'Countries');
+        expect(within(countries).getAllByRole('option').map(o => o.textContent)).toEqual([
+            'CAN (1,747)',
+            'USA (3)',
+            'No country (4)',
+        ]);
+    });
 
-        await userEvent.selectOptions(select, screen.getByRole('option', { name: /FL, USA/ }));
-
+    it('fetches a US state and renders its courses', async () => {
+        render(<AdminCourseMap />);
+        await screen.findByRole('option', { name: 'FL (2)' });
+        await pick('FL (2)');
         await waitFor(() =>
             expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: { state: 'FL', country: 'USA' } })
         );
@@ -50,34 +71,38 @@ describe('AdminCourseMap', () => {
         expect(screen.getByText('2 courses')).toBeInTheDocument();
     });
 
-    it('requests every course for the All option', async () => {
+    it('fetches a whole country', async () => {
         render(<AdminCourseMap />);
-        await screen.findByRole('option', { name: /GA, USA/ });
-        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'State' }), screen.getByRole('option', { name: /All courses/ }));
-        await waitFor(() => expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: {} }));
+        await screen.findByRole('option', { name: 'CAN (1,747)' });
+        await pick('CAN (1,747)');
+        await waitFor(() =>
+            expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: { country: 'CAN' } })
+        );
     });
 
-    it('sends an empty country for states with no country', async () => {
-        states.push({ state: 'WA', country: null, count: 4 });
-        try {
-            render(<AdminCourseMap />);
-            await screen.findByRole('option', { name: 'WA (4)' });
-            await userEvent.selectOptions(screen.getByRole('combobox', { name: 'State' }), screen.getByRole('option', { name: 'WA (4)' }));
-            await waitFor(() =>
-                expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: { state: 'WA', country: '' } })
-            );
-        } finally {
-            states.pop();
-        }
+    it('sends an empty country for courses with no country', async () => {
+        render(<AdminCourseMap />);
+        await screen.findByRole('option', { name: 'No country (4)' });
+        await pick('No country (4)');
+        await waitFor(() =>
+            expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: { country: '' } })
+        );
+    });
+
+    it('requests every course for the All option', async () => {
+        render(<AdminCourseMap />);
+        await screen.findByRole('option', { name: 'FL (2)' });
+        await pick(/All courses/);
+        await waitFor(() => expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: {} }));
     });
 
     it('shows an error when the points request fails', async () => {
         api.get.mockImplementation(url =>
-            url === '/admin/courses/states' ? Promise.resolve({ data: states }) : Promise.reject(new Error('boom'))
+            url === '/admin/courses/regions' ? Promise.resolve({ data: regions }) : Promise.reject(new Error('boom'))
         );
         render(<AdminCourseMap />);
-        await screen.findByRole('option', { name: /GA, USA/ });
-        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'State' }), screen.getByRole('option', { name: /GA, USA/ }));
+        await screen.findByRole('option', { name: 'GA (1)' });
+        await pick('GA (1)');
         expect(await screen.findByText(/Failed to load courses/)).toBeInTheDocument();
     });
 });

@@ -220,6 +220,30 @@ def map_courses():
                 longitude=-122.5,
             ),
             Courses(
+                id=509,
+                club_name="Toronto Club",
+                state="ON",
+                country="CAN",
+                latitude=43.65,
+                longitude=-79.38,
+            ),
+            Courses(
+                id=510,
+                club_name="Vancouver Club",
+                state="BC",
+                country=" can",
+                latitude=49.28,
+                longitude=-123.12,
+            ),
+            Courses(
+                id=511,
+                club_name="St Andrews",
+                state="Fife",
+                country="GBR",
+                latitude=56.34,
+                longitude=-2.80,
+            ),
+            Courses(
                 id=505,
                 club_name="Stateless",
                 course_name=None,
@@ -241,7 +265,7 @@ def test_course_points_requires_admin(map_courses):
     app.dependency_overrides[get_current_user] = lambda: {"username": "other", "id": 2, "role": "user"}
     try:
         assert client.get("/api/v1/admin/courses/points").status_code == status.HTTP_403_FORBIDDEN
-        assert client.get("/api/v1/admin/courses/states").status_code == status.HTTP_403_FORBIDDEN
+        assert client.get("/api/v1/admin/courses/regions").status_code == status.HTTP_403_FORBIDDEN
     finally:
         app.dependency_overrides[get_current_user] = override_get_current_user
 
@@ -251,7 +275,7 @@ def test_course_points_all_excludes_missing_coordinates(map_courses):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["fields"] == ["id", "lat", "lon", "name"]
-    assert [p[0] for p in data["points"]] == [501, 502, 504, 505, 506, 507, 508]
+    assert [p[0] for p in data["points"]] == [501, 502, 504, 505, 506, 507, 508, 509, 510, 511]
 
 
 @pytest.mark.parametrize("state", ["FL", "fl", "  Fl "])
@@ -277,15 +301,28 @@ def test_course_points_empty_country_matches_missing_country(map_courses):
     assert sorted(p[0] for p in response.json()["points"]) == [506, 507]
 
 
-def test_course_states(map_courses):
-    response = client.get("/api/v1/admin/courses/states")
+def test_course_regions_lists_us_states_then_countries(map_courses):
+    response = client.get("/api/v1/admin/courses/regions")
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == [
-        {"state": "FL", "country": "USA", "count": 2},
-        {"state": "GA", "country": "USA", "count": 1},
-        {"state": "WA", "country": "USA", "count": 1},
-        {"state": "WA", "country": None, "count": 2},
-    ]
+    assert response.json() == {
+        # Only US states — provinces/regions of other countries aren't listed.
+        "us_states": [
+            {"state": "FL", "count": 2},
+            {"state": "GA", "count": 1},
+            {"state": "WA", "count": 1},
+        ],
+        "countries": [
+            {"country": "CAN", "count": 2},
+            {"country": "GBR", "count": 1},
+            {"country": "USA", "count": 5},
+            {"country": None, "count": 2},
+        ],
+    }
+
+
+def test_course_points_whole_country(map_courses):
+    response = client.get("/api/v1/admin/courses/points", params={"country": "CAN"})
+    assert [p[0] for p in response.json()["points"]] == [509, 510]
 
 
 def test_course_points_gzipped_when_large(map_courses):
