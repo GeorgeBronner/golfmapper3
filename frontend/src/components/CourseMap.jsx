@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, ScaleControl, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -105,11 +105,16 @@ function Legend({ groups, hidden, onToggle }) {
 export default function CourseMap({ groups, cluster, fitToPoints = false, showLegend = false }) {
     const [hidden, setHidden] = useState(() => new Set());
     // A single shared popup rather than one per marker — at 15k markers,
-    // per-marker Popup instances are a real memory/mount cost. Each click
-    // stores a fresh object: Leaflet closes the popup on the click's
-    // preclick, so re-clicking the same marker must still change state for
-    // the popup to reopen.
+    // per-marker Popup instances are a real memory/mount cost. Leaflet closes
+    // the popup on every click's preclick, and react-leaflet only reopens it
+    // when its position prop changes, which it doesn't when the same marker
+    // is clicked again. So each click gets a new key and remounts the Popup.
     const [selected, setSelected] = useState(null);
+    const clickCount = useRef(0);
+    const select = useCallback(sel => {
+        clickCount.current += 1;
+        setSelected({ ...sel, key: clickCount.current });
+    }, []);
 
     const visible = useMemo(
         () => groups.filter(group => !hidden.has(group.name)),
@@ -130,7 +135,7 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
     };
 
     const markers = visible.map(group => (
-        <GroupMarkers key={group.name} group={group} clustered={clustered} onSelect={setSelected} />
+        <GroupMarkers key={group.name} group={group} clustered={clustered} onSelect={select} />
     ));
 
     return (
@@ -150,7 +155,7 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
                     // No close handler clearing `selected`: a closed popup left
                     // mounted is harmless, and clearing on Leaflet's remove
                     // event can race the next marker's click.
-                    <Popup position={selected.position}>
+                    <Popup key={selected.key} position={selected.position}>
                         <CoursePopupContent point={selected.point} />
                     </Popup>
                 )}
