@@ -119,7 +119,7 @@ def test_create_user_rejects_invalid_email():
             "password": "password123",
         },
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_create_user_accepts_valid_email():

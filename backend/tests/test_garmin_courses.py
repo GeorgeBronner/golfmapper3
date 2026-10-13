@@ -16,6 +16,16 @@ def test_readall_courses(test_user_courses):
     assert any(c["id"] == 200 for c in data)
 
 
+def test_readall_courses_paginated(test_user_courses):
+    response = client.get("/api/v1/garmin_courses/readall_page?page=1&size=10")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["page"] == 1
+    assert data["size"] == 10
+    assert data["total"] >= 1
+    assert any(c["id"] == 200 for c in data["items"])
+
+
 def test_read_course_found(test_user_courses):
     response = client.get("/api/v1/garmin_courses/course/200")
     assert response.status_code == status.HTTP_200_OK

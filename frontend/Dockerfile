@@ -1,13 +1,11 @@
 # Build stage for frontend
-FROM node:21-alpine AS build
+FROM node:26-alpine AS build
 
 WORKDIR /app
 
 # Copy package files for better layer caching
 COPY package*.json ./
-RUN npm install
-# Install the missing Babel plugin
-RUN npm install --save-dev @babel/plugin-transform-react-jsx
+RUN npm ci
 
 # Copy the rest of the app
 COPY . .

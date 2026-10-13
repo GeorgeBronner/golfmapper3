@@ -2,13 +2,34 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import {
+    columnFilteringFeature,
+    createFilteredRowModel,
+    createPaginatedRowModel,
+    createSortedRowModel,
+    filterFn_includesString,
     flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
+    rowPaginationFeature,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    sortFn_text,
+    tableFeatures,
+    useTable,
 } from '@tanstack/react-table';
+
+// Columns use the default "auto" filter/sort functions, which v9 resolves by
+// name from these registries: strings → includesString / alphanumeric|text,
+// numbers (the ID column) → basic.
+const features = tableFeatures({
+    columnFilteringFeature,
+    rowSortingFeature,
+    rowPaginationFeature,
+    filteredRowModel: createFilteredRowModel(),
+    sortedRowModel: createSortedRowModel(),
+    paginatedRowModel: createPaginatedRowModel(),
+    filterFns: { includesString: filterFn_includesString },
+    sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text, basic: sortFn_basic },
+});
 
 function CourseSearch() {
     const columns = useMemo(() => [
@@ -91,13 +112,10 @@ function CourseSearch() {
 function SearchTable({ data, columns }) {
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
-    const table = useReactTable({
+    const table = useTable({
+        features,
         columns,
         data,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         onPaginationChange: setPagination,
         state: { pagination },
     });
@@ -106,7 +124,7 @@ function SearchTable({ data, columns }) {
         <div className="table-card">
             <div className="table-card-header">
                 <span className="table-card-title">
-                    {table.getFilteredRowModel().rows.length.toLocaleString()} of {table.getRowCount().toLocaleString()} courses
+                    {table.getFilteredRowModel().rows.length.toLocaleString()} of {table.getCoreRowModel().rows.length.toLocaleString()} courses
                 </span>
             </div>
 
@@ -142,7 +160,7 @@ function SearchTable({ data, columns }) {
                     <tbody>
                         {table.getRowModel().rows.map(row => (
                             <tr key={row.id}>
-                                {row.getVisibleCells().map(cell => (
+                                {row.getAllCells().map(cell => (
                                     <td key={cell.id}>
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </td>
@@ -157,13 +175,13 @@ function SearchTable({ data, columns }) {
                 <button className="pagination-btn" onClick={() => table.firstPage()} disabled={!table.getCanPreviousPage()}>«</button>
                 <button className="pagination-btn" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹</button>
                 <span className="pagination-info">
-                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount().toLocaleString()}
+                    Page {pagination.pageIndex + 1} of {table.getPageCount().toLocaleString()}
                 </span>
                 <button className="pagination-btn" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</button>
                 <button className="pagination-btn" onClick={() => table.lastPage()} disabled={!table.getCanNextPage()}>»</button>
                 <span className="pagination-count">{table.getRowCount().toLocaleString()} total</span>
                 <select
-                    value={table.getState().pagination.pageSize}
+                    value={pagination.pageSize}
                     onChange={e => table.setPageSize(Number(e.target.value))}
                     className="filter-input"
                     style={{ marginLeft: 'auto', width: 'auto' }}

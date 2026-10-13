@@ -56,7 +56,6 @@ if sentry_sdk_available and settings.SENTRY_DSN:
     )
 
 app = FastAPI()
-add_pagination(app)
 Base.metadata.create_all(bind=engine)
 ensure_columns("users", {"token_version": "INTEGER NOT NULL DEFAULT 0"})
 # create_all only creates the partial unique index below on fresh databases;
@@ -206,6 +205,9 @@ app.include_router(user_courses.router, prefix=API_PREFIX)
 app.include_router(map.router, prefix=API_PREFIX)
 app.include_router(password_reset.router, prefix=API_PREFIX)
 app.include_router(course_requests.router, prefix=API_PREFIX)
+# Must run after the routers are included: it only wires pagination params
+# into routes that already exist on the app.
+add_pagination(app)
 
 # --- Static assets ---
 if assets_path.exists() and assets_path.is_dir():
