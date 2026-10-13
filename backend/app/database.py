@@ -70,4 +70,4 @@ def ensure_index(name: str, create_ddl: str) -> None:
         with engine.begin() as conn:
             conn.execute(text(create_ddl))
     except DBAPIError as e:
-        logger.warning("Could not create index %s — likely pre-existing duplicate rows violating it: %s", name, e)
+        logger.warning("Could not create index %s (for a unique index, likely pre-existing duplicates): %s", name, e)

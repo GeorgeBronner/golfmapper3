@@ -5,15 +5,23 @@ import CourseMap, { CoursePopupContent } from './CourseMap';
 
 // happy-dom has no canvas, so real Leaflet can't mount; stub the map pieces
 // down to plain elements to test the component's own logic.
-vi.mock('react-leaflet', () => ({
-    MapContainer: ({ children }) => <div>{children}</div>,
-    TileLayer: () => null,
-    ScaleControl: () => null,
-    Popup: ({ children }) => <div>{children}</div>,
-    CircleMarker: ({ center }) => <span data-testid="marker" data-lat={center[0]} />,
-    Marker: ({ position }) => <span data-testid="marker" data-lat={position[0]} />,
-    useMap: () => ({ fitBounds: vi.fn() }),
-}));
+const markerRenders = vi.hoisted(() => ({ count: 0 }));
+vi.mock('react-leaflet', () => {
+    const StubMarker = ({ center, position, eventHandlers }) => {
+        markerRenders.count += 1;
+        const [lat] = center || position;
+        return <button type="button" data-testid="marker" data-lat={lat} onClick={eventHandlers.click} />;
+    };
+    return {
+        MapContainer: ({ children }) => <div>{children}</div>,
+        TileLayer: () => null,
+        ScaleControl: () => null,
+        Popup: ({ children }) => <div data-testid="popup">{children}</div>,
+        CircleMarker: StubMarker,
+        Marker: StubMarker,
+        useMap: () => ({ fitBounds: vi.fn() }),
+    };
+});
 vi.mock('react-leaflet-cluster', () => ({ default: ({ children }) => <div data-testid="cluster">{children}</div> }));
 
 const XSS_NAME = '<img src=x onerror="window.__xss = true">';
@@ -49,6 +57,24 @@ describe('CourseMap legend', () => {
         const markers = screen.getAllByTestId('marker');
         expect(markers).toHaveLength(1);
         expect(markers[0]).toHaveAttribute('data-lat', '31');
+    });
+});
+
+describe('CourseMap selection', () => {
+    const groups = [
+        { name: 'alice', color: '#e74c3c', points: [{ id: 1, lat: 30, lon: -88, name: 'Magnolia', year: 2024 }] },
+        { name: 'bob', color: '#3498db', points: [{ id: 2, lat: 31, lon: -87, name: 'West' }] },
+    ];
+
+    it('opens the popup without re-rendering any markers', async () => {
+        render(<CourseMap groups={groups} />);
+        const [first] = screen.getAllByTestId('marker');
+        markerRenders.count = 0;
+        await userEvent.click(first);
+        expect(screen.getByTestId('popup')).toHaveTextContent('Magnolia');
+        // Re-rendering (re-applying position/handlers to) every marker on
+        // each click is what froze the 15k-point clustered map.
+        expect(markerRenders.count).toBe(0);
     });
 });
 

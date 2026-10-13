@@ -196,6 +196,30 @@ def map_courses():
                 longitude=-84.388,
             ),
             Courses(
+                id=506,
+                club_name="Blank Country",
+                state="WA",
+                country="  ",
+                latitude=47.6,
+                longitude=-122.3,
+            ),
+            Courses(
+                id=507,
+                club_name="Null Country",
+                state="WA",
+                country=None,
+                latitude=47.7,
+                longitude=-122.4,
+            ),
+            Courses(
+                id=508,
+                club_name="US Washington",
+                state="WA",
+                country="USA",
+                latitude=47.8,
+                longitude=-122.5,
+            ),
+            Courses(
                 id=505,
                 club_name="Stateless",
                 course_name=None,
@@ -227,7 +251,7 @@ def test_course_points_all_excludes_missing_coordinates(map_courses):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["fields"] == ["id", "lat", "lon", "name"]
-    assert [p[0] for p in data["points"]] == [501, 502, 504, 505]
+    assert [p[0] for p in data["points"]] == [501, 502, 504, 505, 506, 507, 508]
 
 
 @pytest.mark.parametrize("state", ["FL", "fl", "  Fl "])
@@ -248,12 +272,19 @@ def test_course_points_country_filter(map_courses):
     assert len(response.json()["points"]) == 2
 
 
+def test_course_points_empty_country_matches_missing_country(map_courses):
+    response = client.get("/api/v1/admin/courses/points", params={"state": "WA", "country": ""})
+    assert sorted(p[0] for p in response.json()["points"]) == [506, 507]
+
+
 def test_course_states(map_courses):
     response = client.get("/api/v1/admin/courses/states")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == [
         {"state": "FL", "country": "USA", "count": 2},
         {"state": "GA", "country": "USA", "count": 1},
+        {"state": "WA", "country": "USA", "count": 1},
+        {"state": "WA", "country": None, "count": 2},
     ]
 
 

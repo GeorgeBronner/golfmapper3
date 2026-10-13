@@ -1,6 +1,7 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from app import main
 from app.main import app
 
 client = TestClient(app)
@@ -21,8 +22,10 @@ def test_csp_is_static_with_no_script_exceptions():
     assert "https://tile.openstreetmap.org" in directives["img-src"]
 
 
-def test_spa_shell_has_no_nonce_and_is_uncached():
+def test_spa_shell_is_served_unmodified_and_uncached(monkeypatch):
+    # No built frontend in the test environment; stand one in.
+    shell = "<html><head></head><body></body></html>"
+    monkeypatch.setattr(main, "_INDEX_HTML", shell)
     response = client.get("/some/client/route")
-    assert "csp-nonce" not in response.text
-    if response.headers.get("content-type", "").startswith("text/html"):
-        assert response.headers["Cache-Control"] == "no-cache, no-store, must-revalidate"
+    assert response.text == shell
+    assert response.headers["Cache-Control"] == "no-cache, no-store, must-revalidate"

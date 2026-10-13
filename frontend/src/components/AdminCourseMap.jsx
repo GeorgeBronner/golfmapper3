@@ -35,7 +35,9 @@ export default function AdminCourseMap() {
         let params = {};
         if (selection !== ALL) {
             const [state, country] = JSON.parse(selection);
-            params = country ? { state, country } : { state };
+            // An empty country selects courses with no country, rather than
+            // matching this state code across every country.
+            params = { state, country: country ?? '' };
         }
         setStatus('loading');
         api.get('/admin/courses/points', { params })
@@ -47,7 +49,6 @@ export default function AdminCourseMap() {
             .catch(() => { if (isCurrent()) setStatus('error'); });
     }, [selection]);
 
-    const totalCount = states.reduce((n, s) => n + s.count, 0);
     const groups = useMemo(() => [{ name: 'Courses', color: '#e74c3c', points }], [points]);
 
     return (
@@ -66,9 +67,7 @@ export default function AdminCourseMap() {
                             {s.state}{s.country ? `, ${s.country}` : ''} ({s.count.toLocaleString()})
                         </option>
                     ))}
-                    <option value={ALL}>
-                        All courses{totalCount ? ` (${totalCount.toLocaleString()})` : ''} — large download
-                    </option>
+                    <option value={ALL}>All courses — large download</option>
                 </Form.Select>
             </div>
 

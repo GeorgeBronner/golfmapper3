@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import func
+from sqlalchemy import func, literal_column
 from starlette import status
 
 from app.dependencies import admin_dependency, db_dependency
@@ -100,6 +100,8 @@ def course_points(
     country: str | None = Query(default=None, max_length=100),
 ):
     """Every course with coordinates, optionally filtered by state/country.
+    An empty `country` matches courses with no country (as /courses/states
+    reports them, country null).
 
     Compact on purpose — a whole-dataset response is ~15k rows:
 
@@ -113,8 +115,11 @@ def course_points(
     )
     if state and state.strip():
         query = query.filter(_normalized(Courses.state) == state.strip().upper())
-    if country and country.strip():
-        query = query.filter(_normalized(Courses.country) == country.strip().upper())
+    if country is not None:
+        if country.strip():
+            query = query.filter(_normalized(Courses.country) == country.strip().upper())
+        else:
+            query = query.filter(func.coalesce(func.trim(Courses.country), "") == "")
     points = [
         [course_id, round(lat, 5), round(lon, 5), course_display_name(club, name)]
         for course_id, lat, lon, club, name in query.order_by(Courses.id)
@@ -128,13 +133,17 @@ def course_states(request: Request, user: admin_dependency, db: db_dependency):
     """Distinct (normalized) state/country pairs with mappable-course counts,
     for the admin course map's state picker."""
     state_col = _normalized(Courses.state).label("state")
-    country_col = _normalized(Courses.country).label("country")
+    # Blank and NULL countries both report as null. A literal rather than a
+    # bind param, so SELECT and GROUP BY are the identical expression for
+    # Postgres even under a server-side-binding driver.
+    country_col = func.nullif(_normalized(Courses.country), literal_column("''")).label("country")
     rows = (
         db.query(state_col, country_col, func.count(Courses.id))
         .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
         .filter(Courses.state.isnot(None), func.trim(Courses.state) != "")
         .group_by(state_col, country_col)
-        .order_by(country_col, state_col)
+        # Explicit NULLs-last: SQLite and Postgres default to opposite ends.
+        .order_by(country_col.is_(None), country_col, state_col)
         .all()
     )
     return [{"state": s, "country": c, "count": n} for s, c, n in rows]

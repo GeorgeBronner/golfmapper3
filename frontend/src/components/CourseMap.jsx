@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, ScaleControl, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -50,6 +50,33 @@ export function CoursePopupContent({ point }) {
     );
 }
 
+// One group's markers, memoized so that unrelated re-renders (opening a popup,
+// toggling another group) don't touch them. react-leaflet compares
+// position/pathOptions/eventHandlers by reference and re-applies them on any
+// change; inside a cluster group each setLatLng is a remove+re-add, so a
+// careless re-render of ~15k markers freezes the page.
+const GroupMarkers = memo(function GroupMarkers({ group, clustered, onSelect }) {
+    return useMemo(() => {
+        const pathOptions = { color: group.color, fillColor: group.color, fillOpacity: 0.7, opacity: 0.9 };
+        const icon = dotIcon(group.color);
+        return group.points.map(point => {
+            const position = [point.lat, point.lon];
+            const eventHandlers = { click: () => onSelect({ point, position }) };
+            return clustered ? (
+                <Marker key={point.id} position={position} icon={icon} eventHandlers={eventHandlers} />
+            ) : (
+                <CircleMarker
+                    key={point.id}
+                    center={position}
+                    radius={7}
+                    pathOptions={pathOptions}
+                    eventHandlers={eventHandlers}
+                />
+            );
+        });
+    }, [group, clustered, onSelect]);
+});
+
 function Legend({ groups, hidden, onToggle }) {
     return (
         <div className="course-map-legend">
@@ -78,7 +105,10 @@ function Legend({ groups, hidden, onToggle }) {
 export default function CourseMap({ groups, cluster, fitToPoints = false, showLegend = false }) {
     const [hidden, setHidden] = useState(() => new Set());
     // A single shared popup rather than one per marker — at 15k markers,
-    // per-marker Popup instances are a real memory/mount cost.
+    // per-marker Popup instances are a real memory/mount cost. Each click
+    // stores a fresh object: Leaflet closes the popup on the click's
+    // preclick, so re-clicking the same marker must still change state for
+    // the popup to reopen.
     const [selected, setSelected] = useState(null);
 
     const visible = useMemo(
@@ -99,28 +129,9 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
         });
     };
 
-    const markers = visible.flatMap(group =>
-        group.points.map(point => {
-            const key = `${group.name}:${point.id}`;
-            const eventHandlers = { click: () => setSelected(point) };
-            return clustered ? (
-                <Marker
-                    key={key}
-                    position={[point.lat, point.lon]}
-                    icon={dotIcon(group.color)}
-                    eventHandlers={eventHandlers}
-                />
-            ) : (
-                <CircleMarker
-                    key={key}
-                    center={[point.lat, point.lon]}
-                    radius={7}
-                    pathOptions={{ color: group.color, fillColor: group.color, fillOpacity: 0.7, opacity: 0.9 }}
-                    eventHandlers={eventHandlers}
-                />
-            );
-        }),
-    );
+    const markers = visible.map(group => (
+        <GroupMarkers key={group.name} group={group} clustered={clustered} onSelect={setSelected} />
+    ));
 
     return (
         <div className="course-map">
@@ -136,11 +147,11 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
                     markers
                 )}
                 {selected && (
-                    <Popup
-                        position={[selected.lat, selected.lon]}
-                        eventHandlers={{ remove: () => setSelected(null) }}
-                    >
-                        <CoursePopupContent point={selected} />
+                    // No close handler clearing `selected`: a closed popup left
+                    // mounted is harmless, and clearing on Leaflet's remove
+                    // event can race the next marker's click.
+                    <Popup position={selected.position}>
+                        <CoursePopupContent point={selected.point} />
                     </Popup>
                 )}
                 {fitToPoints && <FitToPoints points={allPoints} />}

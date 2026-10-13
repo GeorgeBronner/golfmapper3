@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from app.dependencies import get_current_user, get_db
 from app.models import Courses, UserCourses, Users
+from app.routers.map import _dedupe
 
 from .utils import TestingSessionLocal, app, client, engine, override_get_current_user, override_get_db
 
@@ -88,3 +89,15 @@ def test_all_points_groups_active_users(points_data):
         {"username": "alice", "points": [[401, 30.7405, -88.20578, XSS_NAME, 2024]]},
         {"username": "bob", "points": [[402, 31.0, -87.0, "Club - West", None]]},
     ]
+
+
+def test_dedupe_keeps_one_point_per_course_with_latest_year():
+    # Legacy DBs (old user/course/year constraint) can hold a course several
+    # times for one user; the test schema can't, so exercise the helper.
+    rows = [
+        (401, 30.0, -88.0, "Club", None, 2023),
+        (401, 30.0, -88.0, "Club", None, None),
+        (401, 30.0, -88.0, "Club", None, 2024),
+        (402, 31.0, -87.0, "Other", None, None),
+    ]
+    assert _dedupe(rows) == [[401, 30.0, -88.0, "Club", 2024], [402, 31.0, -87.0, "Other", None]]

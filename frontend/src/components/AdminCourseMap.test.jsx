@@ -52,9 +52,23 @@ describe('AdminCourseMap', () => {
 
     it('requests every course for the All option', async () => {
         render(<AdminCourseMap />);
-        await screen.findByRole('option', { name: /All courses \(3\)/ });
+        await screen.findByRole('option', { name: /GA, USA/ });
         await userEvent.selectOptions(screen.getByRole('combobox', { name: 'State' }), screen.getByRole('option', { name: /All courses/ }));
         await waitFor(() => expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: {} }));
+    });
+
+    it('sends an empty country for states with no country', async () => {
+        states.push({ state: 'WA', country: null, count: 4 });
+        try {
+            render(<AdminCourseMap />);
+            await screen.findByRole('option', { name: 'WA (4)' });
+            await userEvent.selectOptions(screen.getByRole('combobox', { name: 'State' }), screen.getByRole('option', { name: 'WA (4)' }));
+            await waitFor(() =>
+                expect(api.get).toHaveBeenCalledWith('/admin/courses/points', { params: { state: 'WA', country: '' } })
+            );
+        } finally {
+            states.pop();
+        }
     });
 
     it('shows an error when the points request fails', async () => {
