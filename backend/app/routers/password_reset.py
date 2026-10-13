@@ -165,12 +165,12 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: db_de
 
     if len(body.new_password) < 8:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Password must be at least 8 characters.",
         )
     if len(body.new_password.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} characters.",
         )
 

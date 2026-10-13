@@ -8,28 +8,27 @@ version = "0.2.0"
 description = "golfmapper3 Backend"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi>=0.103,<0.137",  # fastapi-pagination 0.15.x depends on a FastAPI internal removed in 0.137+
-    "uvicorn>=0.23",
-    "pydantic>=2.3",
-    "email-validator>=2.0",
+    "fastapi>=0.143",
+    "uvicorn>=0.54",
+    "pydantic>=2.14",
+    "email-validator>=2.3",
     "httpx>=0.28",
-    "geopy",
-    "SQLAlchemy>=1.4",
-    "starlette",
-    "bcrypt",
-    "folium",
-    "dotenv",
-    "sentry-sdk[fastapi]",
-    "python-dotenv>=0.19",
-    "fastapi-pagination==0.15.14",  # 0.15.15+ calls a removed FastAPI internal kwarg and crashes on startup
-    "psycopg2-binary",
-    "python-multipart",
+    "geopy>=2.5",
+    "SQLAlchemy>=2.1",
+    "starlette>=1.8",
+    "bcrypt>=5.0",
+    "folium>=0.20",
+    "sentry-sdk[fastapi]>=2.72",
+    "python-dotenv>=1.2.4",
+    "fastapi-pagination>=0.16.1",
+    "psycopg2-binary>=2.9.13",
+    "python-multipart>=0.0.32",
     "certifi",
-    "pydantic-settings>=2.14",
-    "slowapi>=0.1",
-    "mailtrap>=2.0",
-    "prometheus-fastapi-instrumentator>=8.0",
-    "pyjwt>=2.13",
+    "pydantic-settings>=2.15",
+    "slowapi>=0.1.10",
+    "mailtrap>=2.11",
+    "prometheus-fastapi-instrumentator>=8.1",
+    "pyjwt>=2.15",
 ]
 
 [tool.pytest.ini_options]
@@ -60,7 +59,8 @@ line-ending = "auto"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.4",
-    "pytest>=7.0",
-    "pytest-asyncio",
+    "ruff>=0.17",
+    "pytest>=9.1",
+    "pytest-asyncio>=1.4",
+    "httpx2>=2.13",
 ]
