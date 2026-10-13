@@ -655,13 +655,6 @@
   color: var(--text-primary);
 }
 
-.map-iframe {
-  flex: 1;
-  border: none;
-  border-radius: var(--radius-md);
-  min-height: 400px;
-}
-
 .map-status {
   font-size: 14px;
   color: var(--text-secondary);
@@ -993,7 +986,6 @@
   }
 
   /* Map — fill most of the viewport height */
-  .map-iframe,
   .course-map,
   .course-map-canvas {
     min-height: calc(100dvh - 240px);

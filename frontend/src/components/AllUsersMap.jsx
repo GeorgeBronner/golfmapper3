@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthProvider';
-import { nonceScriptTags } from '../utils/cspNonce';
+import CourseMap from './CourseMap';
+import { pointsFromCompact, USER_COLORS } from '../utils/mapPoints';
 
 function AllUsersMap() {
     const activeCallRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
-    const [mapHtml, setMapHtml] = useState('');
+    const [groups, setGroups] = useState([]);
 
     const loadMap = useCallback(async () => {
         const callId = {};
@@ -16,9 +17,13 @@ function AllUsersMap() {
 
         setStatus('loading');
         try {
-            const response = await api.get('/map/allmap?rand=' + new Date());
+            const { data } = await api.get('/map/all_points');
             if (!isCurrent()) return;
-            setMapHtml(nonceScriptTags(response.data));
+            setGroups(data.users.map((u, i) => ({
+                name: u.username,
+                color: USER_COLORS[i % USER_COLORS.length],
+                points: pointsFromCompact(data.fields, u.points),
+            })));
             setStatus('loaded');
         } catch {
             if (isCurrent()) setStatus('error');
@@ -38,16 +43,7 @@ function AllUsersMap() {
 
             {status === 'loading' && <p className="map-status">Loading map…</p>}
             {status === 'error' && <p className="map-status">Failed to load map. Please try again later.</p>}
-
-            <iframe
-                title="All Users Golf Map"
-                className="map-iframe"
-                srcDoc={mapHtml}
-                // No allow-same-origin: keeps the folium document in an opaque
-                // origin so injected content can't reach localStorage/the token.
-                sandbox="allow-scripts"
-                style={{ display: status === 'loaded' ? 'block' : 'none' }}
-            />
+            {status === 'loaded' && <CourseMap groups={groups} showLegend />}
         </div>
     );
 }

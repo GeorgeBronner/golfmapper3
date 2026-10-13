@@ -1,22 +1,13 @@
 from datetime import datetime, timezone
-from pathlib import Path as FilePath
 
 from fastapi import APIRouter, HTTPException, Path, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 
-from app.config import settings
 from app.dependencies import db_dependency, user_dependency
 from app.limiter import limiter
 from app.models import Courses, UserCourses
-
-_MAP_DIR = FilePath(settings.MAP_FILES_DIR)
-
-
-def _invalidate_user_map(user_id: int) -> None:
-    (_MAP_DIR / f"user_map_{user_id}.html").unlink(missing_ok=True)
-
 
 router = APIRouter(prefix="/user_courses", tags=["user_courses"])
 
@@ -145,7 +136,6 @@ async def add_user_course(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="Course already added") from None
-    _invalidate_user_map(user.get("id"))
 
 
 @router.patch("/{user_course_id}/year", status_code=status.HTTP_200_OK)
@@ -160,7 +150,6 @@ async def update_user_course_year(
         raise HTTPException(status_code=404, detail="Not found")
     uc.year = year_update.year
     db.commit()
-    _invalidate_user_map(user.get("id"))
 
 
 @router.delete("/delete/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -172,4 +161,3 @@ async def delete_user_course(user: user_dependency, db: db_dependency, course_id
         raise HTTPException(status_code=404, detail="Course_id not found")
     db.delete(user_course_model)
     db.commit()
-    _invalidate_user_map(user.get("id"))

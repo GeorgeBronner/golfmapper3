@@ -1,83 +1,46 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthProvider';
-import { nonceScriptTags } from '../utils/cspNonce';
+import CourseMap from './CourseMap';
+import { pointsFromCompact } from '../utils/mapPoints';
 
 function Map() {
     const activeCallRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
-    const [mapHtml, setMapHtml] = useState('');
+    const [points, setPoints] = useState([]);
 
-    const renderMap = useCallback(async (callId, forceGenerate = false) => {
+    const loadMap = useCallback(async () => {
+        const callId = {};
+        activeCallRef.current = callId;
         const isCurrent = () => activeCallRef.current === callId;
 
-        setStatus(forceGenerate ? 'generating' : 'loading');
+        setStatus('loading');
         try {
-            const coursesRes = await api.get('/user_courses/readall_ids_w_year');
+            const response = await api.get('/map/points');
             if (!isCurrent()) return;
-            if (coursesRes.data.length === 0) {
-                setStatus('empty');
-                return;
-            }
-        } catch {
-            if (isCurrent()) setStatus('error');
-            return;
-        }
-
-        try {
-            if (forceGenerate) {
-                await api.get('/map/user_map_generate');
-                if (!isCurrent()) return;
-            }
-
-            let response;
-            try {
-                response = await api.get('/map/usermap?rand=' + new Date());
-            } catch (error) {
-                if (!isCurrent()) return;
-                if (error.response?.status === 404) {
-                    setStatus('generating');
-                    await api.get('/map/user_map_generate');
-                    if (!isCurrent()) return;
-                    response = await api.get('/map/usermap');
-                } else {
-                    throw error;
-                }
-            }
-            if (!isCurrent()) return;
-            setMapHtml(nonceScriptTags(response.data));
-            setStatus('loaded');
+            const loaded = pointsFromCompact(response.data.fields, response.data.points);
+            setPoints(loaded);
+            setStatus(loaded.length === 0 ? 'empty' : 'loaded');
         } catch {
             if (isCurrent()) setStatus('error');
         }
     }, []);
 
-    const loadMap = useCallback(() => {
-        const callId = {};
-        activeCallRef.current = callId;
-        renderMap(callId, false);
-    }, [renderMap]);
-
-    const regenerateMap = useCallback(() => {
-        const callId = {};
-        activeCallRef.current = callId;
-        renderMap(callId, true);
-    }, [renderMap]);
-
     useEffect(() => { loadMap(); }, [token, loadMap]);
+
+    const groups = useMemo(() => [{ name: 'My courses', color: 'red', points }], [points]);
 
     return (
         <div className="map-wrapper">
             <div className="map-overlay-bar">
                 <div className="map-title-chip">🗺 Your Golf Map</div>
-                <button className="btn-ghost" onClick={regenerateMap}>
-                    ⟳ Regenerate Map
+                <button className="btn-ghost" onClick={loadMap}>
+                    ⟳ Refresh Map
                 </button>
             </div>
 
             {status === 'loading' && <p className="map-status">Loading map…</p>}
-            {status === 'generating' && <p className="map-status">Generating your map, this may take a moment…</p>}
             {status === 'empty' && (
                 <p className="map-status">
                     You haven't added any courses yet.{' '}
@@ -85,16 +48,7 @@ function Map() {
                 </p>
             )}
             {status === 'error' && <p className="map-status">Failed to load map. Please try again later.</p>}
-
-            <iframe
-                title="Golf Course Map"
-                className="map-iframe"
-                srcDoc={mapHtml}
-                // No allow-same-origin: keeps the folium document in an opaque
-                // origin so injected content can't reach localStorage/the token.
-                sandbox="allow-scripts"
-                style={{ display: status === 'loaded' ? 'block' : 'none' }}
-            />
+            {status === 'loaded' && <CourseMap groups={groups} />}
         </div>
     );
 }
