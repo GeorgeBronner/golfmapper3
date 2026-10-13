@@ -58,7 +58,7 @@ def ensure_columns(table_name: str, columns: dict[str, str]) -> None:
 
 
 def ensure_index(name: str, create_ddl: str) -> None:
-    """Run a `CREATE UNIQUE INDEX IF NOT EXISTS ...` against an already-existing
+    """Run a `CREATE [UNIQUE] INDEX IF NOT EXISTS ...` against an already-existing
     table — same rationale as ensure_columns, for indexes instead of columns.
 
     Unlike a missing column, a missing *unique* index can fail to create on a

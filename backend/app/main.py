@@ -13,6 +13,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.config import settings
 from app.database import engine, ensure_columns, ensure_index
@@ -65,6 +66,11 @@ ensure_index(
     "CREATE UNIQUE INDEX IF NOT EXISTS uq_pending_location_change "
     "ON course_requests (submitted_by_user_id, request_type, course_id) "
     "WHERE status = 'pending'",
+)
+# Admin course map filters on upper(trim(state)) (see admin.course_points).
+ensure_index(
+    "ix_courses_state_norm",
+    "CREATE INDEX IF NOT EXISTS ix_courses_state_norm ON courses (upper(trim(state)))",
 )
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
@@ -158,6 +164,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+# Added last so it's outermost: compresses the final body (map point payloads
+# run to hundreds of KB) after the header middlewares above have run.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # --- Static files ---
 static_path = Path(settings.STATIC_FILES_DIR).resolve()

@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import func
 from starlette import status
 
 from app.dependencies import admin_dependency, db_dependency
 from app.geo import CountryCode, StateCode, check_state_for_country
-from app.models import CourseRequests, Courses, UserCourses, Users
+from app.limiter import limiter
+from app.models import CourseRequests, Courses, UserCourses, Users, course_display_name
 from app.routers.garmin_courses import CourseBase
 from app.security import NewPassword, hash_password
 
@@ -79,6 +81,63 @@ async def root(user: admin_dependency):
 @router.get("/courses", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
 async def readall(user: admin_dependency, db: db_dependency):
     return db.query(Courses).all()
+
+
+# `state`/`country` are free text (imported data, admin edits, user course
+# requests), so compare on a trimmed, upper-cased form. main.py backfills an
+# expression index on exactly this expression for courses.state.
+def _normalized(column):
+    return func.upper(func.trim(column))
+
+
+@router.get("/courses/points", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
+def course_points(
+    request: Request,
+    user: admin_dependency,
+    db: db_dependency,
+    state: str | None = Query(default=None, max_length=100),
+    country: str | None = Query(default=None, max_length=100),
+):
+    """Every course with coordinates, optionally filtered by state/country.
+
+    Compact on purpose — a whole-dataset response is ~15k rows:
+
+        {"fields": ["id", "lat", "lon", "name"],
+         "points": [[123, 27.95, -82.46, "Some Club - North"], ...]}
+
+    Names are returned unescaped; the client must render them as text.
+    """
+    query = db.query(Courses.id, Courses.latitude, Courses.longitude, Courses.club_name, Courses.course_name).filter(
+        Courses.latitude.isnot(None), Courses.longitude.isnot(None)
+    )
+    if state and state.strip():
+        query = query.filter(_normalized(Courses.state) == state.strip().upper())
+    if country and country.strip():
+        query = query.filter(_normalized(Courses.country) == country.strip().upper())
+    points = [
+        [course_id, round(lat, 5), round(lon, 5), course_display_name(club, name)]
+        for course_id, lat, lon, club, name in query.order_by(Courses.id)
+    ]
+    return {"fields": ["id", "lat", "lon", "name"], "points": points}
+
+
+@router.get("/courses/states", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
+def course_states(request: Request, user: admin_dependency, db: db_dependency):
+    """Distinct (normalized) state/country pairs with mappable-course counts,
+    for the admin course map's state picker."""
+    state_col = _normalized(Courses.state).label("state")
+    country_col = _normalized(Courses.country).label("country")
+    rows = (
+        db.query(state_col, country_col, func.count(Courses.id))
+        .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
+        .filter(Courses.state.isnot(None), func.trim(Courses.state) != "")
+        .group_by(state_col, country_col)
+        .order_by(country_col, state_col)
+        .all()
+    )
+    return [{"state": s, "country": c, "count": n} for s, c, n in rows]
 
 
 @router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
