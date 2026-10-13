@@ -27,4 +27,24 @@ jobs:
           docker compose -f docker-compose-stage.yml up -d
 
       - name: Verify
-        run: docker logs gm3-stage-backend --tail 20
+        # The container needs a few seconds after "Started" to finish `uv run`
+        # and boot uvicorn, so poll the health check instead of reading the
+        # logs immediately.
+        run: |
+          for i in $(seq 1 60); do
+            if [ "$(docker inspect -f '{{.State.Running}}' gm3-stage-backend)" != "true" ]; then
+              echo "Container is not running"
+              docker logs gm3-stage-backend --tail 50
+              exit 1
+            fi
+            if curl -fsS --max-time 5 http://localhost:8005/healthy; then
+              echo
+              echo "Healthy after ~$((i * 2))s"
+              docker logs gm3-stage-backend --tail 20
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Health check did not pass within 120s"
+          docker logs gm3-stage-backend --tail 50
+          exit 1
