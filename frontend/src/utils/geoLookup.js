@@ -65,61 +65,70 @@ const ALPHA2_TO_ALPHA3 = {
       'zw': 'ZWE',
 };
 
-// Maps full state/province names to abbreviations, keyed by alpha-2 country code
-const STATE_ABBR = {
-    us: {
-        'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
-        'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
-        'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
-        'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
-        'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
-        'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
-        'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
-        'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
-        'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
-        'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
-        'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
-        'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
-        'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC',
-    },
-    ca: {
-        'Alberta': 'AB', 'British Columbia': 'BC', 'Manitoba': 'MB',
-        'New Brunswick': 'NB', 'Newfoundland and Labrador': 'NL', 'Nova Scotia': 'NS',
-        'Ontario': 'ON', 'Prince Edward Island': 'PE', 'Quebec': 'QC',
-        'Saskatchewan': 'SK', 'Northwest Territories': 'NT', 'Nunavut': 'NU', 'Yukon': 'YT',
-    },
-    au: {
-        'New South Wales': 'NSW', 'Victoria': 'VIC', 'Queensland': 'QLD',
-        'Western Australia': 'WA', 'South Australia': 'SA', 'Tasmania': 'TAS',
-        'Australian Capital Territory': 'ACT', 'Northern Territory': 'NT',
-    },
-    mx: {
-        'Aguascalientes': 'AGS', 'Baja California': 'BC', 'Baja California Sur': 'BCS',
-        'Campeche': 'CAMP', 'Chiapas': 'CHIS', 'Chihuahua': 'CHIH',
-        'Coahuila': 'COAH', 'Colima': 'COL', 'Durango': 'DGO',
-        'Guanajuato': 'GTO', 'Guerrero': 'GRO', 'Hidalgo': 'HGO',
-        'Jalisco': 'JAL', 'Mexico City': 'CDMX', 'México': 'MEX',
-        'Michoacán': 'MICH', 'Morelos': 'MOR', 'Nayarit': 'NAY',
-        'Nuevo León': 'NL', 'Oaxaca': 'OAX', 'Puebla': 'PUE',
-        'Querétaro': 'QRO', 'Quintana Roo': 'QR', 'San Luis Potosí': 'SLP',
-        'Sinaloa': 'SIN', 'Sonora': 'SON', 'Tabasco': 'TAB',
-        'Tamaulipas': 'TAMPS', 'Tlaxcala': 'TLAX', 'Veracruz': 'VER',
-        'Yucatán': 'YUC', 'Zacatecas': 'ZAC',
-    },
-    // ... add more countries as needed
-};
+// Country/state rules — keep in sync with backend/app/geo.py.
+// country = ISO 3166-1 alpha-3 (USA); state = ISO 3166-2 subdivision code without the country prefix (FL, NS, ROO).
+export const COUNTRY_CODES = new Set(Object.values(ALPHA2_TO_ALPHA3));
+
+// Countries stored with an empty state because ISO 3166-2 defines no subdivisions for them
+export const NO_SUBDIVISIONS = new Set(['JEY', 'GGY', 'IMN', 'CXR', 'NFK', 'SXM', 'ABW', 'CUW', 'GIB', 'VAT']);
+
+// The DB stores GB and IE courses by county (ISO lvl6, e.g. SRY, D); every other country by first-level subdivision
+const ISO_LEVELS = { gb: [6, 4], ie: [6] };
+const DEFAULT_LEVELS = [4, 6];
+
+// US territories are stored as USA plus the territory code as state, matching the existing rows
+const US_TERRITORIES = { pr: 'PR', gu: 'GU', vi: 'VI', mp: 'MP', as: 'AS' };
+
+// Nominatim reports Dutch Caribbean countries under "nl" with only a lvl3 code
+const NL_COUNTRIES = { 'NL-AW': 'ABW', 'NL-CW': 'CUW', 'NL-SX': 'SXM' };
+
+const STATE_RE = /^[A-Z0-9]{1,3}$/;
+
+const regionNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null;
+
+// [{ code: 'USA', name: 'United States' }, ...] sorted by name, for country pickers
+export const COUNTRY_OPTIONS = Object.entries(ALPHA2_TO_ALPHA3)
+    .map(([a2, code]) => ({ code, name: regionNames?.of(a2.toUpperCase()) || code }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+export const normalizeCode = value => (value || '').trim().toUpperCase();
 
 /**
- * Convert a Nominatim address object to { city, state, country } using standard codes.
- * @param {object} a - address field from Nominatim reverse geocode response
+ * Check state/country against the DB convention.
+ * @returns {{ state?: string, country?: string }} an error message per invalid field (empty when valid)
+ */
+export function validateGeoFields({ state, country }) {
+    const errors = {};
+    const c = normalizeCode(country);
+    const s = normalizeCode(state);
+    if (!c) errors.country = 'Country is required.';
+    else if (!COUNTRY_CODES.has(c)) errors.country = `"${country}" is not an ISO 3-letter country code (e.g. USA, GBR, CAN).`;
+    if (s && !STATE_RE.test(s)) errors.state = 'Use the ISO subdivision code (1–3 letters/digits, e.g. FL, NS, ROO), or leave blank.';
+    else if (s && NO_SUBDIVISIONS.has(c)) errors.state = `${c} has no subdivisions — leave state blank.`;
+    return errors;
+}
+
+/**
+ * Convert a Nominatim address object to { city, state, country } using the DB codes.
+ * @param {object} a - address field from a Nominatim reverse geocode response
  * @returns {{ city: string, state: string, country: string }}
  */
 export function nominatimToGeoFields(a) {
     const cc = (a.country_code || '').toLowerCase();
-    const fullState = a.state || '';
-    const stateMap = STATE_ABBR[cc];
-    const state = stateMap ? (stateMap[fullState] || fullState) : fullState;
-    const country = ALPHA2_TO_ALPHA3[cc] || a.country || '';
     const city = a.city || a.town || a.village || a.hamlet || '';
+
+    const lvl3 = a['ISO3166-2-lvl3'] || '';
+    if (NL_COUNTRIES[lvl3]) return { city, state: '', country: NL_COUNTRIES[lvl3] };
+    if (US_TERRITORIES[cc]) return { city, state: US_TERRITORIES[cc], country: 'USA' };
+
+    const country = ALPHA2_TO_ALPHA3[cc] || '';
+    let state = '';
+    if (!NO_SUBDIVISIONS.has(country)) {
+        for (const level of ISO_LEVELS[cc] || DEFAULT_LEVELS) {
+            const iso = a[`ISO3166-2-lvl${level}`] || '';
+            const code = iso.includes('-') ? iso.slice(iso.indexOf('-') + 1) : '';
+            if (STATE_RE.test(code)) { state = code; break; }
+        }
+    }
     return { city, state, country };
 }

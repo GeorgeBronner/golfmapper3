@@ -4,98 +4,27 @@ Allows adding new courses to the database by clicking on a map
 Uses OpenStreetMaps with Leaflet and reverse geocoding
 """
 
+import json
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 import httpx
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from sqlalchemy import Column, Float, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+# Share the country/state code rules with the API (backend/app/geo.py)
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from app.geo import COUNTRY_CODES, CountryCode, StateCode, check_state_for_country, nominatim_to_geo  # noqa: E402
 
 # Fix encoding for Windows console
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
-
-# US state abbreviations mapping
-US_STATE_ABBREVIATIONS = {
-    "Alabama": "AL",
-    "Alaska": "AK",
-    "Arizona": "AZ",
-    "Arkansas": "AR",
-    "California": "CA",
-    "Colorado": "CO",
-    "Connecticut": "CT",
-    "Delaware": "DE",
-    "Florida": "FL",
-    "Georgia": "GA",
-    "Hawaii": "HI",
-    "Idaho": "ID",
-    "Illinois": "IL",
-    "Indiana": "IN",
-    "Iowa": "IA",
-    "Kansas": "KS",
-    "Kentucky": "KY",
-    "Louisiana": "LA",
-    "Maine": "ME",
-    "Maryland": "MD",
-    "Massachusetts": "MA",
-    "Michigan": "MI",
-    "Minnesota": "MN",
-    "Mississippi": "MS",
-    "Missouri": "MO",
-    "Montana": "MT",
-    "Nebraska": "NE",
-    "Nevada": "NV",
-    "New Hampshire": "NH",
-    "New Jersey": "NJ",
-    "New Mexico": "NM",
-    "New York": "NY",
-    "North Carolina": "NC",
-    "North Dakota": "ND",
-    "Ohio": "OH",
-    "Oklahoma": "OK",
-    "Oregon": "OR",
-    "Pennsylvania": "PA",
-    "Rhode Island": "RI",
-    "South Carolina": "SC",
-    "South Dakota": "SD",
-    "Tennessee": "TN",
-    "Texas": "TX",
-    "Utah": "UT",
-    "Vermont": "VT",
-    "Virginia": "VA",
-    "Washington": "WA",
-    "West Virginia": "WV",
-    "Wisconsin": "WI",
-    "Wyoming": "WY",
-    "District of Columbia": "DC",
-    "Puerto Rico": "PR",
-    "Guam": "GU",
-    "American Samoa": "AS",
-    "U.S. Virgin Islands": "VI",
-    "Northern Mariana Islands": "MP",
-}
-
-# Canadian province abbreviations
-CANADIAN_PROVINCE_ABBREVIATIONS = {
-    "Alberta": "AB",
-    "British Columbia": "BC",
-    "Manitoba": "MB",
-    "New Brunswick": "NB",
-    "Newfoundland and Labrador": "NL",
-    "Northwest Territories": "NT",
-    "Nova Scotia": "NS",
-    "Nunavut": "NU",
-    "Ontario": "ON",
-    "Prince Edward Island": "PE",
-    "Quebec": "QC",
-    "Saskatchewan": "SK",
-    "Yukon": "YT",
-}
 
 # Database setup
 SQLITE_DB_PATH = "../golf_mapper.db"
@@ -128,10 +57,15 @@ class CourseCreate(BaseModel):
     course_name: str
     address: Optional[str] = None
     city: str
-    state: str
-    country: str
+    state: StateCode = ""
+    country: CountryCode
     latitude: float
     longitude: float
+
+    @model_validator(mode="after")
+    def state_matches_country(self):
+        check_state_for_country(self.state, self.country)
+        return self
 
 
 class ReverseGeocodeResponse(BaseModel):
@@ -148,7 +82,7 @@ app = FastAPI(title="Golf Course Map Entry", version="1.0.0")
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the map interface"""
-    return HTML_TEMPLATE
+    return HTML_TEMPLATE.replace("__COUNTRY_CODES__", json.dumps(sorted(COUNTRY_CODES)))
 
 
 @app.get("/api/reverse-geocode")
@@ -172,27 +106,11 @@ async def reverse_geocode(lat: float, lon: float):
             # Try to get full address
             full_address = data.get("display_name", "").split(",")[0] if data.get("display_name") else None
 
-            # Extract city (try multiple fields)
-            city = (
-                address_data.get("city")
-                or address_data.get("town")
-                or address_data.get("village")
-                or address_data.get("municipality")
-                or None
-            )
-
-            # Extract state/province
-            state = address_data.get("state") or address_data.get("province") or address_data.get("region") or None
-
-            # Convert state name to two-letter code
-            if state:
-                # Try US states first
-                state = US_STATE_ABBREVIATIONS.get(state, state)
-                # If not found, try Canadian provinces
-                state = CANADIAN_PROVINCE_ABBREVIATIONS.get(state, state)
-
-            # Extract country
-            country = address_data.get("country") or None
+            # City, ISO 3166-2 state code and ISO alpha-3 country, same rules as the main app
+            geo = nominatim_to_geo(address_data)
+            city = geo["city"] or address_data.get("municipality") or None
+            state = geo["state"] or None
+            country = geo["country"] or None
 
             return {"address": full_address, "city": city, "state": state, "country": country}
 
@@ -532,6 +450,7 @@ HTML_TEMPLATE = """
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        const COUNTRY_CODES = new Set(__COUNTRY_CODES__);
         let map;
         let currentMarker = null;
         let currentPopup = null;
@@ -600,12 +519,12 @@ HTML_TEMPLATE = """
                         <input type="text" id="city" placeholder="Loading...">
                     </div>
                     <div class="form-group">
-                        <label>State/Province <span class="required">*</span></label>
+                        <label>State/Province <span style="color: #6c757d;">(ISO code, blank if none)</span></label>
                         <input type="text" id="state" placeholder="Loading...">
                     </div>
                     <div class="form-group">
-                        <label>Country <span class="required">*</span></label>
-                        <input type="text" id="country" placeholder="Loading...">
+                        <label>Country <span class="required">*</span> <span style="color: #6c757d;">(ISO alpha-3, e.g. USA)</span></label>
+                        <input type="text" id="country" placeholder="Loading..." maxlength="3">
                     </div>
                     <div class="form-group">
                         <label>Coordinates</label>
@@ -649,7 +568,7 @@ HTML_TEMPLATE = """
                     document.getElementById('state').value = data.state;
                 } else {
                     document.getElementById('state').value = '';
-                    document.getElementById('state').placeholder = 'Please enter state';
+                    document.getElementById('state').placeholder = 'State code (blank if none)';
                 }
 
                 if (data.country) {
@@ -675,8 +594,8 @@ HTML_TEMPLATE = """
             const courseName = document.getElementById('courseName').value.trim();
             const address = document.getElementById('address').value.trim();
             const city = document.getElementById('city').value.trim();
-            const state = document.getElementById('state').value.trim();
-            const country = document.getElementById('country').value.trim();
+            const state = document.getElementById('state').value.trim().toUpperCase();
+            const country = document.getElementById('country').value.trim().toUpperCase();
             const errorEl = document.getElementById('errorMessage');
 
             // Validation
@@ -686,8 +605,20 @@ HTML_TEMPLATE = """
                 return;
             }
 
-            if (!city || !state || !country) {
-                errorEl.textContent = 'City, State, and Country are required';
+            if (!city || !country) {
+                errorEl.textContent = 'City and Country are required';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (!COUNTRY_CODES.has(country)) {
+                errorEl.textContent = `Country must be an ISO alpha-3 code such as USA, GBR or CAN (got "${country}")`;
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (state && !/^[A-Z0-9]{1,3}$/.test(state)) {
+                errorEl.textContent = 'State must be an ISO subdivision code (1-3 letters/digits, e.g. FL), or blank';
                 errorEl.style.display = 'block';
                 return;
             }
@@ -752,7 +683,8 @@ HTML_TEMPLATE = """
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'Failed to add course');
+                    const detail = Array.isArray(error.detail) ? error.detail.map(d => d.msg).join('; ') : error.detail;
+                    throw new Error(detail || 'Failed to add course');
                 }
 
                 const result = await response.json();

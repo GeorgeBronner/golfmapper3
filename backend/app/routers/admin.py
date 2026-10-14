@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Path
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from starlette import status
 
 from app.dependencies import admin_dependency, db_dependency
+from app.geo import CountryCode, StateCode, check_state_for_country
 from app.models import CourseRequests, Courses, UserCourses, Users
 from app.routers.garmin_courses import CourseBase
 from app.security import NewPassword, hash_password
@@ -40,10 +41,15 @@ class CourseCreate(BaseModel):
     course_name: str | None = None
     address: str | None = None
     city: str | None = None
-    state: str | None = None
-    country: str | None = None
+    state: StateCode = None
+    country: CountryCode = None
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
+
+    @model_validator(mode="after")
+    def state_matches_country(self):
+        check_state_for_country(self.state, self.country)
+        return self
 
 
 class LocationUpdate(BaseModel):
@@ -56,8 +62,13 @@ class CourseInfoUpdate(BaseModel):
     course_name: str | None = None
     address: str | None = None
     city: str | None = None
-    state: str | None = None
-    country: str | None = None
+    state: StateCode = None
+    country: CountryCode = None
+
+    @model_validator(mode="after")
+    def state_matches_country(self):
+        check_state_for_country(self.state, self.country)
+        return self
 
 
 @router.get("/")
