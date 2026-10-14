@@ -1,6 +1,5 @@
 import json
 import logging
-import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.config import settings
 from app.database import engine, ensure_columns, ensure_index
@@ -66,6 +66,11 @@ ensure_index(
     "ON course_requests (submitted_by_user_id, request_type, course_id) "
     "WHERE status = 'pending'",
 )
+# Admin course map filters on upper(trim(state)) (see admin.course_points).
+ensure_index(
+    "ix_courses_state_norm",
+    "CREATE INDEX IF NOT EXISTS ix_courses_state_norm ON courses (upper(trim(state)))",
+)
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # --- Rate limiting ---
@@ -88,37 +93,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # --- Security headers ---
 # Set here rather than relying on the reverse proxy, so they apply
 # consistently regardless of which NPM host config is deployed.
-#
-# The golf-course map is server-rendered by folium and embedded in the SPA
-# via <iframe srcDoc=...> (see Map.jsx / AllUsersMap.jsx) rather than a
-# same-origin navigation, so the browser treats it as an about:srcdoc
-# document with no CSP of its own — it inherits the SPA shell's policy
-# wholesale. Folium's output needs a fixed set of third-party script/style
-# hosts plus two inline <script> blocks (its Leaflet init code, which
-# embeds real course coordinates and so can't be hashed ahead of time).
-# Rather than blanket 'unsafe-inline' for the whole app, the SPA shell gets
-# a fresh nonce per request; the frontend copies that nonce onto the
-# fetched map HTML's <script> tags before handing it to the iframe.
-_MAP_SCRIPT_HOSTS = "https://cdn.jsdelivr.net https://code.jquery.com https://cdnjs.cloudflare.com"
-_MAP_STYLE_HOSTS = "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://netdna.bootstrapcdn.com"
-
-
-def build_csp(nonce: str | None = None) -> str:
-    script_src = "script-src 'self'" + (f" 'nonce-{nonce}' {_MAP_SCRIPT_HOSTS}" if nonce else "")
-    return (
-        "default-src 'self'; "
-        f"{script_src}; "
-        f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com {_MAP_STYLE_HOSTS}; "
-        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
-        "img-src 'self' data: https://*.tile.openstreetmap.org https://tile.openstreetmap.org; "
-        "connect-src 'self' https://nominatim.openstreetmap.org; "
-        "object-src 'none'; "
-        "base-uri 'self'; "
-        "frame-ancestors 'none'"
-    )
-
-
-CSP = build_csp()
+# style-src keeps 'unsafe-inline' for Leaflet, which positions map panes,
+# tiles and markers with inline styles; cdn.jsdelivr.net serves Bootstrap's
+# CSS (index.html). OSM tiles are the only remote images.
+CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data: https://*.tile.openstreetmap.org https://tile.openstreetmap.org; "
+    "connect-src 'self' https://nominatim.openstreetmap.org; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'"
+)
 
 
 # Pydantic's max_length only bounds the declared fields it validates —
@@ -143,9 +131,7 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    # The SPA-shell routes set their own (nonced) CSP; don't clobber it.
-    if "content-security-policy" not in response.headers:
-        response.headers["Content-Security-Policy"] = CSP
+    response.headers["Content-Security-Policy"] = CSP
     response.headers["Strict-Transport-Security"] = "max-age=63072000; preload"
     return response
 
@@ -158,6 +144,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+# Added last so it's outermost: compresses the final body (map point payloads
+# run to hundreds of KB) after the header middlewares above have run.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # --- Static files ---
 static_path = Path(settings.STATIC_FILES_DIR).resolve()
@@ -179,13 +169,8 @@ def health_check():
 def _serve_spa_shell():
     if _INDEX_HTML is None:
         return {"detail": "Frontend not available"}
-    # A fresh nonce per request lets this response's CSP allow the map's
-    # inline init scripts (see build_csp) without a blanket 'unsafe-inline'.
-    nonce = secrets.token_urlsafe(16)
-    html = _INDEX_HTML.replace("<head>", f'<head><meta name="csp-nonce" content="{nonce}">', 1)
-    response = HTMLResponse(html)
+    response = HTMLResponse(_INDEX_HTML)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Content-Security-Policy"] = build_csp(nonce=nonce)
     return response
 
 

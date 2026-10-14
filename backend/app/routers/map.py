@@ -1,132 +1,75 @@
-import html
-from pathlib import Path
-
-import folium
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import APIRouter, Request
 from starlette import status
 
-from app.config import settings
 from app.dependencies import db_dependency, user_dependency
 from app.limiter import limiter
-from app.models import Courses, UserCourses, Users
-from app.routers.user_courses import readall
-
-MAP_DIR = Path(settings.MAP_FILES_DIR)
+from app.models import Courses, UserCourses, Users, course_display_name
 
 router = APIRouter(prefix="/map", tags=["map"])
 
-_USER_COLORS = [
-    "#e74c3c",
-    "#3498db",
-    "#2ecc71",
-    "#9b59b6",
-    "#f39c12",
-    "#1abc9c",
-    "#e67e22",
-    "#e91e8c",
-    "#00bcd4",
-    "#8d6e63",
-]
+
+def _point(course_id, lat, lon, club, name, year) -> list:
+    return [course_id, round(lat, 5), round(lon, 5), course_display_name(club, name), year]
 
 
-async def generate_user_map(user: dict, db) -> Path:
-    user_courses = await readall(user, db)
-    MAP_DIR.mkdir(parents=True, exist_ok=True)
-    map_path = MAP_DIR / f"user_map_{user['id']}.html"
-
-    user_map = folium.Map(location=[40, -90], zoom_start=4, control_scale=True)
-    if user_courses:
-        fg = folium.FeatureGroup(name=user["username"])
-        for course in user_courses:
-            if course.latitude is None or course.longitude is None:
-                continue
-            # Popups render as raw HTML — escape user-supplied course names.
-            description = html.escape(course.display_name) + " " + str(course.id)
-            fg.add_child(
-                folium.CircleMarker(
-                    location=[course.latitude, course.longitude],
-                    popup=description,
-                    color="red",
-                    opacity=0.7,
-                    radius=7,
-                )
-            )
-        user_map.add_child(fg)
-
-    try:
-        user_map.save(str(map_path))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Map generation failed") from e
-
-    return map_path
-
-
-def generate_all_users_map(db) -> str:
-    rows = (
-        db.query(Users.username, Courses, UserCourses.year)
-        .join(UserCourses, UserCourses.user_id == Users.id)
-        .join(Courses, Courses.id == UserCourses.course_id)
-        .filter(Users.is_active.is_(True))
-        .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
-        .order_by(Users.id)
-        .all()
-    )
-    courses_by_user = {}
-    for username, course, year in rows:
-        courses_by_user.setdefault(username, []).append((course, year))
-
-    all_map = folium.Map(location=[40, -90], zoom_start=4, control_scale=True)
-
-    for i, (username, results) in enumerate(courses_by_user.items()):
-        color = _USER_COLORS[i % len(_USER_COLORS)]
-        dot = (
-            f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;'
-            f'background:{color};margin-right:6px;vertical-align:middle;"></span>'
+def _points_query(db):
+    return (
+        db.query(
+            Courses.id,
+            Courses.latitude,
+            Courses.longitude,
+            Courses.club_name,
+            Courses.course_name,
+            UserCourses.year,
         )
-        # Layer-control names and popups render as raw HTML (the colored dot
-        # span relies on that) — escape the user-supplied parts.
-        fg = folium.FeatureGroup(name=dot + html.escape(username))
-        for course, year in results:
-            label = html.escape(course.display_name)
-            if year:
-                label += f" ({year})"
-            fg.add_child(
-                folium.CircleMarker(
-                    location=[course.latitude, course.longitude],
-                    popup=label,
-                    color=color,
-                    fill=True,
-                    fill_color=color,
-                    fill_opacity=0.7,
-                    opacity=0.9,
-                    radius=7,
-                )
-            )
-        all_map.add_child(fg)
-
-    folium.LayerControl(collapsed=False).add_to(all_map)
-    return all_map.get_root().render()
+        .join(UserCourses, UserCourses.course_id == Courses.id)
+        .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
+    )
 
 
-@router.get("/usermap")
+def _dedupe(rows) -> list:
+    """One point per course, keeping the latest year. Databases created before
+    uq_user_course still have the old (user, course, year) constraint, so a
+    user can hold the same course more than once."""
+    points: dict[int, list] = {}
+    for row in rows:
+        point = _point(*row)
+        existing = points.get(point[0])
+        if existing is None or (point[4] or 0) > (existing[4] or 0):
+            points[point[0]] = point
+    return list(points.values())
+
+
+# Plain `def` (not async): these do sync DB work, which FastAPI runs in its
+# threadpool instead of blocking the event loop. Names are returned unescaped;
+# the client renders them as text, never as HTML.
+
+
+@router.get("/points", status_code=status.HTTP_200_OK)
 @limiter.limit("30/minute")
-async def get_usermap(request: Request, user: user_dependency, db: db_dependency):
-    map_path = MAP_DIR / f"user_map_{user['id']}.html"
-    if not map_path.exists():
-        map_path = await generate_user_map(user, db)
-    return FileResponse(str(map_path))
+def user_points(request: Request, user: user_dependency, db: db_dependency):
+    """The current user's courses: {"fields": [...], "points": [[id, lat, lon, name, year], ...]}."""
+    rows = _points_query(db).filter(UserCourses.user_id == user.get("id")).order_by(Courses.id)
+    return {"fields": ["id", "lat", "lon", "name", "year"], "points": _dedupe(rows)}
 
 
-@router.get("/user_map_generate", status_code=status.HTTP_200_OK)
+@router.get("/all_points", status_code=status.HTTP_200_OK)
 @limiter.limit("30/minute")
-async def user_map_generate(request: Request, user: user_dependency, db: db_dependency):
-    await generate_user_map(user, db)
-    return {"message": "Map generated"}
-
-
-@router.get("/allmap")
-@limiter.limit("30/minute")
-async def get_allmap(request: Request, user: user_dependency, db: db_dependency):
-    html = generate_all_users_map(db)
-    return HTMLResponse(content=html)
+def all_users_points(request: Request, user: user_dependency, db: db_dependency):
+    """Every active user's courses, grouped by user in user-id order:
+    {"fields": [...], "users": [{"username": ..., "points": [[id, lat, lon, name, year], ...]}, ...]}.
+    """
+    rows = (
+        _points_query(db)
+        .add_columns(Users.username)
+        .join(Users, Users.id == UserCourses.user_id)
+        .filter(Users.is_active.is_(True))
+        .order_by(Users.id, Courses.id)
+    )
+    users: dict[str, list] = {}
+    for *row, username in rows:
+        users.setdefault(username, []).append(row)
+    return {
+        "fields": ["id", "lat", "lon", "name", "year"],
+        "users": [{"username": name, "points": _dedupe(user_rows)} for name, user_rows in users.items()],
+    }
