@@ -54,7 +54,7 @@ def test_admin_update_course_info(test_user_courses):
             "course_name": "Updated Course",
             "city": "New City",
             "state": "CA",
-            "country": "US",
+            "country": "USA",
         },
     )
     assert response.status_code == status.HTTP_200_OK

@@ -4,7 +4,8 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import api from '../services/api';
-import { nominatimToGeoFields } from '../utils/geoLookup';
+import { nominatimToGeoFields, validateGeoFields } from '../utils/geoLookup';
+import { CountrySelect, StateInput } from './GeoCodeInputs';
 import '../utils/leafletIcons';
 
 const EMPTY_FORM = { club_name: '', course_name: '', address: '', city: '', state: '', country: '' };
@@ -43,13 +44,17 @@ export default function CourseEditsNewCourse() {
     const [position, setPosition] = useState(null);
     const [alert, setAlert] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [checkGeo, setCheckGeo] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
     const handleField = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const geoErrors = checkGeo ? validateGeoFields(form) : {};
 
     const handleSubmit = async e => {
         e.preventDefault();
         if (!position) { setAlert({ variant: 'warning', msg: 'Click the map to set a location first.' }); return; }
+        setCheckGeo(true);
+        if (Object.keys(validateGeoFields(form)).length) { setAlert({ variant: 'warning', msg: 'Fix the country/state codes before saving.' }); return; }
         setSaving(true);
         setAlert(null);
         try {
@@ -105,11 +110,11 @@ export default function CourseEditsNewCourse() {
                         </Form.Group>
                         <Form.Group className="mb-2">
                             <Form.Label>State / Province</Form.Label>
-                            <Form.Control name="state" value={form.state} onChange={handleField} />
+                            <StateInput value={form.state} onChange={handleField} error={geoErrors.state} />
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Country</Form.Label>
-                            <Form.Control name="country" value={form.country} onChange={handleField} />
+                            <CountrySelect value={form.country} onChange={handleField} error={geoErrors.country} />
                         </Form.Group>
                         <div className="mb-3 text-muted" style={{ fontSize: '0.9rem' }}>
                             {position

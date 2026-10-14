@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner, Card } from 'react-bootstrap';
 import api from '../services/api';
+import { validateGeoFields } from '../utils/geoLookup';
+import { CountrySelect, StateInput } from './GeoCodeInputs';
 
 const FIELDS = [
     { name: 'club_name',   label: 'Club Name' },
@@ -20,6 +22,7 @@ export default function AdminEditCourseInfo() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [checkGeo, setCheckGeo] = useState(false);
 
     const handleLoad = async e => {
         e.preventDefault();
@@ -28,6 +31,7 @@ export default function AdminEditCourseInfo() {
         setLoadAlert(null);
         setCourse(null);
         setSaveAlert(null);
+        setCheckGeo(false);
         try {
             const res = await api.get(`/garmin_courses/course/${courseId}`);
             const c = res.data;
@@ -48,10 +52,16 @@ export default function AdminEditCourseInfo() {
     };
 
     const handleField = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const geoErrors = checkGeo ? validateGeoFields(form) : {};
 
     const handleSave = async e => {
         e.preventDefault();
         if (!course) return;
+        setCheckGeo(true);
+        if (Object.keys(validateGeoFields(form)).length) {
+            setSaveAlert({ variant: 'warning', msg: 'Fix the country/state codes before saving.' });
+            return;
+        }
         setSaving(true);
         setSaveAlert(null);
         try {
@@ -138,12 +148,18 @@ export default function AdminEditCourseInfo() {
                                 <Col md={6} key={name} className="mb-3">
                                     <Form.Group>
                                         <Form.Label>{label}</Form.Label>
-                                        <Form.Control
-                                            name={name}
-                                            value={form[name] ?? ''}
-                                            onChange={handleField}
-                                            placeholder={label}
-                                        />
+                                        {name === 'country' ? (
+                                            <CountrySelect value={form.country} onChange={handleField} error={geoErrors.country} />
+                                        ) : name === 'state' ? (
+                                            <StateInput value={form.state} onChange={handleField} error={geoErrors.state} />
+                                        ) : (
+                                            <Form.Control
+                                                name={name}
+                                                value={form[name] ?? ''}
+                                                onChange={handleField}
+                                                placeholder={label}
+                                            />
+                                        )}
                                     </Form.Group>
                                 </Col>
                             ))}

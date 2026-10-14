@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from starlette import status as http_status
 
 from app.dependencies import admin_dependency, db_dependency, user_dependency
+from app.geo import CountryCode, StateCode, check_state_for_country
 from app.limiter import limiter
 from app.models import CourseRequests, Courses, UserCourses
 
@@ -22,8 +23,8 @@ class NewCourseRequest(BaseModel):
     course_name: str | None = Field(None, max_length=200)
     address: str | None = Field(None, max_length=300)
     city: str | None = Field(None, max_length=100)
-    state: str | None = Field(None, max_length=100)
-    country: str | None = Field(None, max_length=100)
+    state: StateCode = None
+    country: CountryCode = None
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
 
@@ -31,6 +32,7 @@ class NewCourseRequest(BaseModel):
     def require_at_least_one_name(self):
         if not (self.club_name and self.club_name.strip()) and not (self.course_name and self.course_name.strip()):
             raise ValueError("Either club_name or course_name is required")
+        check_state_for_country(self.state, self.country)
         return self
 
 
