@@ -1,3 +1,26 @@
+# Course country/state normalization at entry (2026-10-13)
+
+Context: the 2026-10-13 course data cleanup found that rows added through the entry tools store
+non-standard geo values (e.g. `United States`, `Nova Scotia`, `Quintana Roo`, `Crete`, `QR`).
+DB convention is `country` = ISO 3166-1 alpha-3 and `state` = the ISO 3166-2 subdivision code
+without the country prefix (`FL`, `NS`, `ROO`, `11`). Countries with no ISO subdivisions
+(JEY, GGY, IMN, CXR, NFK, SXM) store an empty state.
+
+- [ ] `frontend/src/utils/geoLookup.js:96` — Mexico map uses non-ISO codes (`QR`, `AGS`, `CAMP`,
+      `CHIS`, `CHIH`, `COAH`, `DGO`, `GTO`, `HGO`, `MICH`, `NL`, `QRO`, `TAMPS`, `TLAX`, `CDMX`, `BC`).
+      Switch to ISO 3166-2:MX (`ROO`, `AGU`, `CAM`, `CHP`, `CHH`, `COA`, `DUR`, `GUA`, `HID`, `MIC`,
+      `NLE`, `QUE`, `TAM`, `TLA`, `CMX`, `BCN`) to match the 139 existing MEX rows.
+- [ ] `geoLookup.js` `nominatimToGeoFields` — prefer Nominatim's `address["ISO3166-2-lvl4"]`
+      (fallback `ISO3166-2-lvl6`) and strip the `XX-` prefix, so every country gets a code instead of
+      only US/CA/AU/MX falling back to the full state name. Keep the name maps as fallback only.
+- [ ] `backend/scripts/map_course_entry.py:185-195` — same fix server-side: derive state from
+      `ISO3166-2-lvl4`, and convert `address.country_code` to alpha-3 (currently stores the full
+      country name, e.g. `United States`). Reuse one alpha-2→alpha-3 table rather than a third copy.
+- [ ] Allow an empty state for countries with no ISO subdivisions (entry forms currently require state).
+- [ ] Optional: backend validation on course create/update — `country` must be 3 uppercase letters,
+      `state` must be empty or ≤3 uppercase alphanumerics — so bad values are rejected at write time.
+- [ ] Tests for the normalization helpers (US, CA, MX, a country with no subdivisions).
+
 # opencode_issues.md review — branch opencode_refactor_7-23-26 (2026-07-23)
 
 ## Decision summary
