@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { generateUserMap } from '../utils/mapUtils';
 
 function CourseForm() {
     const { courseIdParam } = useParams();
@@ -81,15 +80,9 @@ function CourseForm() {
                         <button
                             type="button"
                             className="btn-ghost"
-                            onClick={() => {
-                                setError('');
-                                setSuccess('');
-                                generateUserMap()
-                                    .then(() => setTimeout(() => navigate('/map'), 50))
-                                    .catch(() => setError('Failed to regenerate map. Please try again.'));
-                            }}
+                            onClick={() => navigate('/map')}
                         >
-                            🗺 Regenerate Map
+                            🗺 View Map
                         </button>
                     </div>
                 </form>

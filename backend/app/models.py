@@ -20,6 +20,14 @@ def _now():
     return datetime.now(timezone.utc)
 
 
+def course_display_name(club_name: str | None, course_name: str | None) -> str:
+    """Shared by Courses.display_name and column-only queries (map points)
+    that never load a full Courses object."""
+    if club_name and course_name and club_name != course_name:
+        return f"{club_name} - {course_name}"
+    return course_name or club_name or ""
+
+
 class Courses(Base):
     __tablename__ = "courses"
 
@@ -38,13 +46,7 @@ class Courses(Base):
 
     @property
     def display_name(self):
-        if self.club_name and self.course_name and self.club_name != self.course_name:
-            return f"{self.club_name} - {self.course_name}"
-        elif self.course_name:
-            return self.course_name
-        elif self.club_name:
-            return self.club_name
-        return ""
+        return course_display_name(self.club_name, self.course_name)
 
     def __repr__(self):
         return f"<course: {self.display_name}, {self.state}>"

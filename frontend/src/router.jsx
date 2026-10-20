@@ -20,6 +20,7 @@ const AdminAddCourse = lazy(() => import('./components/AdminAddCourse'));
 const AdminEditCourse = lazy(() => import('./components/AdminEditCourse'));
 const AdminReviewRequests = lazy(() => import('./components/AdminReviewRequests'));
 const AdminEditCourseInfo = lazy(() => import('./components/AdminEditCourseInfo'));
+const AdminCourseMap = lazy(() => import('./components/AdminCourseMap'));
 const CourseEdits = lazy(() => import('./components/CourseEdits'));
 const CourseEditsNewCourse = lazy(() => import('./components/CourseEditsNewCourse'));
 const CourseEditsLocationChange = lazy(() => import('./components/CourseEditsLocationChange'));
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
             { path: '/admin/edit-course', element: withSuspense(<AdminEditCourse />) },
             { path: '/admin/edit-course-info', element: withSuspense(<AdminEditCourseInfo />) },
             { path: '/admin/review-requests', element: withSuspense(<AdminReviewRequests />) },
+            { path: '/admin/course-map', element: withSuspense(<AdminCourseMap />) },
         ],
     },
     {

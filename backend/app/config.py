@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     APP_BASE_URL: str = ""
     FROM_EMAIL: str = "noreply@bronnerapp.com"
     FROM_NAME: str = "GolfMapper"
-    MAP_FILES_DIR: str = "./static/user_maps"
     TRACES_SAMPLE_RATE: float = 0.1
     TOKEN_EXPIRE_MINUTES: int = 90
     # Overridable per deployment without a code change via the CORS_ORIGINS

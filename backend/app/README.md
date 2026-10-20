@@ -1,7 +1,7 @@
 # GolfMapper3 API
 
-A FastAPI backend to track golf courses played by each user and render them on
-folium maps. Serves the built React frontend (from `STATIC_FILES_DIR`) in
+A FastAPI backend to track golf courses played by each user and serve them as
+map point data (rendered client-side with Leaflet). Serves the built React frontend (from `STATIC_FILES_DIR`) in
 production, so the app runs as a single container.
 
 ## Database Support
@@ -21,7 +21,6 @@ SQLite (default) or PostgreSQL.
 - `DB_HOST`: PostgreSQL host (default: `localhost`)
 - `DB_PORT`: PostgreSQL port (default: `5432`)
 - `STATIC_FILES_DIR`: Built frontend to serve (default: `./dist`)
-- `MAP_FILES_DIR`: Where generated user map HTML is cached (default: `./static/user_maps`)
 - `TOKEN_EXPIRE_MINUTES`: JWT lifetime (default: `90`)
 - `CORS_ORIGINS`: JSON list of allowed origins, overrides the built-in list
   (e.g. `CORS_ORIGINS='["https://golf.bronnerapp.com"]'`)

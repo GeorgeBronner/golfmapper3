@@ -58,7 +58,7 @@ def ensure_columns(table_name: str, columns: dict[str, str]) -> None:
 
 
 def ensure_index(name: str, create_ddl: str) -> None:
-    """Run a `CREATE UNIQUE INDEX IF NOT EXISTS ...` against an already-existing
+    """Run a `CREATE [UNIQUE] INDEX IF NOT EXISTS ...` against an already-existing
     table — same rationale as ensure_columns, for indexes instead of columns.
 
     Unlike a missing column, a missing *unique* index can fail to create on a
@@ -70,4 +70,4 @@ def ensure_index(name: str, create_ddl: str) -> None:
         with engine.begin() as conn:
             conn.execute(text(create_ddl))
     except DBAPIError as e:
-        logger.warning("Could not create index %s — likely pre-existing duplicate rows violating it: %s", name, e)
+        logger.warning("Could not create index %s (for a unique index, likely pre-existing duplicates): %s", name, e)

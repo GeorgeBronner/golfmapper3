@@ -655,17 +655,83 @@
   color: var(--text-primary);
 }
 
-.map-iframe {
-  flex: 1;
-  border: none;
-  border-radius: var(--radius-md);
-  min-height: 400px;
-}
-
 .map-status {
   font-size: 14px;
   color: var(--text-secondary);
   padding: 12px 0;
+}
+
+.course-map {
+  flex: 1;
+  display: flex;
+  position: relative;
+  min-height: 400px;
+}
+
+.course-map-canvas {
+  flex: 1;
+  border-radius: var(--radius-md);
+  min-height: 400px;
+}
+
+.course-map-legend {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000; /* above Leaflet panes/controls */
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+}
+
+.course-map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.course-map-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.course-map-legend-count {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--text-muted);
+}
+
+.course-dot-icon span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .9);
+  opacity: .85;
+}
+
+.course-popup-name {
+  font-weight: 600;
+}
+
+.course-popup-meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.admin-course-map-select {
+  max-width: 320px;
 }
 
 /* ══════════════════════════════════════════════
@@ -920,7 +986,8 @@
   }
 
   /* Map — fill most of the viewport height */
-  .map-iframe {
+  .course-map,
+  .course-map-canvas {
     min-height: calc(100dvh - 240px);
   }
 
