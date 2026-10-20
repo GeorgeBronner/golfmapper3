@@ -9,15 +9,22 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Pull latest code
+        # Always deploy main, even if the checkout was left on another branch
+        # for testing (a force-pushed branch otherwise breaks `git pull`).
         working-directory: /home/george/docker-config/golfmapper3
-        run: git pull
+        run: |
+          git fetch origin
+          git checkout main
+          git pull --ff-only origin main
 
       - name: Build frontend
         working-directory: /home/george/docker-config/golfmapper3/frontend
         run: |
           export NVM_DIR="/home/george/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-          npm install
+          # npm ci installs from the lockfile without rewriting it, so the
+          # checkout stays clean for the next pull.
+          npm ci
           npm run build:stage
 
       - name: Build and deploy
