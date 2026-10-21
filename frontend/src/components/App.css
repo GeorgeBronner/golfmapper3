@@ -678,8 +678,13 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 1000; /* above Leaflet panes/controls */
-  max-height: calc(100% - 20px);
+  /* Above Leaflet panes and popups, but just under its control corners
+     (z-index 1000) so an opened layer switcher draws over the legend. */
+  z-index: 999;
+  /* Keep clear of the left control column (zoom, layer switcher) and the
+     attribution, so narrow screens don't bury them under the legend. */
+  max-width: calc(100% - 74px);
+  max-height: calc(100% - 40px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -701,9 +706,17 @@
 
 .course-map-legend-dot {
   display: inline-block;
+  flex-shrink: 0;
   width: 10px;
   height: 10px;
   border-radius: 50%;
+}
+
+.course-map-legend-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .course-map-legend-count {

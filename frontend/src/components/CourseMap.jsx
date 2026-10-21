@@ -89,7 +89,7 @@ function Legend({ groups, hidden, onToggle }) {
                         onChange={() => onToggle(group.name)}
                     />
                     <span className="course-map-legend-dot" style={{ background: group.color }} />
-                    <span>{group.name}</span>
+                    <span className="course-map-legend-name" title={group.name}>{group.name}</span>
                     <span className="course-map-legend-count">{group.points.length}</span>
                 </label>
             ))}
