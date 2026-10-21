@@ -95,13 +95,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # consistently regardless of which NPM host config is deployed.
 # style-src keeps 'unsafe-inline' for Leaflet, which positions map panes,
 # tiles and markers with inline styles; cdn.jsdelivr.net serves Bootstrap's
-# CSS (index.html). OSM tiles are the only remote images.
+# CSS (index.html). Remote images are map tiles: OSM for the street map,
+# Esri World Imagery for the satellite layer (components/BaseLayers.jsx).
 CSP = (
     "default-src 'self'; "
     "script-src 'self'; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
     "font-src 'self' https://fonts.gstatic.com; "
-    "img-src 'self' data: https://*.tile.openstreetmap.org https://tile.openstreetmap.org; "
+    "img-src 'self' data: https://*.tile.openstreetmap.org https://tile.openstreetmap.org "
+    "https://server.arcgisonline.com; "
     "connect-src 'self' https://nominatim.openstreetmap.org; "
     "object-src 'none'; "
     "base-uri 'self'; "
