@@ -17,12 +17,14 @@ vi.mock('react-leaflet', () => {
         TileLayer: () => null,
         LayersControl: Object.assign(({ children }) => <div>{children}</div>, {
             BaseLayer: ({ children }) => <div>{children}</div>,
+            Overlay: ({ children }) => <div>{children}</div>,
         }),
         ScaleControl: () => null,
         Popup: ({ children }) => <div data-testid="popup">{children}</div>,
         CircleMarker: StubMarker,
         Marker: StubMarker,
         useMap: () => ({ fitBounds: vi.fn() }),
+        useMapEvents: () => null,
     };
 });
 vi.mock('react-leaflet-cluster', () => ({ default: ({ children }) => <div data-testid="cluster">{children}</div> }));
