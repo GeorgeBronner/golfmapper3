@@ -20,6 +20,7 @@ def test_csp_is_static_with_no_script_exceptions():
     # rendered by the bundled app now, not injected HTML.
     assert directives["script-src"] == "'self'"
     assert "https://tile.openstreetmap.org" in directives["img-src"]
+    assert "https://server.arcgisonline.com" in directives["img-src"]
 
 
 def test_spa_shell_is_served_unmodified_and_uncached(monkeypatch):
