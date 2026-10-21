@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, useMapEvents } from 'react-leaflet';
+import BaseLayers from './BaseLayers';
 import 'leaflet/dist/leaflet.css';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import api from '../services/api';
@@ -129,7 +130,7 @@ export default function CourseEditsNewCourse() {
                 <Col md={7}>
                     <p className="text-muted mb-1" style={{ fontSize: '0.85rem' }}>Click anywhere on the map to set the course location. Address fields will auto-fill.</p>
                     <MapContainer center={[39, -98]} zoom={4} style={{ height: '480px', width: '100%', borderRadius: '6px' }}>
-                        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <BaseLayers defaultLayer="satellite" />
                         <LocationPicker position={position} setPosition={setPosition} setForm={setForm} />
                     </MapContainer>
                 </Col>

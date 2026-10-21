@@ -15,6 +15,9 @@ vi.mock('react-leaflet', () => {
     return {
         MapContainer: ({ children }) => <div>{children}</div>,
         TileLayer: () => null,
+        LayersControl: Object.assign(({ children }) => <div>{children}</div>, {
+            BaseLayer: ({ children }) => <div>{children}</div>,
+        }),
         ScaleControl: () => null,
         Popup: ({ children }) => <div data-testid="popup">{children}</div>,
         CircleMarker: StubMarker,
