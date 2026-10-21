@@ -1,3 +1,22 @@
+# Courses sharing one coordinate (2026-10-20)
+
+Context: the 2026-10-20 location audit fixed courses in the wrong country/state/region, but not courses placed at a
+shared point. Kiawah Island showed the pattern: all five resort courses sat on one address point, the Ocean Course
+6 km from its real location (now fixed, each course placed individually).
+
+Current DB: 2,120 points shared by 5,835 rows. 1,835 points have a single club name (mostly nine-hole combinations of
+one course — `Red/Blue`, `Silla-Mitras` — which correctly share a point, plus multi-course resorts like Kiawah);
+285 points have 2–4 different club names (e.g. `Arlington Golf Association` holding four separate municipal courses).
+
+- [ ] Script the candidate list: group by exact coordinate; skip groups whose course names are nine-hole
+      combinations of the same course.
+- [ ] For each group, fetch named `leisure=golf_course` features near the point from OSM (Overpass), and fuzzy-match
+      each row's club/course name to them.
+- [ ] Move a row only on a confident, unique name match (reverse-geocode with `app.geo.nominatim_to_geo` to keep
+      state/country codes consistent); leave combination courses and anything unmatched where they are.
+- [ ] Dry-run on a copy with guarded `UPDATE`s, then apply via the usual swap (stop prod, verify hash, copy in place,
+      start) and commit the DB to the `keys` repo.
+
 # Course country/state normalization at entry (2026-10-13)
 
 Context: the 2026-10-13 course data cleanup found that rows added through the entry tools store
