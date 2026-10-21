@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import BaseLayers from './BaseLayers';
 import 'leaflet/dist/leaflet.css';
 import { Form, Button, Row, Col, Alert, Spinner, Card } from 'react-bootstrap';
 import api from '../services/api';
@@ -124,7 +125,7 @@ export default function CourseEditsLocationChange() {
                     <Row>
                         <Col md={9}>
                             <MapContainer center={position ? [lat, lng] : DEFAULT_CENTER} zoom={position ? 14 : 4} style={{ height: '460px', width: '100%', borderRadius: '6px' }}>
-                                <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                <BaseLayers defaultLayer="satellite" />
                                 <FlyTo target={flyTarget} />
                                 <MapClickHandler setPosition={setPosition} />
                                 {position && <DraggableMarker position={position} setPosition={setPosition} />}

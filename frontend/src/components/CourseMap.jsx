@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
-import { MapContainer, TileLayer, ScaleControl, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, ScaleControl, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
+import BaseLayers from './BaseLayers';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
@@ -88,7 +89,7 @@ function Legend({ groups, hidden, onToggle }) {
                         onChange={() => onToggle(group.name)}
                     />
                     <span className="course-map-legend-dot" style={{ background: group.color }} />
-                    <span>{group.name}</span>
+                    <span className="course-map-legend-name" title={group.name}>{group.name}</span>
                     <span className="course-map-legend-count">{group.points.length}</span>
                 </label>
             ))}
@@ -141,10 +142,8 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
     return (
         <div className="course-map">
             <MapContainer preferCanvas center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} className="course-map-canvas">
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
+                {/* Top-left, under the zoom buttons: the legend overlays the top-right. */}
+                <BaseLayers position="topleft" />
                 <ScaleControl />
                 {clustered ? (
                     <MarkerClusterGroup chunkedLoading>{markers}</MarkerClusterGroup>
