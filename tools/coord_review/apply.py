@@ -1,11 +1,12 @@
 """
 Apply the "save" decisions from data/decisions.json to a copy of the DB.
 
-    uv run --project backend python tools/coord_review/apply.py <db copy> [--mark]
+    uv run --project backend python tools/coord_review/apply.py <db copy>
+    uv run --project backend python tools/coord_review/apply.py --mark <live db copy>   # after the swap
 
 Guarded: a row is updated only if it is still at the point it had when the review list was built.
 State/country are re-derived with Nominatim reverse and changed only on a real difference (same rule as the
-first pass). Applied decisions get an "applied" date so the review tool keeps them crossed off.
+first pass). --mark gives saves that are live an "applied" date so later runs skip them.
 """
 
 import json
@@ -87,11 +88,25 @@ def main(db_path):
     return [cid for cid in todo if cid not in skipped]
 
 
+def mark(db_path):
+    """Mark saves as applied where the given DB (the live one, after the swap) has the course at the saved point."""
+    decisions = json.loads(DECISIONS.read_text(encoding="utf-8"))
+    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    marked = 0
+    for k, d in decisions.items():
+        if d["decision"] != "save" or d.get("applied"):
+            continue
+        row = con.execute("SELECT latitude, longitude FROM courses WHERE id=?", (int(k),)).fetchone()
+        if row and abs(row[0] - d["lat"]) <= 1e-7 and abs(row[1] - d["lon"]) <= 1e-7:
+            d["applied"] = date.today().isoformat()
+            marked += 1
+    con.close()
+    DECISIONS.write_text(json.dumps(decisions, indent=1), encoding="utf-8")
+    print(f"marked {marked} decisions as applied")
+
+
 if __name__ == "__main__":
-    applied = main(sys.argv[1])
-    if "--mark" in sys.argv:
-        decisions = json.loads(DECISIONS.read_text(encoding="utf-8"))
-        for cid in applied:
-            decisions[str(cid)]["applied"] = date.today().isoformat()
-        DECISIONS.write_text(json.dumps(decisions, indent=1), encoding="utf-8")
-        print(f"marked {len(applied)} decisions as applied")
+    if sys.argv[1] == "--mark":
+        mark(sys.argv[2])
+    else:
+        main(sys.argv[1])

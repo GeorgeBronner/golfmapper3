@@ -27,7 +27,7 @@ Report (moves, deletes, remaining rows with best guess + confidence): https://cl
       Decisions go to `data/decisions.json`; apply the `save` ones with `apply.py <db copy>` (guarded) and the usual swap.
       2026-10-22: first batch applied: 66 moves (43 played courses), Goodwood The Downs ESX → WSX, 20 "no decision";
       prod hash `52d4ae11…`, backup `golf_mapper.db.bak-2026-10-22`, `keys` commit `64a8ee9`. Keep the folder for more rounds;
-      after applying, mark the batch with `"applied"` in `data/decisions.json` and restart the review server.
+      after the swap, stop the review server and run `apply.py --mark <live DB copy>` (see the tool README).
 
 Lessons:
 - golfcoursebrowser copies OpenGolfAPI, and OpenGolfAPI shares 1,827 points with this DB (same upstream), so
