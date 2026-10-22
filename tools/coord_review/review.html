@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Course Point Review</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* Layout: worklist sidebar on the left, one course at a time on the right with twin maps and a decision bar. */
+:root {
+  --bg: #f3f5f2; --surface: #fff; --ink: #18201b; --muted: #5d6a61; --line: #d7ddd6;
+  --accent: #1f6a45; --accent-soft: #e2efe7;
+  --cur: #c0392b; --new: #1f8a4c; --moved: #2f6fb3;
+  --hi: #1f7a4a; --hi-bg: #dcf0e3; --mid: #9a6a00; --mid-bg: #f7ecd2; --lo: #a1452f; --lo-bg: #f6e1da;
+  --none: #6b736d; --none-bg: #e7eae6;
+  --body: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111613; --surface: #18201b; --ink: #e5ece6; --muted: #9aa89e; --line: #2c3730;
+    --accent: #6cc597; --accent-soft: #1d3327;
+    --hi: #7fd3a3; --hi-bg: #173325; --mid: #e3b75a; --mid-bg: #3a2f14; --lo: #ec9a84; --lo-bg: #3d2119;
+    --none: #a3ada6; --none-bg: #262e29; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--body); display: grid; grid-template-columns: 320px 1fr; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+aside { border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+.side-head { padding: 12px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.side-head h1 { font-size: 1.05rem; margin: 0; }
+.progress { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.side-head select { padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); }
+.list { overflow-y: auto; flex: 1; }
+.list h2 { position: sticky; top: 0; margin: 0; padding: 6px 14px; font-size: .74rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); background: var(--bg); border-bottom: 1px solid var(--line); }
+.item { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line);
+  background: none; color: var(--ink); padding: 7px 14px; }
+.item:hover { background: var(--accent-soft); }
+.item.active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.item .n { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .s { color: var(--muted); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item.done .n { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+.mark { font-size: .72rem; font-weight: 600; }
+.mark.save { color: var(--hi); } .mark.no_edit { color: var(--muted); } .mark.undecided { color: var(--mid); }
+
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .76rem; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.c-hi { background: var(--hi-bg); color: var(--hi); } .c-mid { background: var(--mid-bg); color: var(--mid); }
+.c-lo { background: var(--lo-bg); color: var(--lo); } .c-none { background: var(--none-bg); color: var(--none); }
+.played { background: var(--mid-bg); color: var(--mid); }
+.cat { background: var(--accent-soft); color: var(--accent); }
+
+main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.head { padding: 12px 18px 8px; display: grid; gap: 4px; }
+.head h3 { margin: 0; font-size: 1.35rem; }
+.head .club { color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .86rem; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+.note { color: var(--mid); font-size: .84rem; }
+.maps { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 18px; min-height: 300px; }
+.mapbox { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; min-height: 0; }
+.mapbox .map { position: absolute; inset: 0; }
+.mapbox .label { position: absolute; top: 8px; left: 50px; z-index: 500; background: var(--surface); color: var(--ink); padding: 2px 8px;
+  border-radius: 4px; font-size: .76rem; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 8px 18px 0; font-size: .8rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 18px 14px; }
+.coord { display: flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); }
+.coord input { font: .85rem var(--mono); width: 230px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); }
+.link { font-size: .82rem; color: var(--accent); }
+.ghost { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 4px; padding: 5px 10px; font-size: .82rem; }
+.actions { margin-left: auto; display: flex; gap: 8px; }
+.actions button { border-radius: 5px; padding: 9px 16px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.actions .save { background: var(--new); border-color: var(--new); color: #fff; }
+.actions .save:disabled { opacity: .45; cursor: default; }
+.actions kbd { font: .72rem var(--mono); opacity: .7; margin-left: 6px; }
+.status { padding: 6px 18px 0; font-size: .84rem; }
+.status.err { color: var(--lo); }
+.status button { margin-left: 8px; }
+
+.pin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 4px rgba(0,0,0,.5); }
+.pin.small { width: 12px; height: 12px; border-width: 2px; }
+.leaflet-tooltip.tag { font-weight: 700; font-size: 12px; padding: 1px 6px; border: 0; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.leaflet-tooltip.tag::before { display: none; }
+.tag.cur { background: var(--cur); } .tag.new { background: var(--new); } .tag.moved { background: var(--moved); font-weight: 600; font-size: 11px; }
+
+@media (max-width: 900px) {
+  body { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; }
+  .maps { grid-template-columns: 1fr; grid-auto-rows: 320px; }
+}
+</style>
+</head>
+<body>
+<aside>
+  <div class="side-head">
+    <h1>Course Point Review</h1>
+    <div class="progress" id="progress">Loading…</div>
+    <label class="progress">Show
+      <select id="filter">
+        <option value="todo">Not yet decided</option>
+        <option value="all">All</option>
+        <option value="save">Saved changes</option>
+        <option value="no_edit">No edit</option>
+        <option value="undecided">No decision</option>
+      </select>
+    </label>
+  </div>
+  <div class="list" id="list"></div>
+</aside>
+
+<main>
+  <div class="head" id="head"></div>
+  <div class="legend">
+    <span style="--c: var(--cur)">Current point in the DB</span>
+    <span style="--c: var(--new)">Proposed point (drag it, or click either map to place it)</span>
+    <span style="--c: var(--moved)">Courses already moved off this point</span>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="maps" style="margin-top: 8px">
+    <div class="mapbox"><div class="map" id="map-osm"></div><div class="label">OpenStreetMap</div></div>
+    <div class="mapbox"><div class="map" id="map-sat"></div><div class="label">Satellite</div></div>
+  </div>
+  <div class="bar">
+    <label class="coord">Proposed <input id="coord" placeholder="lat, lon (paste from Google Maps)"></label>
+    <button class="ghost" id="reset">Reset to suggestion</button>
+    <a class="link" id="gmaps" target="_blank" rel="noopener">Search Google Maps</a>
+    <div class="actions">
+      <button id="b-skip">No Decision<kbd>D</kbd></button>
+      <button id="b-keep">No Edit<kbd>N</kbd></button>
+      <button id="b-save" class="save">Save Change<kbd>S</kbd></button>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+let QUEUE = [], DEC = {}, cur = null, proposed = null;
+
+function confClass(c) { return c >= 60 ? "c-hi" : c >= 40 ? "c-mid" : c > 0 ? "c-lo" : "c-none"; }
+const LABEL = { save: "Saved", no_edit: "No edit", undecided: "No decision" };
+
+// Two maps kept on the same view; markers mirrored on both.
+function makeMap(el, url, attribution, maxNativeZoom) {
+  const m = L.map(el, { zoomControl: true, maxZoom: 19 });
+  L.tileLayer(url, { attribution, maxZoom: 19, maxNativeZoom }).addTo(m);
+  return m;
+}
+const maps = [
+  makeMap("map-osm", "https://tile.openstreetmap.org/{z}/{x}/{y}.png", "&copy; OpenStreetMap contributors", 19),
+  makeMap("map-sat", "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", "Imagery &copy; Esri", 18),
+];
+let syncing = false;
+maps.forEach((m, i) => m.on("move", () => {
+  if (syncing) return;
+  syncing = true;
+  maps[1 - i].setView(m.getCenter(), m.getZoom(), { animate: false });
+  syncing = false;
+}));
+maps.forEach(m => m.on("click", e => setProposed(e.latlng.lat, e.latlng.lng)));
+
+let layers = [L.layerGroup().addTo(maps[0]), L.layerGroup().addTo(maps[1])];
+let newMarkers = [];
+
+function pin(color, small) {
+  return L.divIcon({ className: "", html: `<div class="pin${small ? " small" : ""}" style="background:${color}"></div>`,
+    iconSize: small ? [12, 12] : [18, 18], iconAnchor: small ? [6, 6] : [9, 9] });
+}
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function drawMarkers() {
+  layers.forEach(l => l.clearLayers());
+  newMarkers = [];
+  const q = cur;
+  layers.forEach(l => {
+    q.moved.forEach(mv => L.marker([mv.lat, mv.lon], { icon: pin(css("--moved"), true), interactive: false })
+      .bindTooltip(mv.name, { permanent: true, direction: "right", offset: [8, 0], className: "tag moved" }).addTo(l));
+    L.marker([q.lat, q.lon], { icon: pin(css("--cur")), zIndexOffset: 100 })
+      .bindTooltip("Current", { permanent: true, direction: "left", offset: [-10, 0], className: "tag cur" }).addTo(l);
+  });
+  if (proposed) {
+    layers.forEach((l, i) => {
+      const mk = L.marker(proposed, { icon: pin(css("--new")), draggable: true, zIndexOffset: 200 })
+        .bindTooltip("Proposed", { permanent: true, direction: "right", offset: [10, 0], className: "tag new" }).addTo(l);
+      mk.on("drag", e => { const p = e.target.getLatLng(); newMarkers[1 - i].setLatLng(p); showCoord(p.lat, p.lng); });
+      mk.on("dragend", e => { const p = e.target.getLatLng(); proposed = [p.lat, p.lng]; showCoord(p.lat, p.lng); });
+      newMarkers.push(mk);
+    });
+  }
+  $("b-save").disabled = !proposed;
+}
+
+function showCoord(lat, lon) { $("coord").value = lat == null ? "" : `${lat.toFixed(6)}, ${lon.toFixed(6)}`; }
+
+function setProposed(lat, lon) {
+  proposed = [lat, lon];
+  showCoord(lat, lon);
+  drawMarkers();
+}
+
+function fit() {
+  const pts = [[cur.lat, cur.lon]];
+  if (proposed) pts.push(proposed);
+  if (pts.length > 1 && L.latLng(pts[0]).distanceTo(pts[1]) > 150) maps[0].fitBounds(pts, { padding: [70, 70], maxZoom: 17 });
+  else maps[0].setView(proposed || pts[0], 16);
+}
+
+function renderHead() {
+  const q = cur, g = q.guess, d = DEC[q.id];
+  const guess = g
+    ? `Suggested by <b>${esc({ osm: "OpenStreetMap", gcb: "golfcoursebrowser", oga: "OpenGolfAPI", nominatim: "Nominatim" }[g.source] || g.source)}</b>
+       as “${esc(g.name)}”, <b>${g.dist} km</b> from the current point`
+    : "No source had a location for this course. Click the map to place one, or choose No Edit.";
+  const others = q.group.length
+    ? `Shares the point with: ${q.group.slice(0, 8).map(o => esc(o.name)).join(", ")}${q.group.length > 8 ? ` and ${q.group.length - 8} more` : ""}`
+    : "";
+  $("head").innerHTML = `
+    <h3>${esc(q.course)}</h3>
+    <div class="club">${esc(q.club)} · ${esc(q.country)} · id ${q.id}</div>
+    <div class="meta">
+      <span class="pill ${confClass(q.confidence)}">${q.confidence}% confidence</span>
+      ${q.played ? `<span class="pill played">played ×${q.played}</span>` : ""}
+      <span class="pill cat">${q.category === "E" ? "E · different clubs" : "C · one club, several courses"}</span>
+      <span>${esc(q.status)}</span>
+    </div>
+    <div class="meta">${guess}</div>
+    ${others ? `<div class="meta">${others}</div>` : ""}
+    ${q.note ? `<div class="note">${esc(q.note)}</div>` : ""}`;
+  $("status").className = "status";
+  $("status").innerHTML = d
+    ? `Decided: <b>${LABEL[d.decision]}</b>${d.decision === "save" ? ` at ${d.lat.toFixed(6)}, ${d.lon.toFixed(6)}` : ""}
+       <button class="ghost" id="undo">Undo decision</button>`
+    : "";
+  if (d) $("undo").onclick = undo;
+  $("gmaps").href = "https://www.google.com/maps/search/" + encodeURIComponent(`${q.club} ${q.course !== q.club ? q.course : ""} golf`.trim())
+    + `/@${q.lat},${q.lon},14z`;
+}
+
+function select(id) {
+  cur = QUEUE.find(q => q.id === id);
+  const d = DEC[id];
+  proposed = d && d.decision === "save" ? [d.lat, d.lon] : cur.guess ? [cur.guess.lat, cur.guess.lon] : null;
+  showCoord(proposed?.[0], proposed?.[1]);
+  renderHead();
+  drawMarkers();
+  maps.forEach(m => m.invalidateSize());
+  fit();
+  document.querySelectorAll(".item").forEach(el => el.classList.toggle("active", +el.dataset.id === id));
+  document.querySelector(`.item[data-id="${id}"]`)?.scrollIntoView({ block: "nearest" });
+}
+
+function visible() {
+  const f = $("filter").value;
+  return QUEUE.filter(q => f === "all" ? true : f === "todo" ? !DEC[q.id] : DEC[q.id]?.decision === f);
+}
+
+function renderList() {
+  const rows = visible();
+  const sect = (title, items) => items.length ? `<h2>${title} · ${items.length}</h2>` + items.map(q => {
+    const d = DEC[q.id];
+    return `<button class="item${d ? " done" : ""}${cur && cur.id === q.id ? " active" : ""}" data-id="${q.id}">
+      <span class="n">${esc(q.course)}</span><span class="pill ${confClass(q.confidence)}">${q.confidence}%</span>
+      <span class="s">${esc(q.club)} · ${esc(q.country)}</span>${d ? `<span class="mark ${d.decision}">${LABEL[d.decision]}</span>` : "<span></span>"}
+    </button>`;
+  }).join("") : "";
+  $("list").innerHTML = sect("Played", rows.filter(q => q.played)) + sect("Not played", rows.filter(q => !q.played))
+    || `<p class="progress" style="padding: 14px">Nothing here.</p>`;
+  const n = Object.keys(DEC).length, by = k => Object.values(DEC).filter(d => d.decision === k).length;
+  const playedLeft = QUEUE.filter(q => q.played && !DEC[q.id]).length;
+  $("progress").textContent = `${n} of ${QUEUE.length} decided · ${by("save")} saved, ${by("no_edit")} no edit, ${by("undecided")} no decision · ${playedLeft} played left`;
+}
+$("list").addEventListener("click", e => { const b = e.target.closest(".item"); if (b) select(+b.dataset.id); });
+$("filter").addEventListener("change", renderList);
+
+function nextUndecided() {
+  const i = QUEUE.indexOf(cur);
+  return QUEUE.slice(i + 1).find(q => !DEC[q.id]) || QUEUE.find(q => !DEC[q.id]);
+}
+
+async function decide(decision) {
+  if (decision === "save" && !proposed) return;
+  const body = { decision, ...(decision === "save" ? { lat: proposed[0], lon: proposed[1] } : {}) };
+  try {
+    const r = await fetch(`/api/decision/${cur.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    DEC[cur.id] = await r.json();
+  } catch (err) {
+    $("status").className = "status err";
+    $("status").textContent = `Not saved: ${err.message}. Is review.py still running?`;
+    return;
+  }
+  const next = nextUndecided();
+  renderList();
+  if (next) select(next.id); else renderHead();
+}
+
+async function undo() {
+  await fetch(`/api/decision/${cur.id}`, { method: "DELETE" });
+  delete DEC[cur.id];
+  renderList();
+  renderHead();
+}
+
+$("b-save").onclick = () => decide("save");
+$("b-keep").onclick = () => decide("no_edit");
+$("b-skip").onclick = () => decide("undecided");
+$("reset").onclick = () => { if (cur.guess) setProposed(cur.guess.lat, cur.guess.lon); else { proposed = null; showCoord(); drawMarkers(); } };
+$("coord").addEventListener("change", () => {
+  const m = $("coord").value.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
+  if (m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180) { setProposed(+m[1], +m[2]); fit(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === "s") decide("save"); else if (k === "n") decide("no_edit"); else if (k === "d") decide("undecided");
+});
+
+fetch("/api/queue").then(r => r.json()).then(d => {
+  QUEUE = d.queue; DEC = d.decisions;
+  renderList();
+  select((QUEUE.find(q => !DEC[q.id]) || QUEUE[0]).id);
+});
+</script>
+</body>
+</html>

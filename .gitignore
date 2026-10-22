@@ -204,3 +204,7 @@ plans/
 
 # macOS
 .DS_Store
+
+# Coordinate review tool: local data and DB path
+tools/coord_review/data/
+tools/coord_review/.env

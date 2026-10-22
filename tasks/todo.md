@@ -8,14 +8,34 @@ Current DB: 2,120 points shared by 5,835 rows. 1,835 points have a single club n
 one course — `Red/Blue`, `Silla-Mitras` — which correctly share a point, plus multi-course resorts like Kiawah);
 285 points have 2–4 different club names (e.g. `Arlington Golf Association` holding four separate municipal courses).
 
-- [ ] Script the candidate list: group by exact coordinate; skip groups whose course names are nine-hole
-      combinations of the same course.
-- [ ] For each group, fetch named `leisure=golf_course` features near the point from OSM (Overpass), and fuzzy-match
-      each row's club/course name to them.
-- [ ] Move a row only on a confident, unique name match (reverse-geocode with `app.geo.nominatim_to_geo` to keep
-      state/country codes consistent); leave combination courses and anything unmatched where they are.
-- [ ] Dry-run on a copy with guarded `UPDATE`s, then apply via the usual swap (stop prod, verify hash, copy in place,
-      start) and commit the DB to the `keys` repo.
+Report (moves, deletes, remaining rows with best guess + confidence): https://claude.ai/artifact/4H7E7Vk7k7Kp5y3R8fShMe
+
+- [x] Script the candidate list and categorize each shared point: A nine-hole combos (604 groups, leave), B duplicate
+      rows (22), C one club with several named courses (1,244), D main + short course (95, leave), E different clubs (153).
+- [x] Fetch candidates per C/E row from four sources and fuzzy-match club/course names: OSM `leisure=golf_course`
+      polygons (Overpass), golfcoursebrowser.com `/data/courses.json`, OpenGolfAPI per-state lists, Nominatim search.
+- [x] Move a row only when sure: matching named OSM polygon (≤ 1.5 km if the polygon name has no club word), or two
+      sources within 300 m with one inside an OSM golf polygon. 519 moves; a 40-row spot check found 38 right.
+      State/country re-derived via `nominatim_to_geo` (24 changes: 23 GB counties, Pointe West USA/MI → CAN/ON).
+- [x] Delete 21 duplicate B rows (0 `user_courses` / `course_requests` refs; guarded `DELETE`).
+- [x] Dry-run on a copy with guarded statements: 22,933 → 22,912 courses, shared points 2,121 → 1,775, integrity ok,
+      632 `user_courses` intact.
+- [x] Applied 2026-10-22 via the usual swap (prod hash `1d8a3ebc…` verified, backup `golf_mapper.db.bak-2026-10-21`,
+      new hash `79f5bcc9…`, backend started clean) and committed the DB to `keys`.
+- [ ] Manual review of the 2,939 remaining rows (played first, then by confidence) with the local tool in
+      `tools/coord_review/` (`uv run --project backend python tools/coord_review/review.py`, http://127.0.0.1:8890).
+      Decisions go to `data/decisions.json`; apply the `save` ones with `apply.py <db copy>` (guarded) and the usual swap.
+      2026-10-22: first batch applied: 66 moves (43 played courses), Goodwood The Downs ESX → WSX, 20 "no decision";
+      prod hash `52d4ae11…`, backup `golf_mapper.db.bak-2026-10-22`, `keys` commit `64a8ee9`. Keep the folder for more rounds;
+      after applying, mark the batch with `"applied"` in `data/decisions.json` and restart the review server.
+
+Lessons:
+- golfcoursebrowser copies OpenGolfAPI, and OpenGolfAPI shares 1,827 points with this DB (same upstream), so
+  agreement between those two alone is not evidence: 49 of 116 such pairs were identical, spot checks wrong by ~9 km.
+- An OSM polygon matching only on a generic course word (`Old Course`, `Moonah`) can be a neighbouring club.
+- 90 more duplicate rows (Garmin re-ratings: `Concord Golf Club 2018`, `Legacy/Sunset Old`, M/W tee variants) sit in
+  the other categories, mostly COL/ITA/CAN. Not deleted; candidates for a dedupe task.
+- Overpass: bbox queries batched ~15 groups per request are much faster than `around:`; expect 502/504 retries.
 
 # Course country/state normalization at entry (2026-10-13)
 
