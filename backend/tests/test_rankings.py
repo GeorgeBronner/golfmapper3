@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from app.dependencies import get_current_user, get_db
 from app.models import Courses, RankingEditions, RankingEntries, RankingLists, UserCourses
+from app.routers.rankings import _played_years
 
 from .utils import TestingSessionLocal, app, client, engine, override_get_current_user, override_get_db
 
@@ -81,6 +82,7 @@ def test_progress_counts_per_edition_and_flags_dropped_courses(rankings_data):
     body = client.get("/api/v1/rankings/lists/1/progress").json()
     assert body["name"] == "Top Public"
     assert body["current"]["label"] == "2025-26"
+    assert body["ever_listed"] == 2
     assert (body["current"]["total"], body["current"]["played"]) == (1, 0)
     assert [(e["label"], e["total"], e["played"]) for e in body["editions"]] == [("2025-26", 1, 0), ("2023-24", 2, 1)]
     [course] = body["courses"]
@@ -121,9 +123,46 @@ def test_progress_list_without_editions(rankings_data):
     db.close()
     try:
         body = client.get("/api/v1/rankings/lists/2/progress").json()
-        assert body == {"list_id": 2, "name": "Empty", "size": None, "current": None, "editions": [], "courses": []}
+        assert body == {
+            "list_id": 2,
+            "name": "Empty",
+            "size": None,
+            "ever_listed": 0,
+            "current": None,
+            "editions": [],
+            "courses": [],
+        }
     finally:
         db = TestingSessionLocal()
         db.query(RankingLists).filter_by(id=2).delete()
         db.commit()
         db.close()
+
+
+def test_played_years_keeps_latest_year_for_duplicate_rows():
+    assert _played_years([(1, 2018), (1, 2022), (1, 2020), (2, None), (3, None), (3, 2015)]) == {
+        1: 2022,
+        2: None,
+        3: 2015,
+    }
+
+
+def test_progress_year_is_null_when_unknown(rankings_data):
+    db = TestingSessionLocal()
+    db.add(UserCourses(course_id=1, user_id=1, year=None))
+    db.commit()
+    db.close()
+
+    body = client.get("/api/v1/rankings/lists/1/progress").json()
+    assert body["courses"][0]["year"] is None
+
+
+def test_progress_by_state_normalizes_state_text(rankings_data):
+    db = TestingSessionLocal()
+    db.get(Courses, 1).state = " ca "
+    db.add(UserCourses(course_id=1, user_id=1, year=2019))
+    db.commit()
+    db.close()
+
+    body = client.get("/api/v1/rankings/lists/1/progress").json()
+    assert body["current"]["by_state"] == {"CA": {"ranked": 1, "played": 1}}

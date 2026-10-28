@@ -5,6 +5,7 @@ import CourseForm from './components/CourseForm';
 import Map from './components/Map';
 import AllUsersMap from './components/AllUsersMap';
 import Rankings from './components/Rankings';
+import Stats from './components/Stats';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
             { path: '/map', element: <Map /> },
             { path: '/all_map', element: <AllUsersMap /> },
             { path: '/rankings', element: <Rankings /> },
+            { path: '/stats', element: <Stats /> },
             { path: '/course_search', element: <CourseSearch /> },
             { path: '/profile', element: <UserProfile /> },
             {

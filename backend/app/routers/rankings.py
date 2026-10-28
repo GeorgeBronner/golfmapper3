@@ -10,6 +10,20 @@ router = APIRouter(prefix="/rankings", tags=["rankings"])
 # Plain `def` (not async): sync DB work runs in FastAPI's threadpool.
 
 
+def _played_years(rows) -> dict[int, int | None]:
+    """Latest known year per course from (course_id, year) rows.
+
+    Older databases lack uq_user_course, so a course can appear more than once.
+    """
+    played: dict[int, int | None] = {}
+    for course_id, year in rows:
+        if year is not None and (played.get(course_id) or 0) < year:
+            played[course_id] = year
+        else:
+            played.setdefault(course_id, None)
+    return played
+
+
 def _edition_dict(edition: RankingEditions) -> dict:
     return {
         "id": edition.id,
@@ -110,6 +124,7 @@ def course_history(request: Request, course_id: int, user: user_dependency, db: 
 def list_progress(request: Request, list_id: int, user: user_dependency, db: db_dependency):
     """The current user's progress on one ranking list, for the stats page.
 
+    `ever_listed` is how many distinct courses have appeared in any edition.
     `current` covers the newest edition (totals, plus ranked/played per state).
     `editions` gives played/total for every edition. `courses` is every course
     the user has played that appeared in any edition, with the year they played
@@ -125,7 +140,9 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
         .order_by(RankingEditions.start_year.desc())
         .all()
     )
-    played = dict(db.query(UserCourses.course_id, UserCourses.year).filter(UserCourses.user_id == user.get("id")))
+    played = _played_years(
+        db.query(UserCourses.course_id, UserCourses.year).filter(UserCourses.user_id == user.get("id"))
+    )
     label_of = {e.id: e.label for e in editions}
     rows = (
         db.query(RankingEntries, Courses)
@@ -136,6 +153,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
 
     totals = {e.id: {"total": 0, "played": 0} for e in editions}
     ranked_courses: dict[int, dict] = {}
+    ever_listed = {course.id for _, course in rows}
     for entry, course in rows:
         totals[entry.edition_id]["total"] += 1
         if course.id not in played:
@@ -163,7 +181,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
         for entry, course in rows:
             if entry.edition_id != editions[0].id:
                 continue
-            bucket = by_state.setdefault(course.state or "", {"ranked": 0, "played": 0})
+            bucket = by_state.setdefault((course.state or "").strip().upper(), {"ranked": 0, "played": 0})
             bucket["ranked"] += 1
             bucket["played"] += course.id in played
         current = {
@@ -176,6 +194,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
         "list_id": lst.id,
         "name": lst.name,
         "size": lst.size,
+        "ever_listed": len(ever_listed),
         "current": current,
         "editions": [{**_edition_dict(e), **totals[e.id]} for e in editions],
         "courses": sorted(
