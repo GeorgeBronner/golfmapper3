@@ -3,12 +3,14 @@ import api from '../services/api';
 import { useAuth } from './AuthProvider';
 import CourseMap from './CourseMap';
 import { pointsFromCompact, USER_COLORS } from '../utils/mapPoints';
+import useCurrentRanks from '../utils/useCurrentRanks';
 
 function AllUsersMap() {
     const activeCallRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
     const [groups, setGroups] = useState([]);
+    const ranks = useCurrentRanks();
 
     const loadMap = useCallback(async () => {
         const callId = {};
@@ -43,7 +45,7 @@ function AllUsersMap() {
 
             {status === 'loading' && <p className="map-status">Loading map…</p>}
             {status === 'error' && <p className="map-status">Failed to load map. Please try again later.</p>}
-            {status === 'loaded' && <CourseMap groups={groups} showLegend />}
+            {status === 'loaded' && <CourseMap groups={groups} showLegend ranks={ranks} />}
         </div>
     );
 }
