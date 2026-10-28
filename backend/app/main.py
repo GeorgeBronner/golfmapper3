@@ -18,7 +18,7 @@ from app.config import settings
 from app.database import engine, ensure_columns, ensure_index
 from app.limiter import limiter
 from app.models import Base
-from app.routers import admin, auth, course_requests, garmin_courses, map, password_reset, user_courses, users
+from app.routers import admin, auth, course_requests, garmin_courses, map, password_reset, rankings, user_courses, users
 
 try:
     import sentry_sdk
@@ -190,6 +190,7 @@ app.include_router(admin.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
 app.include_router(user_courses.router, prefix=API_PREFIX)
 app.include_router(map.router, prefix=API_PREFIX)
+app.include_router(rankings.router, prefix=API_PREFIX)
 app.include_router(password_reset.router, prefix=API_PREFIX)
 app.include_router(course_requests.router, prefix=API_PREFIX)
 # Must run after the routers are included: it only wires pagination params
