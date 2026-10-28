@@ -110,6 +110,7 @@ def course_history(request: Request, course_id: int, user: user_dependency, db: 
 def list_progress(request: Request, list_id: int, user: user_dependency, db: db_dependency):
     """The current user's progress on one ranking list, for the stats page.
 
+    `ever_listed` is how many distinct courses have appeared in any edition.
     `current` covers the newest edition (totals, plus ranked/played per state).
     `editions` gives played/total for every edition. `courses` is every course
     the user has played that appeared in any edition, with the year they played
@@ -136,6 +137,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
 
     totals = {e.id: {"total": 0, "played": 0} for e in editions}
     ranked_courses: dict[int, dict] = {}
+    ever_listed = {course.id for _, course in rows}
     for entry, course in rows:
         totals[entry.edition_id]["total"] += 1
         if course.id not in played:
@@ -176,6 +178,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
         "list_id": lst.id,
         "name": lst.name,
         "size": lst.size,
+        "ever_listed": len(ever_listed),
         "current": current,
         "editions": [{**_edition_dict(e), **totals[e.id]} for e in editions],
         "courses": sorted(

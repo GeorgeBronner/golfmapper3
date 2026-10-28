@@ -81,6 +81,7 @@ def test_progress_counts_per_edition_and_flags_dropped_courses(rankings_data):
     body = client.get("/api/v1/rankings/lists/1/progress").json()
     assert body["name"] == "Top Public"
     assert body["current"]["label"] == "2025-26"
+    assert body["ever_listed"] == 2
     assert (body["current"]["total"], body["current"]["played"]) == (1, 0)
     assert [(e["label"], e["total"], e["played"]) for e in body["editions"]] == [("2025-26", 1, 0), ("2023-24", 2, 1)]
     [course] = body["courses"]
@@ -121,7 +122,15 @@ def test_progress_list_without_editions(rankings_data):
     db.close()
     try:
         body = client.get("/api/v1/rankings/lists/2/progress").json()
-        assert body == {"list_id": 2, "name": "Empty", "size": None, "current": None, "editions": [], "courses": []}
+        assert body == {
+            "list_id": 2,
+            "name": "Empty",
+            "size": None,
+            "ever_listed": 0,
+            "current": None,
+            "editions": [],
+            "courses": [],
+        }
     finally:
         db = TestingSessionLocal()
         db.query(RankingLists).filter_by(id=2).delete()
