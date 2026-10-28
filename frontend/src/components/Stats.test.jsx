@@ -38,6 +38,37 @@ describe('Stats', () => {
         expect(api.get).toHaveBeenCalledWith('/rankings/lists/1/progress');
     });
 
+    it('asks for courses without coordinates too', async () => {
+        mockApi();
+        render(<Stats />);
+        await screen.findByText('Courses played');
+        expect(api.get).toHaveBeenCalledWith('/user_courses/readall_ids_w_year', { params: { include_unmapped: true } });
+    });
+
+    it('shows the course part of a "Club - Course" name in the highest-ranked rows', async () => {
+        mockApi();
+        render(<Stats />);
+        expect(await screen.findByText('Pebble Beach Golf Links')).toBeInTheDocument();
+    });
+
+    it('uses the singular for a single club', async () => {
+        mockApi({ user: [courses[0]] });
+        render(<Stats />);
+        expect(await screen.findByText('at 1 club')).toBeInTheDocument();
+    });
+
+    it('prefers the 100-course list when several are seeded', async () => {
+        api.get.mockImplementation(async url => {
+            if (url === '/user_courses/readall_ids_w_year') return { data: courses };
+            if (url === '/rankings') return { data: [{ id: 7, size: 50 }, { id: 1, size: 100 }] };
+            return { data: progress };
+        });
+        render(<Stats />);
+        await screen.findByText('Courses played');
+        expect(api.get).toHaveBeenCalledWith('/rankings/lists/1/progress');
+        expect(api.get).not.toHaveBeenCalledWith('/rankings/lists/7/progress');
+    });
+
     it('switches the map to the Top 100 layer', async () => {
         mockApi();
         render(<Stats />);

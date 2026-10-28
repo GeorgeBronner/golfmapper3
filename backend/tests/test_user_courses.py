@@ -107,3 +107,38 @@ def test_readall_ids_w_year_datetime_created_at(test_user_courses_with_datetime)
     assert len(data) == 1
     assert data[0]["created_at"] is not None
     assert data[0]["year"] == 2024
+
+
+@pytest.fixture
+def unmapped_course():
+    db = TestingSessionLocal()
+    db.add(
+        Courses(id=400, club_name="No Pin", course_name="Yet", state="CA", country="USA", latitude=None, longitude=None)
+    )
+    db.add(
+        Courses(
+            id=401, club_name="Pinned", course_name="Course", state="CA", country="USA", latitude=30.0, longitude=-88.0
+        )
+    )
+    db.add(UserCourses(id=4, course_id=400, user_id=1, year=2022))
+    db.add(UserCourses(id=5, course_id=401, user_id=1, year=2023))
+    db.commit()
+    yield
+    with engine.connect() as con:
+        con.execute(text("DELETE FROM user_courses;"))
+        con.execute(text("DELETE FROM courses;"))
+        con.commit()
+
+
+def test_readall_ids_w_year_skips_unmapped_courses_by_default(unmapped_course):
+    data = client.get("/api/v1/user_courses/readall_ids_w_year").json()
+    assert [c["id"] for c in data] == [401]
+
+
+def test_readall_ids_w_year_can_include_unmapped_courses(unmapped_course):
+    response = client.get("/api/v1/user_courses/readall_ids_w_year", params={"include_unmapped": True})
+    assert response.status_code == status.HTTP_200_OK
+    data = {c["id"]: c for c in response.json()}
+    assert set(data) == {400, 401}
+    assert data[400]["latitude"] is None
+    assert data[400]["year"] == 2022

@@ -2,12 +2,26 @@ import { STATE_CODES } from './usStates';
 
 const STATE_SET = new Set(STATE_CODES);
 
+const norm = (value) => (value || '').trim().toUpperCase();
+
+// Databases without uq_user_course can hold a course more than once; count it
+// once, with its latest year, as the progress endpoint does.
+function uniqueCourses(courses) {
+    const byId = new Map();
+    for (const c of courses) {
+        const seen = byId.get(c.id);
+        if (!seen || (c.year || 0) > (seen.year || 0)) byId.set(c.id, c);
+    }
+    return [...byId.values()];
+}
+
 /**
  * Turns the user's courses (`/user_courses/readall_ids_w_year`) and, when the
  * rankings are loaded, their list progress (`/rankings/lists/{id}/progress`)
  * into everything the stats page shows.
  */
-export function buildStats(courses, progress) {
+export function buildStats(allCourses, progress) {
+    const courses = uniqueCourses(allCourses);
     const byState = {};
     const countries = new Set();
     const clubs = new Set();
@@ -15,9 +29,11 @@ export function buildStats(courses, progress) {
     let undated = 0;
 
     for (const c of courses) {
-        if (c.country) countries.add(c.country);
+        const country = norm(c.country);
+        const state = norm(c.state);
+        if (country) countries.add(country);
         clubs.add(c.club_name || c.display_name);
-        if (c.country === 'USA' && STATE_SET.has(c.state)) byState[c.state] = (byState[c.state] || 0) + 1;
+        if (country === 'USA' && STATE_SET.has(state)) byState[state] = (byState[state] || 0) + 1;
         if (c.year) byYear[c.year] = (byYear[c.year] || 0) + 1;
         else undated += 1;
     }
@@ -26,8 +42,8 @@ export function buildStats(courses, progress) {
     const rankedByYear = {};
     for (const c of ranked) if (c.year) rankedByYear[c.year] = (rankedByYear[c.year] || 0) + 1;
 
-    // The course list leaves out courses without coordinates but the progress
-    // call does not, so a year's total never drops below its ranked count.
+    // Both lists now cover every course the user has played, but guard the
+    // subtraction so a year's total never drops below its ranked count.
     const dated = Object.keys({ ...byYear, ...rankedByYear }).map(Number);
     const years = [];
     if (dated.length) {

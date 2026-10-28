@@ -155,3 +155,14 @@ def test_progress_year_is_null_when_unknown(rankings_data):
 
     body = client.get("/api/v1/rankings/lists/1/progress").json()
     assert body["courses"][0]["year"] is None
+
+
+def test_progress_by_state_normalizes_state_text(rankings_data):
+    db = TestingSessionLocal()
+    db.get(Courses, 1).state = " ca "
+    db.add(UserCourses(course_id=1, user_id=1, year=2019))
+    db.commit()
+    db.close()
+
+    body = client.get("/api/v1/rankings/lists/1/progress").json()
+    assert body["current"]["by_state"] == {"CA": {"ranked": 1, "played": 1}}

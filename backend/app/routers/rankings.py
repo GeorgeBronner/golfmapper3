@@ -181,7 +181,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
         for entry, course in rows:
             if entry.edition_id != editions[0].id:
                 continue
-            bucket = by_state.setdefault(course.state or "", {"ranked": 0, "played": 0})
+            bucket = by_state.setdefault((course.state or "").strip().upper(), {"ranked": 0, "played": 0})
             bucket["ranked"] += 1
             bucket["played"] += course.id in played
         current = {

@@ -50,8 +50,8 @@ class CourseResponse(BaseModel):
     city: str | None
     state: str | None
     country: str | None
-    latitude: float
-    longitude: float
+    latitude: float | None
+    longitude: float | None
     created_at: datetime | None = None
     year: int | None = None
 
@@ -72,14 +72,17 @@ async def readall_ids(user: user_dependency, db: db_dependency):
 
 
 @router.get("/readall_ids_w_year", status_code=status.HTTP_200_OK, response_model=list[CourseResponse])
-async def readall_ids_w_year(user: user_dependency, db: db_dependency):
-    results = (
+async def readall_ids_w_year(user: user_dependency, db: db_dependency, include_unmapped: bool = False):
+    """The user's courses with the year played. Courses without coordinates are
+    left out (the map cannot place them) unless include_unmapped is set."""
+    query = (
         db.query(Courses, UserCourses.year, UserCourses.id)
         .join(UserCourses, Courses.id == UserCourses.course_id)
         .filter(UserCourses.user_id == user.get("id"))
-        .filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
-        .all()
     )
+    if not include_unmapped:
+        query = query.filter(Courses.latitude.isnot(None), Courses.longitude.isnot(None))
+    results = query.all()
     # Build response models per row rather than mutating the ORM objects:
     # SQLAlchemy's identity map returns the same Courses instance for repeated
     # rows, so attribute writes would leak across entries.

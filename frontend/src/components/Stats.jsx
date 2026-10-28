@@ -5,8 +5,11 @@ import { STATE_CODES } from '../utils/usStates';
 import { StatCard, StatTile, Ring, HBar, StateMap, YearColumns } from './StatsParts';
 import './Stats.css';
 
-// Shorten "Sand Valley Golf Resort: Mammoth Dunes" style names for tight rows.
-const shortName = (name) => (name.includes(':') ? name.split(':').pop().trim() : name);
+// Shorten "Club - Course" display names to the course part for tight rows.
+const shortName = (name) => {
+    const i = name.indexOf(' - ');
+    return i >= 0 ? name.slice(i + 3).trim() : name;
+};
 
 function Stats() {
     const [courses, setCourses] = useState(null);
@@ -16,13 +19,14 @@ function Stats() {
 
     useEffect(() => {
         let cancelled = false;
-        api.get('/user_courses/readall_ids_w_year')
+        api.get('/user_courses/readall_ids_w_year', { params: { include_unmapped: true } })
             .then(res => { if (!cancelled) setCourses(res.data); })
             .catch(() => { if (!cancelled) setError('Failed to load your stats. Please try again.'); });
         // The Top 100 parts are decoration: without rankings the rest still works.
         api.get('/rankings')
             .then(({ data: lists }) => {
-                const list = Array.isArray(lists) ? lists[0] : null;
+                // The copy below says "Top 100", so prefer the 100-course list over whatever comes first.
+                const list = Array.isArray(lists) ? (lists.find(l => l.size === 100) ?? lists[0]) : null;
                 return list ? api.get(`/rankings/lists/${list.id}/progress`) : null;
             })
             .then(res => { if (res && !cancelled) setProgress(res.data); })
@@ -56,7 +60,7 @@ function Stats() {
             </div>
 
             <div className="stats-grid stats-g4">
-                <StatTile value={stats.total} label="Courses played" sub={`at ${stats.clubs} clubs`} />
+                <StatTile value={stats.total} label="Courses played" sub={`at ${stats.clubs} ${stats.clubs === 1 ? 'club' : 'clubs'}`} />
                 <StatTile
                     value={`${stats.states}/${STATE_CODES.length}`}
                     label="States"
