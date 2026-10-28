@@ -10,6 +10,20 @@ router = APIRouter(prefix="/rankings", tags=["rankings"])
 # Plain `def` (not async): sync DB work runs in FastAPI's threadpool.
 
 
+def _played_years(rows) -> dict[int, int | None]:
+    """Latest known year per course from (course_id, year) rows.
+
+    Older databases lack uq_user_course, so a course can appear more than once.
+    """
+    played: dict[int, int | None] = {}
+    for course_id, year in rows:
+        if year is not None and (played.get(course_id) or 0) < year:
+            played[course_id] = year
+        else:
+            played.setdefault(course_id, None)
+    return played
+
+
 def _edition_dict(edition: RankingEditions) -> dict:
     return {
         "id": edition.id,
@@ -126,7 +140,9 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
         .order_by(RankingEditions.start_year.desc())
         .all()
     )
-    played = dict(db.query(UserCourses.course_id, UserCourses.year).filter(UserCourses.user_id == user.get("id")))
+    played = _played_years(
+        db.query(UserCourses.course_id, UserCourses.year).filter(UserCourses.user_id == user.get("id"))
+    )
     label_of = {e.id: e.label for e in editions}
     rows = (
         db.query(RankingEntries, Courses)
