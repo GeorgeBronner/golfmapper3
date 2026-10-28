@@ -24,9 +24,9 @@ function Rankings() {
     }, []);
 
     useEffect(() => {
+        setEdition(null);
         if (editionId == null) return;
         let cancelled = false;
-        setEdition(null);
         api.get(`/rankings/editions/${editionId}`)
             .then(res => { if (!cancelled) setEdition(res.data); })
             .catch(() => { if (!cancelled) setError('Failed to load this edition. Please try again.'); });

@@ -37,4 +37,16 @@ describe('Rankings', () => {
         fireEvent.change(screen.getByLabelText('Edition'), { target: { value: '1' } });
         expect(await screen.findByText('0 / 2')).toBeInTheDocument();
     });
+
+    it('clears the table when switching to a list with no editions', async () => {
+        const two = [...lists, { id: 2, name: 'Empty List', publisher: 'Golf Digest', editions: [] }];
+        api.get.mockImplementation(url => Promise.resolve({
+            data: url === '/rankings' ? two : edition('2025-26', true),
+        }));
+        render(<Rankings />);
+        await screen.findByText('1 / 2');
+        fireEvent.change(screen.getByLabelText('Ranking list'), { target: { value: '2' } });
+        expect(screen.queryByText('1 / 2')).not.toBeInTheDocument();
+        expect(screen.queryByText('Pebble Beach')).not.toBeInTheDocument();
+    });
 });
