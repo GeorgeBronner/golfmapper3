@@ -40,6 +40,16 @@ describe('CoursePopupContent', () => {
         expect(container.querySelector('img')).toBeNull();
         expect(screen.getByText('2024 · #7')).toBeInTheDocument();
     });
+
+    it('shows the course rank when one is given', () => {
+        render(
+            <CoursePopupContent
+                point={{ id: 7, lat: 1, lon: 2, name: 'A' }}
+                rank={{ rank: 12, label: 'Golf Digest 2025-26' }}
+            />
+        );
+        expect(screen.getByText('Golf Digest 2025-26: #12')).toBeInTheDocument();
+    });
 });
 
 describe('CourseMap legend', () => {

@@ -166,3 +166,55 @@ class PasswordResetToken(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
     __table_args__ = (Index("ix_prt_token_hash", "token_hash"),)
+
+
+class RankingLists(Base):
+    __tablename__ = "ranking_lists"
+
+    id = Column(Integer, primary_key=True)
+    # Stable key, e.g. "golf-digest-us-public"; the seed script matches on it.
+    slug = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False)
+    publisher = Column(String, nullable=False)
+    scope = Column(String, nullable=False)  # e.g. "us-public"
+    size = Column(Integer, nullable=True)
+
+    editions = relationship("RankingEditions", back_populates="list", cascade="all, delete-orphan")
+
+
+class RankingEditions(Base):
+    __tablename__ = "ranking_editions"
+
+    id = Column(Integer, primary_key=True)
+    list_id = Column(Integer, ForeignKey("ranking_lists.id"), nullable=False, index=True)
+    label = Column(String, nullable=False)  # "2021-22"
+    start_year = Column(Integer, nullable=False)  # sort key: first year of the edition
+    published_on = Column(String, nullable=True)  # "2021-09" or "2013-01-07"; precision varies
+    source_url = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
+
+    list = relationship("RankingLists", back_populates="editions")
+    entries = relationship("RankingEntries", back_populates="edition", cascade="all, delete-orphan")
+
+    __table_args__ = (UniqueConstraint("list_id", "label", name="uq_ranking_edition_label"),)
+
+
+class RankingEntries(Base):
+    __tablename__ = "ranking_entries"
+
+    id = Column(Integer, primary_key=True)
+    edition_id = Column(Integer, ForeignKey("ranking_editions.id"), nullable=False, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False, index=True)
+    rank = Column(Integer, nullable=False)
+    prior_rank = Column(String, nullable=True)  # as printed: "12", "T48", "NEW", "NR"
+    # Names change between editions (Longaberger is now The Virtues).
+    published_name = Column(String, nullable=False)
+    points = Column(Float, nullable=True)
+
+    edition = relationship("RankingEditions", back_populates="entries")
+    course = relationship("Courses")
+
+    __table_args__ = (
+        UniqueConstraint("edition_id", "course_id", name="uq_ranking_entry_course"),
+        UniqueConstraint("edition_id", "rank", name="uq_ranking_entry_rank"),
+    )

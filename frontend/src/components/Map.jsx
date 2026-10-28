@@ -3,12 +3,14 @@ import api from '../services/api';
 import { useAuth } from './AuthProvider';
 import CourseMap from './CourseMap';
 import { pointsFromCompact } from '../utils/mapPoints';
+import useCurrentRanks from '../utils/useCurrentRanks';
 
 function Map() {
     const activeCallRef = useRef(null);
     const { token } = useAuth();
     const [status, setStatus] = useState('loading');
     const [points, setPoints] = useState([]);
+    const ranks = useCurrentRanks();
 
     const loadMap = useCallback(async () => {
         const callId = {};
@@ -48,7 +50,7 @@ function Map() {
                 </p>
             )}
             {status === 'error' && <p className="map-status">Failed to load map. Please try again later.</p>}
-            {status === 'loaded' && <CourseMap groups={groups} />}
+            {status === 'loaded' && <CourseMap groups={groups} ranks={ranks} />}
         </div>
     );
 }

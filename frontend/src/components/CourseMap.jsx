@@ -40,13 +40,14 @@ function FitToPoints({ points }) {
 }
 
 // Course names are user-supplied: render them as React text, never as HTML.
-export function CoursePopupContent({ point }) {
+export function CoursePopupContent({ point, rank }) {
     return (
         <div className="course-popup">
             <div className="course-popup-name">{point.name}</div>
             <div className="course-popup-meta">
                 {point.year ? `${point.year} · ` : ''}#{point.id}
             </div>
+            {rank && <div className="course-popup-meta">{rank.label}: #{rank.rank}</div>}
         </div>
     );
 }
@@ -102,8 +103,9 @@ function Legend({ groups, hidden, onToggle }) {
  *
  * groups: [{ name, color, points: [{ id, lat, lon, name, year? }] }]
  * cluster: force clustering on/off; defaults to on above AUTO_CLUSTER_THRESHOLD points.
+ * ranks: optional { [courseId]: { rank, label } } shown in the popup.
  */
-export default function CourseMap({ groups, cluster, fitToPoints = false, showLegend = false }) {
+export default function CourseMap({ groups, cluster, fitToPoints = false, showLegend = false, ranks = null }) {
     const [hidden, setHidden] = useState(() => new Set());
     // A single shared popup rather than one per marker — at 15k markers,
     // per-marker Popup instances are a real memory/mount cost. Leaflet closes
@@ -155,7 +157,7 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
                     // mounted is harmless, and clearing on Leaflet's remove
                     // event can race the next marker's click.
                     <Popup key={selected.key} position={selected.position}>
-                        <CoursePopupContent point={selected.point} />
+                        <CoursePopupContent point={selected.point} rank={ranks?.[selected.point.id]} />
                     </Popup>
                 )}
                 {fitToPoints && <FitToPoints points={allPoints} />}
