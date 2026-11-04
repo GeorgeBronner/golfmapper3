@@ -650,22 +650,73 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
-  padding: 0 0 12px;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
   font-size: 13px;
   color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.map-rankings-bar > .map-rankings-body > strong {
+  margin-right: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 .map-rankings-layer {
   display: flex;
   align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  background: var(--surface-2, #f4f6f5);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: background .15s, border-color .15s;
+}
+
+.map-rankings-layer.on {
+  background: color-mix(in srgb, var(--primary) 9%, var(--surface));
+  border-color: var(--primary);
+}
+
+.map-rankings-layer label {
+  display: flex;
+  align-items: center;
   gap: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.map-rankings-layer input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
+  margin: 0;
 }
 
 .map-rankings-layer select {
-  font-size: 13px;
+  font: inherit;
+  font-size: 12px;
   max-width: 120px;
+  padding: 3px 22px 3px 8px;
+  color: var(--text-primary);
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%236b7a74' stroke-width='1.6'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 8px center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  appearance: none;
+  cursor: pointer;
 }
+
+.map-rankings-layer select:focus-visible,
+.map-rankings-layer input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .map-title-chip {
   display: flex;
@@ -1039,7 +1090,8 @@
 
 @media (max-width: 600px) {
   .map-overlay-bar { padding-bottom: 10px; }
-  .map-rankings-bar { padding-bottom: 8px; }
+  .map-rankings-bar { padding: 0; background: none; border: none; box-shadow: none; margin-bottom: 10px; }
+  .map-rankings-layer { border-radius: var(--radius-md); padding: 8px 10px; }
   .map-rankings-toggle {
     display: flex;
     align-items: center;

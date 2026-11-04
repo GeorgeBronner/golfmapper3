@@ -23,7 +23,7 @@ function RankingLayersBar({ ui }) {
             <div className="map-rankings-body">
             <strong>Rankings</strong>
             {rankingLists.map(list => (
-                <div key={list.id} className="map-rankings-layer">
+                <div key={list.id} className={`map-rankings-layer${layers[list.id]?.on ? ' on' : ''}`}>
                     <label>
                         <input
                             type="checkbox"
@@ -45,7 +45,7 @@ function RankingLayersBar({ ui }) {
                 </div>
             ))}
             {stateLists.length > 0 && (
-                <div className="map-rankings-layer">
+                <div className={`map-rankings-layer${stateLayer.on ? ' on' : ''}`}>
                     <label>
                         <input
                             type="checkbox"
