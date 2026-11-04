@@ -39,6 +39,7 @@ function uniqueCourses(courses) {
 export function buildStats(allCourses, progress) {
     const courses = uniqueCourses(allCourses);
     const byState = {};
+    const byCountry = {};
     const countries = new Set();
     const clubs = new Set();
     const byYear = {};
@@ -47,7 +48,7 @@ export function buildStats(allCourses, progress) {
     for (const c of courses) {
         const country = norm(c.country);
         const state = norm(c.state);
-        if (country) countries.add(country);
+        if (country) { countries.add(country); byCountry[country] = (byCountry[country] || 0) + 1; }
         clubs.add(c.club_name || c.display_name);
         if (country === 'USA' && STATE_SET.has(state)) byState[state] = (byState[state] || 0) + 1;
         if (c.year) byYear[c.year] = (byYear[c.year] || 0) + 1;
@@ -76,6 +77,7 @@ export function buildStats(allCourses, progress) {
         countries: countries.size,
         clubs: clubs.size,
         byState,
+        byCountry,
         undated,
         years,
         list: current && {
@@ -92,14 +94,13 @@ export function buildStats(allCourses, progress) {
     };
 }
 
-/** Where is the most left to play? Countries for the World list, US states otherwise. */
-export function gapRows(list, world, limit = 6) {
-    const source = world ? list.byCountry : list.byState;
+/** Where have you played the most? Countries for the World list, US states otherwise. */
+export function playedRows(stats, world, limit = 6) {
+    const source = world ? stats.byCountry : stats.byState;
     return Object.entries(source)
         .filter(([code]) => code)
-        .map(([code, v]) => ({ code, ...v, left: v.ranked - v.played }))
-        .filter(r => r.left > 0)
-        .sort((a, b) => b.left - a.left || a.code.localeCompare(b.code))
+        .map(([code, played]) => ({ code, played }))
+        .sort((a, b) => b.played - a.played || a.code.localeCompare(b.code))
         .slice(0, limit);
 }
 
