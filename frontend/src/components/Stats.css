@@ -86,6 +86,11 @@ button.stats-state { font-family: inherit; cursor: pointer; padding: 0; }
 
 .stats-scroll { max-height: 330px; overflow: auto; }
 .stats-scroll.tall { max-height: 420px; }
+/* On wide screens the course list takes the height of the map beside it and scrolls inside that. */
+@media (min-width: 901px) {
+    .stats-fill { display: flex; flex-direction: column; height: 0; min-height: 100%; }
+    .stats-fill .stats-scroll { flex: 1; min-height: 0; max-height: none; }
+}
 .stats-li { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--surface-2); font-size: 13px; }
 .stats-li-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats-sub { font-size: 12px; color: var(--text-secondary); }

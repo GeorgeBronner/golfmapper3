@@ -177,7 +177,7 @@ export default function StatsBestInState({ stats, data }) {
                     <StateMap layer="bis" byState={stats.byState} bis={view} selected={selected} onSelect={setPicked} />
                     <div className="stats-legend"><span>Gold = Best in State courses played / ranked{publicOnly ? ' (public only)' : ''}</span></div>
                 </StatCard>
-                <StatCard title={STATE_NAMES[selected]} aside={`${current?.p ?? 0}/${current?.t ?? 0} played${publicOnly ? ' · public' : ''}`}>
+                <StatCard className="stats-fill" title={STATE_NAMES[selected]} aside={`${current?.p ?? 0}/${current?.t ?? 0} played${publicOnly ? ' · public' : ''}`}>
                     <div className="stats-scroll tall">
                         {current?.entries.length
                             ? current.entries.map(e => (
