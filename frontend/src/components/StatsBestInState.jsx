@@ -89,6 +89,7 @@ function ScatterChart({ rows }) {
     const qy = y(maxF * 0.3);
     return (
         <>
+            <div className="stats-scatter-wrap">
             <svg className="stats-scatter" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Best in State progress by state size">
                 {[0, 0.25, 0.5, 0.75, 1].map(k => (
                     <g key={k}>
@@ -112,6 +113,7 @@ function ScatterChart({ rows }) {
                     );
                 })}
             </svg>
+            </div>
             <div className="stats-legend"><span>Dot size = courses left to play · green = complete · small states are unlabeled (hover for details)</span></div>
         </>
     );

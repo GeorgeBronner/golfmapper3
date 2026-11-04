@@ -51,6 +51,7 @@ function PlaceCard({ layer, code, courses, entries, bis, world, listName, label,
     }
     return (
         <StatCard
+            className="stats-place"
             title={title}
             aside={<>{total != null ? `${played}/${total} played` : `${played} played`} · <button type="button" className="stats-link" onClick={onClose}>close ✕</button></>}
         >
@@ -115,7 +116,7 @@ export default function StatsOverview({ stats, courses, list, listName, entries,
                 </StatCard>
 
                 {t && (
-                    <div className="stats-stack">
+                    <div className={`stats-stack ${place ? 'stats-stack-fill' : ''}`.trim()}>
                         <StatCard title={`${listName} progress`} aside={t.label}>
                             <div className="stats-row">
                                 <Ring pct={t.size ? t.played / t.size : 0}>

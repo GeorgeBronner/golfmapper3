@@ -67,8 +67,8 @@
 .stats-picker { display: flex; gap: 8px; flex-wrap: wrap; }
 .stats-picker button { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer; color: var(--text-secondary); }
 .stats-picker button.on { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
-.stats-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
-.stats-tabs button { border: none; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--text-secondary); padding: 10px 16px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.stats-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; overflow-y: hidden; }
+.stats-tabs button { border: none; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--text-secondary); padding: 10px 16px; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
 .stats-tabs button.on { color: var(--primary); border-color: var(--primary); }
 .stats-filter { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 12px; }
 .stats-link { background: none; border: none; padding: 0; font: inherit; color: var(--text-secondary); text-decoration: underline; cursor: pointer; }
@@ -90,6 +90,11 @@ button.stats-state { font-family: inherit; cursor: pointer; padding: 0; }
 @media (min-width: 901px) {
     .stats-fill { display: flex; flex-direction: column; height: 0; min-height: 100%; }
     .stats-fill .stats-scroll { flex: 1; min-height: 0; max-height: none; }
+    /* Overview: the progress card keeps its size and the clicked state's list fills the rest. */
+    .stats-stack-fill { display: flex; flex-direction: column; height: 0; min-height: 100%; }
+    .stats-stack-fill > .stats-card { flex: none; }
+    .stats-stack-fill > .stats-place { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .stats-place .stats-scroll { flex: 1; min-height: 0; max-height: none; }
 }
 .stats-li { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--surface-2); font-size: 13px; }
 .stats-li-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -140,3 +145,18 @@ button.stats-state { font-family: inherit; cursor: pointer; padding: 0; }
 .stats-tier .h { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); text-align: center; }
 .stats-tier .c { border-radius: 6px; padding: 6px 4px; text-align: center; background: var(--surface-2); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .stats-tier .c.dim { opacity: .4; }
+
+/* Phones: headers stack, segmented controls fit the card and keep their labels on one line. */
+@media (max-width: 600px) {
+    .stats-card { padding: 14px; }
+    .stats-card-head { flex-wrap: wrap; row-gap: 8px; }
+    .stats-seg { max-width: 100%; overflow-x: auto; }
+    .stats-seg button { padding: 5px 10px; white-space: nowrap; flex: none; }
+    .stats-tile { padding: 14px; }
+    .stats-tile-value { font-size: 26px; }
+    .stats-filter { justify-content: space-between; }
+}
+@media (max-width: 600px) {
+    .stats-scatter-wrap { overflow-x: auto; }
+    .stats-scatter-wrap .stats-scatter { min-width: 520px; }
+}
