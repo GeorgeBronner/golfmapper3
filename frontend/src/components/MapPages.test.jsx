@@ -35,7 +35,8 @@ describe('Map', () => {
         api.get.mockResolvedValue({ data: { fields, points: [] } });
         render(<Map />);
         expect(await screen.findByText(/haven't added any courses/)).toBeInTheDocument();
-        expect(screen.queryByTestId('course-map')).toBeNull();
+        // The map still shows, so a new user can browse the rankings layers.
+        expect(screen.getByTestId('course-map')).toBeInTheDocument();
     });
 });
 

@@ -11,6 +11,9 @@ export function pointsFromCompact(fields, rows) {
 
 // Colors for ranking-list groups on the all-users map, by list order; gold first.
 export const RANKING_COLORS = ['#d4a017', '#0b7285', '#a61e4d'];
+// Ranked courses the user has played, on their own map: a third color next to the layer's
+// color (not yet played) and red (My courses).
+export const PLAYED_COLOR = '#2f9e44';
 // The Best in State layer (all states or one) has its own color.
 export const STATE_RANKING_COLOR = '#5f3dc4';
 
