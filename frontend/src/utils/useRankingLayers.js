@@ -68,6 +68,8 @@ export default function useRankingLayers({ firstOn = true } = {}) {
     const [layers, setLayers] = useState({});
     // The Best in State layer: off, all states or one list, an edition label, and a private-club filter.
     const [stateLayer, setStateLayer] = useState({ on: false, state: ALL_STATES, edition: null, publicOnly: false });
+    // Off by default: every list shows its newest edition and the edition pickers are hidden.
+    const [showOld, setShowOld] = useState(false);
     // layer key -> { group, ranks } once loaded.
     const [loaded, setLoaded] = useState({});
     const requested = useRef(new Set());
@@ -90,7 +92,7 @@ export default function useRankingLayers({ firstOn = true } = {}) {
         stateLists.forEach(l => l.editions.forEach(e => { if (!labels.includes(e.label)) labels.push(e.label); }));
         return labels;
     }, [stateLists]);
-    const stateEdition = stateEditions.includes(stateLayer.edition) ? stateLayer.edition : stateEditions[0];
+    const stateEdition = showOld && stateEditions.includes(stateLayer.edition) ? stateLayer.edition : stateEditions[0];
     const selectedState = stateLists.find(l => String(l.id) === String(stateLayer.state)) ?? null;
     const stateEditionMissing = !!selectedState && !!stateEdition
         && !selectedState.editions.some(e => e.label === stateEdition);
@@ -132,9 +134,10 @@ export default function useRankingLayers({ firstOn = true } = {}) {
         rankingLists.forEach((list, i) => {
             const layer = layers[list.id];
             if (!layer?.on) return;
+            const editionId = showOld ? layer.editionId : list.editions[0].id;
             out.push({
-                key: layerKey(list.id, layer.editionId),
-                load: () => loadLayer(list, RANKING_COLORS[i % RANKING_COLORS.length], layer.editionId),
+                key: layerKey(list.id, editionId),
+                load: () => loadLayer(list, RANKING_COLORS[i % RANKING_COLORS.length], editionId),
             });
         });
         if (stateLayer.on && stateEdition) {
@@ -157,7 +160,7 @@ export default function useRankingLayers({ firstOn = true } = {}) {
             }
         }
         return out;
-    }, [rankingLists, layers, stateLayer.on, stateEdition, selectedState]);
+    }, [rankingLists, layers, showOld, stateLayer.on, stateEdition, selectedState]);
 
     // Fetch each wanted layer once; a failure just leaves that layer out.
     useEffect(() => {
@@ -205,7 +208,13 @@ export default function useRankingLayers({ firstOn = true } = {}) {
     );
     const patchState = useCallback(patch => setStateLayer(prev => ({ ...prev, ...patch })), []);
 
+    // Old lists only matter when some list has more than one edition.
+    const hasOldLists = rankingLists.some(l => l.editions.length > 1) || stateEditions.length > 1;
+
     const ui = {
+        showOld,
+        setShowOld,
+        hasOldLists,
         rankingLists,
         layers,
         setLayer,

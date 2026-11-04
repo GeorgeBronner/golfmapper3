@@ -715,6 +715,28 @@
   cursor: pointer;
 }
 
+.map-rankings-edition {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.map-rankings-old {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.map-rankings-old input { accent-color: var(--primary); margin: 0; }
+
 .map-rankings-layer select:focus-visible,
 .map-rankings-layer input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 

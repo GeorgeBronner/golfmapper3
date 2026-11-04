@@ -92,6 +92,23 @@ describe('AllUsersMap', () => {
         expect(api.get).not.toHaveBeenCalledWith('/map/rankings/8/points', expect.anything());
     });
 
+    it('hides the edition pickers until "Show old lists" is on, and goes back to the newest when it is turned off', async () => {
+        api.get.mockImplementation(mockApi({ 7: { 71: [[2, 31, -87, 'Pebble', 2025, 1, null]], 70: [[3, 32, -86, 'Erin', 2023, 1, null]] } }));
+        const user = userEvent.setup();
+        render(<AllUsersMap />);
+        await screen.findByText(/US Public 2025-26: Pebble/);
+        expect(screen.getByLabelText('Show old lists')).not.toBeChecked();
+        expect(screen.queryByLabelText('US Public edition')).toBeNull();
+
+        await user.click(screen.getByLabelText('Show old lists'));
+        await user.selectOptions(screen.getByLabelText('US Public edition'), '70');
+        expect(await screen.findByText(/US Public 2023-24: Erin/)).toBeInTheDocument();
+
+        await user.click(screen.getByLabelText('Show old lists'));
+        expect(await screen.findByText(/US Public 2025-26: Pebble/)).toBeInTheDocument();
+        expect(screen.queryByLabelText('US Public edition')).toBeNull();
+    });
+
     it('adds another list and switches editions from the rankings bar', async () => {
         api.get.mockImplementation(mockApi({
             7: { 71: [[2, 31, -87, 'Pebble', 2025, 1, null]], 70: [[3, 32, -86, 'Erin', 2023, 1, null]] },
@@ -104,6 +121,7 @@ describe('AllUsersMap', () => {
         await user.click(screen.getByLabelText('World'));
         expect(await screen.findByText(/World 2026-27: St Andrews/)).toBeInTheDocument();
 
+        await user.click(screen.getByLabelText('Show old lists'));
         await user.selectOptions(screen.getByLabelText('US Public edition'), '70');
         expect(await screen.findByText(/US Public 2023-24: Erin/)).toBeInTheDocument();
         expect(screen.queryByText(/US Public 2025-26/)).toBeNull();

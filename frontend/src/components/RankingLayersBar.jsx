@@ -8,6 +8,7 @@ function RankingLayersBar({ ui }) {
     const {
         rankingLists, layers, setLayer, stateLists, stateLayer, patchState,
         selectedState, stateEditions, stateEdition, stateEditionMissing, failed, stateKey,
+        showOld, setShowOld, hasOldLists,
     } = ui;
     // On phones the controls collapse behind a "Rankings" button (CSS only; desktop always shows them).
     const [open, setOpen] = useState(false);
@@ -32,13 +33,17 @@ function RankingLayersBar({ ui }) {
                         />{' '}
                         {list.name}
                     </label>
-                    <select
-                        aria-label={`${list.name} edition`}
-                        value={layers[list.id]?.editionId ?? ''}
-                        onChange={e => setLayer(list.id, { editionId: Number(e.target.value) })}
-                    >
-                        {list.editions.map(ed => <option key={ed.id} value={ed.id}>{ed.label}</option>)}
-                    </select>
+                    {showOld ? (
+                        <select
+                            aria-label={`${list.name} edition`}
+                            value={layers[list.id]?.editionId ?? ''}
+                            onChange={e => setLayer(list.id, { editionId: Number(e.target.value) })}
+                        >
+                            {list.editions.map(ed => <option key={ed.id} value={ed.id}>{ed.label}</option>)}
+                        </select>
+                    ) : (
+                        <span className="map-rankings-edition">{list.editions[0].label}</span>
+                    )}
                     {layers[list.id]?.on && failed.has(layerKey(list.id, layers[list.id].editionId)) && (
                         <span role="alert">⚠ couldn't load</span>
                     )}
@@ -62,13 +67,17 @@ function RankingLayersBar({ ui }) {
                         <option value={ALL_STATES}>All states</option>
                         {stateLists.map(l => <option key={l.id} value={l.id}>{stateName(l)}</option>)}
                     </select>
-                    <select
-                        aria-label="Best in State edition"
-                        value={stateEdition ?? ''}
-                        onChange={e => patchState({ edition: e.target.value })}
-                    >
-                        {stateEditions.map(label => <option key={label} value={label}>{label}</option>)}
-                    </select>
+                    {showOld ? (
+                        <select
+                            aria-label="Best in State edition"
+                            value={stateEdition ?? ''}
+                            onChange={e => patchState({ edition: e.target.value })}
+                        >
+                            {stateEditions.map(label => <option key={label} value={label}>{label}</option>)}
+                        </select>
+                    ) : (
+                        <span className="map-rankings-edition">{stateEdition}</span>
+                    )}
                     <label>
                         <input
                             type="checkbox"
@@ -82,6 +91,12 @@ function RankingLayersBar({ ui }) {
                         <span role="alert">⚠ no {stateEdition} list for {stateName(selectedState)}</span>
                     )}
                 </div>
+            )}
+            {hasOldLists && (
+                <label className="map-rankings-old">
+                    <input type="checkbox" checked={showOld} onChange={e => setShowOld(e.target.checked)} />{' '}
+                    Show old lists
+                </label>
             )}
             </div>
         </div>
