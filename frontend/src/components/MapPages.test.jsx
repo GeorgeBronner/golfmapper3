@@ -116,6 +116,19 @@ describe('AllUsersMap', () => {
         render(<AllUsersMap />);
         expect(await screen.findByText(/alice: Magnolia/)).toBeInTheDocument();
         expect(screen.queryByText(/US Public/, { selector: 'section' })).toBeNull();
+        expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load");
+    });
+
+    it('keeps the rankings bar and loads layers again after Refresh', async () => {
+        api.get.mockImplementation(mockApi({ 7: { 71: [[2, 31, -87, 'Pebble', 2025, 1, null]] } }));
+        const user = userEvent.setup();
+        render(<AllUsersMap />);
+        await screen.findByText(/US Public 2025-26: Pebble/);
+        api.get.mockClear();
+
+        await user.click(screen.getByText(/Refresh Map/));
+        expect(await screen.findByText(/US Public 2025-26: Pebble/)).toBeInTheDocument();
+        expect(api.get).toHaveBeenCalledWith('/map/rankings/7/points', { params: { edition_id: 71 } });
     });
 
     it('shows an error when loading fails', async () => {

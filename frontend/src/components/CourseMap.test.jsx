@@ -50,6 +50,20 @@ describe('CoursePopupContent', () => {
         );
         expect(screen.getByText('Golf Digest 2025-26: #12')).toBeInTheDocument();
     });
+
+    it('shows a tied rank as printed and one line per ranking', () => {
+        render(
+            <CoursePopupContent
+                point={{ id: 7, lat: 1, lon: 2, name: 'A' }}
+                rank={[
+                    { rank: 54, label: 'World 2026-27', tied: 'T53' },
+                    { rank: 3, label: 'US Public 2025-26' },
+                ]}
+            />
+        );
+        expect(screen.getByText('World 2026-27: T53')).toBeInTheDocument();
+        expect(screen.getByText('US Public 2025-26: #3')).toBeInTheDocument();
+    });
 });
 
 describe('CourseMap legend', () => {

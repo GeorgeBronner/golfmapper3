@@ -2,14 +2,14 @@ import sys
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.models import Base, Courses, RankingEntries, RankingLists
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-from seed_rankings import _rank, seed  # noqa: E402
+from seed_rankings import _add_missing_columns, _rank, seed  # noqa: E402
 
 EDITIONS_HEADER = "list,edition,start_year,published_on,source_url,file,notes\n"
 MATCHES_HEADER = "edition,group,rank,published_course,city,state,country,course_id\n"
@@ -87,3 +87,29 @@ def test_seed_fails_on_unmatched_row(db, tmp_path):
     _write(data_dir / "world" / "course-matches.csv", MATCHES_HEADER + "2026-27,,1,B,,,,2\n")
     with pytest.raises(SystemExit, match="no match"):
         seed(db, data_dir)
+
+
+def test_seed_fails_when_a_tie_collides_with_a_printed_rank(db, tmp_path):
+    data_dir = _data_dir(tmp_path)
+    # Position 2 is tied, but the next row prints 2 as well.
+    rows = ["1,1,B", "T2,5,C", "2,3,E"]
+    _write(
+        data_dir / "world" / "w.csv",
+        "rank,prior_rank,course,city,region,country,architect,yards,par\n" + "".join(f"{row},,,,,,\n" for row in rows),
+    )
+    matches = ["2026-27,,1,B,,,,2", "2026-27,,T2,C,,,,3", "2026-27,,2,E,,,,1"]
+    _write(data_dir / "world" / "course-matches.csv", MATCHES_HEADER + "\n".join(matches) + "\n")
+    with pytest.raises(SystemExit, match="used twice"):
+        seed(db, data_dir)
+
+
+def test_add_missing_columns_upgrades_a_legacy_table():
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        conn.execute(text("CREATE TABLE ranking_entries (id INTEGER PRIMARY KEY, rank INTEGER)"))
+        conn.execute(text("INSERT INTO ranking_entries (id, rank) VALUES (1, 5)"))
+    _add_missing_columns(engine)
+    _add_missing_columns(engine)  # idempotent
+    assert "rank_label" in {c["name"] for c in inspect(engine).get_columns("ranking_entries")}
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT rank, rank_label FROM ranking_entries")).one() == (5, None)

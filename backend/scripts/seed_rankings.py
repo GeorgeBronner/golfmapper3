@@ -106,6 +106,7 @@ def _seed_dir(db, data_dir: Path, counts: dict) -> None:
         db.flush()
 
         db.query(RankingEntries).filter_by(edition_id=edition.id).delete()
+        seen_ranks: set[int] = set()
         for position, row in enumerate(_read(data_dir / ed["file"]), start=1):
             course = row["course"].strip()
             if not course:
@@ -116,6 +117,9 @@ def _seed_dir(db, data_dir: Path, counts: dict) -> None:
             if course_id is None:
                 raise SystemExit(f"course-matches.csv has no match for {ed['edition']} rank {printed} ({course})")
             rank, rank_label = _rank(printed, position)
+            if rank in seen_ranks:
+                raise SystemExit(f"{ed['edition']}: rank {rank} used twice (at {printed!r}, {course}); check the ties")
+            seen_ranks.add(rank)
             db.add(
                 RankingEntries(
                     edition_id=edition.id,

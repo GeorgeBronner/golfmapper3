@@ -30,6 +30,10 @@ function AllUsersMap() {
     // `${listId}:${editionId}` -> { group, ranks } once loaded.
     const [loaded, setLoaded] = useState({});
     const requested = useRef(new Set());
+    // Bumped on every (re)load so a layer response from before a refresh is ignored.
+    const generation = useRef(0);
+    // Keys of layers whose last fetch failed, so the bar can say so.
+    const [failed, setFailed] = useState(() => new Set());
 
     const loadMap = useCallback(async () => {
         const callId = {};
@@ -41,7 +45,7 @@ function AllUsersMap() {
             // The ranking lists are extras: the map still works without them.
             const [{ data }, fetchedLists] = await Promise.all([
                 api.get('/map/all_points'),
-                api.get('/rankings').then(r => (Array.isArray(r.data) ? r.data : [])).catch(() => []),
+                api.get('/rankings').then(r => (Array.isArray(r.data) ? r.data : [])).catch(() => null),
             ]);
             if (!isCurrent()) return;
             setUserGroups(data.users.map((u, i) => ({
@@ -49,14 +53,20 @@ function AllUsersMap() {
                 color: USER_COLORS[i % USER_COLORS.length],
                 points: pointsFromCompact(data.fields, u.points),
             })));
-            const usable = fetchedLists.filter(l => l.editions?.length);
-            setLists(usable);
-            setLayers(prev => Object.fromEntries(usable.map((l, i) => [
-                l.id,
-                prev[l.id] ?? { on: i === 0, editionId: l.editions[0].id },
-            ])));
+            // If only the rankings call failed, keep the bar and choices we already have.
+            if (fetchedLists) {
+                const usable = fetchedLists.filter(l => l.editions?.length);
+                setLists(usable);
+                setLayers(prev => Object.fromEntries(usable.map((l, i) => {
+                    const old = prev[l.id];
+                    const stillThere = old && l.editions.some(e => e.id === old.editionId);
+                    return [l.id, stillThere ? old : { on: old ? old.on : i === 0, editionId: l.editions[0].id }];
+                })));
+            }
+            generation.current += 1;
             requested.current = new Set();  // a refresh reloads the layers too
             setLoaded({});
+            setFailed(new Set());
             setStatus('loaded');
         } catch {
             if (isCurrent()) setStatus('error');
@@ -73,9 +83,15 @@ function AllUsersMap() {
             const key = layerKey(list.id, layer.editionId);
             if (requested.current.has(key)) return;
             requested.current.add(key);
+            const gen = generation.current;
+            setFailed(prev => { if (!prev.has(key)) return prev; const next = new Set(prev); next.delete(key); return next; });
             loadLayer(list, i, layer.editionId)
-                .then(result => setLoaded(prev => ({ ...prev, [key]: result })))
-                .catch(() => { requested.current.delete(key); });
+                .then(result => { if (gen === generation.current) setLoaded(prev => ({ ...prev, [key]: result })); })
+                .catch(() => {
+                    if (gen !== generation.current) return;
+                    requested.current.delete(key);  // toggling the layer off and on retries
+                    setFailed(prev => new Set(prev).add(key));
+                });
         });
     }, [lists, layers]);
 
@@ -123,6 +139,9 @@ function AllUsersMap() {
                             >
                                 {list.editions.map(ed => <option key={ed.id} value={ed.id}>{ed.label}</option>)}
                             </select>
+                            {layers[list.id]?.on && failed.has(layerKey(list.id, layers[list.id].editionId)) && (
+                                <span role="alert">⚠ couldn't load</span>
+                            )}
                         </div>
                     ))}
                 </div>
