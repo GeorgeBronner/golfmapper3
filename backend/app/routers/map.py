@@ -15,11 +15,6 @@ from app.models import (
 
 router = APIRouter(prefix="/map", tags=["map"])
 
-# The old stand-in for Golf Digest's list: a fake user holding the ranked courses.
-# The rankings tables replace it, so the all-users map skips it. Remove this
-# (and the user) together.
-LEGACY_TOP100_USERNAME = "top100"
-
 
 def _point(course_id, lat, lon, club, name, year) -> list:
     return [course_id, round(lat, 5), round(lon, 5), course_display_name(club, name), year]
@@ -76,7 +71,7 @@ def all_users_points(request: Request, user: user_dependency, db: db_dependency)
         _points_query(db)
         .add_columns(Users.username)
         .join(Users, Users.id == UserCourses.user_id)
-        .filter(Users.is_active.is_(True), Users.username != LEGACY_TOP100_USERNAME)
+        .filter(Users.is_active.is_(True))
         .order_by(Users.id, Courses.id)
     )
     users: dict[str, list] = {}

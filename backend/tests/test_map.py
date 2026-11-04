@@ -91,26 +91,6 @@ def test_all_points_groups_active_users(points_data):
     ]
 
 
-def test_all_points_skips_legacy_top100_user(points_data):
-    db = TestingSessionLocal()
-    db.add(
-        Users(
-            id=9,
-            email="t@mail.com",
-            username="top100",
-            first_name="t",
-            last_name="t",
-            hashed_password="x",
-            is_active=True,
-            role="user",
-        )
-    )
-    db.add(UserCourses(id=9, course_id=402, user_id=9, year=2025))
-    db.commit()
-    data = client.get("/api/v1/map/all_points").json()
-    assert [u["username"] for u in data["users"]] == ["alice", "bob"]
-
-
 @pytest.fixture
 def ranking_data(points_data):
     db = TestingSessionLocal()
