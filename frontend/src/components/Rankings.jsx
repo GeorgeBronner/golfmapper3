@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import { countryName } from '../utils/statsData';
 
 // Each state's Best in State list is its own list; the page shows them under one
 // "Best in State" choice with a state picker.
@@ -131,7 +132,7 @@ function Rankings() {
                                     <td>{e.prior_rank ?? '—'}</td>
                                     <td title={e.published_name !== e.name ? e.published_name : undefined}>{e.name}</td>
                                     <td>{e.city}</td>
-                                    <td>{e.state}</td>
+                                    <td>{e.country && e.country !== 'USA' ? countryName(e.country) : e.state}</td>
                                     {hasAccess && <td>{e.access ?? ''}</td>}
                                     <td>{e.played ? '✓' : ''}</td>
                                 </tr>
