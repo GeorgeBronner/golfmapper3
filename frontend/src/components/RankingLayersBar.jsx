@@ -42,7 +42,7 @@ function RankingLayersBar({ ui }) {
                             {list.editions.map(ed => <option key={ed.id} value={ed.id}>{ed.label}</option>)}
                         </select>
                     ) : null}
-                    {layers[list.id]?.on && failed.has(layerKey(list.id, layers[list.id].editionId)) && (
+                    {layers[list.id]?.on && failed.has(layerKey(list.id, showOld ? layers[list.id].editionId : list.editions[0].id)) && (
                         <span role="alert">⚠ couldn't load</span>
                     )}
                 </div>
