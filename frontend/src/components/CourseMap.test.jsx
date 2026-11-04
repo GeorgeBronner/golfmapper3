@@ -66,6 +66,19 @@ describe('CoursePopupContent', () => {
     });
 });
 
+describe('CourseMap popup', () => {
+    it('closes when the groups change, so it never shows stale points', async () => {
+        const point = { id: 1, lat: 30, lon: -88, name: 'Old', year: 2020 };
+        const groups = [{ name: 'g', color: '#111', points: [point] }];
+        const { rerender } = render(<CourseMap groups={groups} />);
+        await userEvent.click(screen.getByTestId('marker'));
+        expect(screen.getByTestId('popup')).toBeInTheDocument();
+
+        rerender(<CourseMap groups={[{ name: 'g', color: '#111', points: [{ ...point, name: 'New' }] }]} />);
+        expect(screen.queryByTestId('popup')).toBeNull();
+    });
+});
+
 describe('CourseMap legend', () => {
     const groups = [
         { name: 'alice', color: '#e74c3c', points: [{ id: 1, lat: 30, lon: -88, name: 'A' }] },

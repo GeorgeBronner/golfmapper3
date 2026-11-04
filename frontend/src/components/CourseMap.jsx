@@ -123,6 +123,10 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
         setSelected({ ...sel, key: clickCount.current });
     }, []);
 
+    // A popup for a point from an old set of groups (a layer switched edition
+    // or reloaded) would show stale data beside fresh ranks, so close it.
+    useEffect(() => { setSelected(null); }, [groups]);
+
     const visible = useMemo(
         () => groups.filter(group => !hidden.has(group.name)),
         [groups, hidden],
