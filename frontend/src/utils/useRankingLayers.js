@@ -68,7 +68,7 @@ export default function useRankingLayers({ firstOn = true } = {}) {
     const [layers, setLayers] = useState({});
     // The Best in State layer: off, all states or one list, an edition label, and a private-club filter.
     const [stateLayer, setStateLayer] = useState({ on: false, state: ALL_STATES, edition: null, publicOnly: false });
-    // Off by default: every list shows its newest edition and the edition pickers are hidden.
+    // Off by default: every list shows its newest edition and the year pickers are hidden.
     const [showOld, setShowOld] = useState(false);
     // layer key -> { group, ranks } once loaded.
     const [loaded, setLoaded] = useState({});

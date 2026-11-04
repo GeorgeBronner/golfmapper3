@@ -41,9 +41,7 @@ function RankingLayersBar({ ui }) {
                         >
                             {list.editions.map(ed => <option key={ed.id} value={ed.id}>{ed.label}</option>)}
                         </select>
-                    ) : (
-                        <span className="map-rankings-edition">{list.editions[0].label}</span>
-                    )}
+                    ) : null}
                     {layers[list.id]?.on && failed.has(layerKey(list.id, layers[list.id].editionId)) && (
                         <span role="alert">⚠ couldn't load</span>
                     )}
@@ -75,9 +73,7 @@ function RankingLayersBar({ ui }) {
                         >
                             {stateEditions.map(label => <option key={label} value={label}>{label}</option>)}
                         </select>
-                    ) : (
-                        <span className="map-rankings-edition">{stateEdition}</span>
-                    )}
+                    ) : null}
                     <label>
                         <input
                             type="checkbox"
@@ -95,7 +91,7 @@ function RankingLayersBar({ ui }) {
             {hasOldLists && (
                 <label className="map-rankings-old">
                     <input type="checkbox" checked={showOld} onChange={e => setShowOld(e.target.checked)} />{' '}
-                    Show old lists
+                    Show old years
                 </label>
             )}
             </div>
