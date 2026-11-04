@@ -84,8 +84,15 @@ const GroupMarkers = memo(function GroupMarkers({ group, clustered, onSelect }) 
 });
 
 function Legend({ groups, hidden, onToggle }) {
+    // On phones the legend starts collapsed to a small chip (CSS only; desktop always lists it).
+    const [open, setOpen] = useState(false);
     return (
-        <div className="course-map-legend">
+        <div className={`course-map-legend${open ? ' open' : ''}`}>
+            <button type="button" className="course-map-legend-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+                <span>Legend</span>
+                {groups.map(g => <span key={g.name} className="course-map-legend-dot" style={{ background: g.color }} />)}
+                <span aria-hidden="true">{open ? '▴' : '▾'}</span>
+            </button>
             {groups.map(group => (
                 <label key={group.name} className="course-map-legend-item">
                     <input

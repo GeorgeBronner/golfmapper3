@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-    buildStats, buildBestInState, buildJourney, defaultBestInStateCode, entriesIn, gapRows,
+    buildStats, buildBestInState, buildJourney, defaultBestInStateCode, entriesIn, playedRows,
     playedInState, sortBestInState, tierCell, RANK_TIERS, listShortName, isStateList,
 } from './statsData';
 
@@ -86,20 +86,20 @@ describe('lists', () => {
     });
 });
 
-describe('gapRows', () => {
-    const list = {
-        byState: { AA: { ranked: 5, played: 1 }, BB: { ranked: 2, played: 2 }, CC: { ranked: 4, played: 0 }, DD: { ranked: 4, played: 0 } },
-        byCountry: { GBR: { ranked: 42, played: 7 }, IRL: { ranked: 11, played: 2 } },
+describe('playedRows', () => {
+    const stats = {
+        byState: { AA: 3, BB: 9, CC: 3, DD: 1 },
+        byCountry: { USA: 200, GBR: 7, IRL: 2 },
     };
-    it('orders by most left to play, then code, and drops places with nothing left', () => {
-        expect(gapRows(list, false).map(r => [r.code, r.left])).toEqual([['AA', 4], ['CC', 4], ['DD', 4]]);
+    it('orders by most played, then code', () => {
+        expect(playedRows(stats, false).map(r => [r.code, r.played])).toEqual([['BB', 9], ['AA', 3], ['CC', 3], ['DD', 1]]);
     });
     it('uses countries for the World list', () => {
-        expect(gapRows(list, true).map(r => r.code)).toEqual(['GBR', 'IRL']);
+        expect(playedRows(stats, true).map(r => r.code)).toEqual(['USA', 'GBR', 'IRL']);
     });
     it('keeps six', () => {
-        const byState = Object.fromEntries(['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(c => [c, { ranked: 3, played: 0 }]));
-        expect(gapRows({ byState, byCountry: {} }, false)).toHaveLength(6);
+        const byState = Object.fromEntries(['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((c, i) => [c, i + 1]));
+        expect(playedRows({ byState, byCountry: {} }, false)).toHaveLength(6);
     });
 });
 

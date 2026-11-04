@@ -122,6 +122,7 @@ describe('AllUsersMap best in state', () => {
         render(<AllUsersMap />);
         await screen.findByLabelText('Best in State state');
         await user.selectOptions(screen.getByLabelText('Best in State state'), '22');
+        await user.click(screen.getByLabelText('Show old years'));
         await user.selectOptions(screen.getByLabelText('Best in State edition'), '2023-24');
         await user.click(screen.getByLabelText('Best in State'));
 

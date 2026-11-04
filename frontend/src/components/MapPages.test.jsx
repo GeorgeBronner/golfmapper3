@@ -92,6 +92,39 @@ describe('AllUsersMap', () => {
         expect(api.get).not.toHaveBeenCalledWith('/map/rankings/8/points', expect.anything());
     });
 
+    it('hides the edition pickers until "Show old years" is on, and goes back to the newest when it is turned off', async () => {
+        api.get.mockImplementation(mockApi({ 7: { 71: [[2, 31, -87, 'Pebble', 2025, 1, null]], 70: [[3, 32, -86, 'Erin', 2023, 1, null]] } }));
+        const user = userEvent.setup();
+        render(<AllUsersMap />);
+        await screen.findByText(/US Public 2025-26: Pebble/);
+        expect(screen.getByLabelText('Show old years')).not.toBeChecked();
+        expect(screen.queryByLabelText('US Public edition')).toBeNull();
+
+        await user.click(screen.getByLabelText('Show old years'));
+        await user.selectOptions(screen.getByLabelText('US Public edition'), '70');
+        expect(await screen.findByText(/US Public 2023-24: Erin/)).toBeInTheDocument();
+
+        await user.click(screen.getByLabelText('Show old years'));
+        expect(await screen.findByText(/US Public 2025-26: Pebble/)).toBeInTheDocument();
+        expect(screen.queryByLabelText('US Public edition')).toBeNull();
+    });
+
+    it('reports a failed load of the newest edition after turning Show old years off', async () => {
+        // Only the old edition loads; the newest (71) rejects.
+        api.get.mockImplementation(mockApi({ 7: { 70: [[3, 32, -86, 'Erin', 2023, 1, null]] } }));
+        const user = userEvent.setup();
+        render(<AllUsersMap />);
+        expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load");
+
+        await user.click(screen.getByLabelText('Show old years'));
+        await user.selectOptions(screen.getByLabelText('US Public edition'), '70');
+        expect(await screen.findByText(/US Public 2023-24: Erin/)).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).toBeNull();
+
+        await user.click(screen.getByLabelText('Show old years'));
+        expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load");
+    });
+
     it('adds another list and switches editions from the rankings bar', async () => {
         api.get.mockImplementation(mockApi({
             7: { 71: [[2, 31, -87, 'Pebble', 2025, 1, null]], 70: [[3, 32, -86, 'Erin', 2023, 1, null]] },
@@ -104,6 +137,7 @@ describe('AllUsersMap', () => {
         await user.click(screen.getByLabelText('World'));
         expect(await screen.findByText(/World 2026-27: St Andrews/)).toBeInTheDocument();
 
+        await user.click(screen.getByLabelText('Show old years'));
         await user.selectOptions(screen.getByLabelText('US Public edition'), '70');
         expect(await screen.findByText(/US Public 2023-24: Erin/)).toBeInTheDocument();
         expect(screen.queryByText(/US Public 2025-26/)).toBeNull();

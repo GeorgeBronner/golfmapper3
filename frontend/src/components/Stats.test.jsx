@@ -117,13 +117,13 @@ describe('Stats overview', () => {
         expect(screen.getByText('Erin Hills')).toBeInTheDocument();
         // Clicking the same state again, or Close, returns to the gaps card.
         fireEvent.click(screen.getByRole('button', { name: 'close ✕' }));
-        expect(screen.getByText('Most still to play, by state')).toBeInTheDocument();
+        expect(screen.getByText('Total played in each state')).toBeInTheDocument();
     });
 
     it('lists the courses you have played in a state on the Courses layer', async () => {
         mockApi();
         render(<Stats />);
-        fireEvent.click(await screen.findByRole('button', { name: 'Courses' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'All Courses' }));
         fireEvent.click(screen.getByTitle('California: 1 course'));
         expect(await screen.findByText('California · played')).toBeInTheDocument();
         expect(screen.getByText('2019')).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('Stats overview', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'World' }));
         expect(await screen.findByTitle('Ireland: 0 of 11 ranked courses played')).toBeInTheDocument();
         expect(screen.queryByTitle(/^Kentucky/)).not.toBeInTheDocument();
-        expect(screen.getByText('Most still to play, by country')).toBeInTheDocument();
+        expect(screen.getByText('Total played in each country')).toBeInTheDocument();
         fireEvent.click(screen.getByTitle('Ireland: 0 of 11 ranked courses played'));
         expect(await screen.findByText('Ballybunion Golf Club: Old')).toBeInTheDocument();
     });

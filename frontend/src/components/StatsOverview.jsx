@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { STATE_CODES, STATE_NAMES } from '../utils/usStates';
-import { countryName, entriesIn, gapRows, playedInState } from '../utils/statsData';
+import { countryName, entriesIn, playedInState, playedRows } from '../utils/statsData';
 import { StatCard, StatTile, Ring, HBar, Seg, StateMap, CountryTiles, YearColumns } from './StatsParts';
 
 // Shorten "Club - Course" display names to the course part for tight rows.
@@ -51,6 +51,7 @@ function PlaceCard({ layer, code, courses, entries, bis, world, listName, label,
     }
     return (
         <StatCard
+            className="stats-place"
             title={title}
             aside={<>{total != null ? `${played}/${total} played` : `${played} played`} · <button type="button" className="stats-link" onClick={onClose}>close ✕</button></>}
         >
@@ -80,8 +81,8 @@ export default function StatsOverview({ stats, courses, list, listName, entries,
     const toggle = (code) => setSelected(prev => (prev === code ? null : code));
 
     const countryMap = t && world && layer === 'list';
-    const gaps = t ? gapRows(t, world) : [];
-    const maxLeft = Math.max(...gaps.map(g => g.left), 1);
+    const topPlaces = playedRows(stats, world);
+    const maxPlayed = Math.max(...topPlaces.map(g => g.played), 1);
     const place = selected && (layer !== 'list' || entries) && (layer !== 'bis' || bis);
 
     return (
@@ -100,7 +101,7 @@ export default function StatsOverview({ stats, courses, list, listName, entries,
             <div className="stats-grid stats-wide">
                 <StatCard
                     title="Where you've played"
-                    aside={t && <Seg label="Map layer" value={layer} onChange={changeLayer} options={[['courses', 'Courses'], ['list', listName], ['bis', 'Best in State']]} />}
+                    aside={t && <Seg label="Map layer" value={layer} onChange={changeLayer} options={[['courses', 'All Courses'], ['list', list?.scope === 'us-public' ? 'Top 100 Public' : listName], ['bis', 'Best in State']]} />}
                 >
                     {layer === 'bis' && !bis && <div className="stats-muted">Loading Best in State…</div>}
                     {countryMap
@@ -115,7 +116,7 @@ export default function StatsOverview({ stats, courses, list, listName, entries,
                 </StatCard>
 
                 {t && (
-                    <div className="stats-stack">
+                    <div className={`stats-stack ${place ? 'stats-stack-fill' : ''}`.trim()}>
                         <StatCard title={`${listName} progress`} aside={t.label}>
                             <div className="stats-row">
                                 <Ring pct={t.size ? t.played / t.size : 0}>
@@ -136,10 +137,10 @@ export default function StatsOverview({ stats, courses, list, listName, entries,
                         {place
                             ? <PlaceCard layer={layer} code={selected} courses={courses} entries={entries ?? []} bis={bis} world={world} listName={listName} label={t.label} onClose={() => setSelected(null)} />
                             : (
-                                <StatCard title={`Most still to play, by ${world ? 'country' : 'state'}`} aside="left to play">
-                                    {gaps.length === 0 && <div className="stats-muted">Nothing left to play here.</div>}
-                                    {gaps.map(g => (
-                                        <HBar key={g.code} label={world ? countryName(g.code) : g.code} value={g.left} max={maxLeft} right={`${g.left} left`} />
+                                <StatCard title={`Total played in each ${world ? 'country' : 'state'}`} aside="courses played">
+                                    {topPlaces.length === 0 && <div className="stats-muted">No courses played yet.</div>}
+                                    {topPlaces.map(g => (
+                                        <HBar key={g.code} label={world ? countryName(g.code) : g.code} value={g.played} max={maxPlayed} right={g.played} />
                                     ))}
                                 </StatCard>
                             )}
