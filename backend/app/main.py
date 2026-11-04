@@ -58,6 +58,7 @@ if sentry_sdk_available and settings.SENTRY_DSN:
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
 ensure_columns("users", {"token_version": "INTEGER NOT NULL DEFAULT 0"})
+ensure_columns("ranking_entries", {"rank_label": "VARCHAR"})
 # create_all only creates the partial unique index below on fresh databases;
 # this backfills it onto ones that predate it (see ensure_index's docstring).
 ensure_index(

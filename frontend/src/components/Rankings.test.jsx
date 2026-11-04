@@ -31,6 +31,18 @@ describe('Rankings', () => {
         expect(api.get).toHaveBeenCalledWith('/rankings/editions/2');
     });
 
+    it('shows a tied rank as printed', async () => {
+        api.get.mockImplementation(url => Promise.resolve({
+            data: url === '/rankings' ? lists : {
+                label: '2025-26',
+                entries: [{ rank: 54, rank_label: 'T53', prior_rank: 'N', course_id: 10, name: 'St Georges Hill', published_name: 'St George', city: 'Weybridge', state: 'SRY', played: false }],
+            },
+        }));
+        render(<Rankings />);
+        expect(await screen.findByText('T53')).toBeInTheDocument();
+        expect(screen.queryByText('54')).not.toBeInTheDocument();
+    });
+
     it('loads another edition when selected', async () => {
         render(<Rankings />);
         await screen.findByText('1 / 2');

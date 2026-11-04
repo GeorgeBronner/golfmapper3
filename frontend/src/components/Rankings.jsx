@@ -105,7 +105,7 @@ function Rankings() {
                         <tbody>
                             {entries.map(e => (
                                 <tr key={e.rank}>
-                                    <td>{e.rank}</td>
+                                    <td>{e.rank_label || e.rank}</td>
                                     <td>{e.prior_rank ?? '—'}</td>
                                     <td title={e.published_name !== e.name ? e.published_name : undefined}>{e.name}</td>
                                     <td>{e.city}</td>

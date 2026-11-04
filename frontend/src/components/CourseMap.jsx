@@ -41,13 +41,16 @@ function FitToPoints({ points }) {
 
 // Course names are user-supplied: render them as React text, never as HTML.
 export function CoursePopupContent({ point, rank }) {
+    const rankings = rank ? [].concat(rank) : [];
     return (
         <div className="course-popup">
             <div className="course-popup-name">{point.name}</div>
             <div className="course-popup-meta">
                 {point.year ? `${point.year} · ` : ''}#{point.id}
             </div>
-            {rank && <div className="course-popup-meta">{rank.label}: #{rank.rank}</div>}
+            {rankings.map(r => (
+                <div key={r.label} className="course-popup-meta">{r.label}: {r.tied || `#${r.rank}`}</div>
+            ))}
         </div>
     );
 }
@@ -103,7 +106,8 @@ function Legend({ groups, hidden, onToggle }) {
  *
  * groups: [{ name, color, points: [{ id, lat, lon, name, year? }] }]
  * cluster: force clustering on/off; defaults to on above AUTO_CLUSTER_THRESHOLD points.
- * ranks: optional { [courseId]: { rank, label } } shown in the popup.
+ * ranks: optional { [courseId]: { rank, label, tied? } or an array of them } shown in the popup;
+ *        `tied` is the printed rank of a tied entry ("T53").
  */
 export default function CourseMap({ groups, cluster, fitToPoints = false, showLegend = false, ranks = null }) {
     const [hidden, setHidden] = useState(() => new Set());
@@ -118,6 +122,10 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
         clickCount.current += 1;
         setSelected({ ...sel, key: clickCount.current });
     }, []);
+
+    // A popup for a point from an old set of groups (a layer switched edition
+    // or reloaded) would show stale data beside fresh ranks, so close it.
+    useEffect(() => { setSelected(null); }, [groups]);
 
     const visible = useMemo(
         () => groups.filter(group => !hidden.has(group.name)),

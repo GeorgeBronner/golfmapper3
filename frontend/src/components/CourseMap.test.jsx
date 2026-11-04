@@ -50,6 +50,33 @@ describe('CoursePopupContent', () => {
         );
         expect(screen.getByText('Golf Digest 2025-26: #12')).toBeInTheDocument();
     });
+
+    it('shows a tied rank as printed and one line per ranking', () => {
+        render(
+            <CoursePopupContent
+                point={{ id: 7, lat: 1, lon: 2, name: 'A' }}
+                rank={[
+                    { rank: 54, label: 'World 2026-27', tied: 'T53' },
+                    { rank: 3, label: 'US Public 2025-26' },
+                ]}
+            />
+        );
+        expect(screen.getByText('World 2026-27: T53')).toBeInTheDocument();
+        expect(screen.getByText('US Public 2025-26: #3')).toBeInTheDocument();
+    });
+});
+
+describe('CourseMap popup', () => {
+    it('closes when the groups change, so it never shows stale points', async () => {
+        const point = { id: 1, lat: 30, lon: -88, name: 'Old', year: 2020 };
+        const groups = [{ name: 'g', color: '#111', points: [point] }];
+        const { rerender } = render(<CourseMap groups={groups} />);
+        await userEvent.click(screen.getByTestId('marker'));
+        expect(screen.getByTestId('popup')).toBeInTheDocument();
+
+        rerender(<CourseMap groups={[{ name: 'g', color: '#111', points: [{ ...point, name: 'New' }] }]} />);
+        expect(screen.queryByTestId('popup')).toBeNull();
+    });
 });
 
 describe('CourseMap legend', () => {

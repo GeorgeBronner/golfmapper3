@@ -14,7 +14,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import Column, Float, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -59,8 +59,8 @@ class CourseCreate(BaseModel):
     city: str
     state: StateCode = ""
     country: CountryCode
-    latitude: float
-    longitude: float
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
 
     @model_validator(mode="after")
     def state_matches_country(self):
@@ -472,7 +472,11 @@ HTML_TEMPLATE = """
         }
 
         async function onMapClick(e) {
-            const { lat, lng } = e.latlng;
+            // Panning across the antimeridian gives longitudes beyond +/-180
+            // (wrapped world copies). The marker stays where the user clicked;
+            // the form, geocode and submitted value use the wrapped longitude.
+            const { lat, lng: clickedLng } = e.latlng;
+            const lng = e.latlng.wrap().lng;
 
             // Remove previous marker if exists
             if (currentMarker) {
@@ -480,7 +484,7 @@ HTML_TEMPLATE = """
             }
 
             // Add new marker
-            currentMarker = L.marker([lat, lng]).addTo(map);
+            currentMarker = L.marker([lat, clickedLng]).addTo(map);
 
             // Create popup content
             const popupContent = createPopupForm(lat, lng);
@@ -489,7 +493,7 @@ HTML_TEMPLATE = """
                 autoClose: false,
                 closeOnClick: false
             })
-                .setLatLng([lat, lng])
+                .setLatLng([lat, clickedLng])
                 .setContent(popupContent)
                 .openOn(map);
 

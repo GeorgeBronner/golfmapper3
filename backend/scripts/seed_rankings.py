@@ -1,4 +1,7 @@
-"""Seed ranking lists, editions and entries from plans/top100-lists/*.csv.
+"""Seed ranking lists, editions and entries from plans/top100-lists.
+
+Reads the us-public files in the folder itself and each list subfolder named in
+LIST_DIRS (us-all, world). best-in-state is not seeded yet.
 
 Safe to re-run: lists match on slug and editions on (list, label) and are
 updated in place; an edition's entries are replaced wholesale, so a corrected
@@ -18,7 +21,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -34,7 +37,22 @@ LISTS = {
         "scope": "us-public",
         "size": 100,
     },
+    "golf-digest-us-all": {
+        "name": "America's 100 Greatest Golf Courses",
+        "publisher": "Golf Digest",
+        "scope": "us-all",
+        "size": 100,
+    },
+    "golf-digest-world": {
+        "name": "World's 100 Greatest Golf Courses",
+        "publisher": "Golf Digest",
+        "scope": "world",
+        "size": 100,
+    },
 }
+
+# Folders under the data dir that hold their own editions.csv and course-matches.csv.
+LIST_DIRS = ("us-all", "world")
 
 
 def _read(path: Path) -> list[dict]:
@@ -46,12 +64,24 @@ def _float(value: str) -> float | None:
     return float(value) if value.strip() else None
 
 
-def seed(db, data_dir: Path) -> dict:
+def _rank(printed: str, position: int) -> tuple[int, str | None]:
+    """(rank, rank_label) for a printed rank. Ties print as "T53" and the ranks they
+    skip are not printed, so a tied entry takes its 1-based position in the file."""
+    printed = printed.strip()
+    if printed.isdigit():
+        return int(printed), None
+    return position, printed
+
+
+def _seed_dir(db, data_dir: Path, counts: dict) -> None:
     for name in ("course-matches.csv", "editions.csv"):
         if not (data_dir / name).is_file():
             raise SystemExit(f"{data_dir / name} not found; pass --data-dir")
-    matches = {(m["edition"], int(m["rank"])): int(m["course_id"]) for m in _read(data_dir / "course-matches.csv")}
-    counts = {"lists": 0, "editions": 0, "entries": 0, "skipped": 0}
+    # Tied entries share a printed rank, so the course name is part of the key.
+    matches = {
+        (m["edition"], m["rank"].strip(), m["published_course"].strip()): int(m["course_id"])
+        for m in _read(data_dir / "course-matches.csv")
+    }
 
     for ed in _read(data_dir / "editions.csv"):
         meta = LISTS.get(ed["list"])
@@ -76,26 +106,41 @@ def seed(db, data_dir: Path) -> dict:
         db.flush()
 
         db.query(RankingEntries).filter_by(edition_id=edition.id).delete()
-        for row in _read(data_dir / ed["file"]):
-            rank = int(row["rank"])
-            if not row["course"].strip():
-                counts["skipped"] += 1  # 2021-22 rank 54 is unknown
+        seen_ranks: set[int] = set()
+        for position, row in enumerate(_read(data_dir / ed["file"]), start=1):
+            course = row["course"].strip()
+            if not course:
+                counts["skipped"] += 1  # 2021-22 rank 54 was pulled by Golf Digest (private)
                 continue
-            course_id = matches.get((ed["edition"], rank))
+            printed = row["rank"].strip()
+            course_id = matches.get((ed["edition"], printed, course))
             if course_id is None:
-                raise SystemExit(f"course-matches.csv has no match for {ed['edition']} rank {rank} ({row['course']})")
+                raise SystemExit(f"course-matches.csv has no match for {ed['edition']} rank {printed} ({course})")
+            rank, rank_label = _rank(printed, position)
+            if rank in seen_ranks:
+                raise SystemExit(f"{ed['edition']}: rank {rank} used twice (at {printed!r}, {course}); check the ties")
+            seen_ranks.add(rank)
             db.add(
                 RankingEntries(
                     edition_id=edition.id,
                     rank=rank,
+                    rank_label=rank_label,
                     course_id=course_id,
                     prior_rank=row["prior_rank"].strip() or None,
-                    published_name=row["course"].strip(),
-                    points=_float(row["points"]),
+                    published_name=course,
+                    points=_float(row.get("points") or ""),
                 )
             )
             counts["entries"] += 1
         db.flush()
+
+
+def seed(db, data_dir: Path) -> dict:
+    counts = {"lists": 0, "editions": 0, "entries": 0, "skipped": 0}
+    _seed_dir(db, data_dir, counts)
+    for sub in LIST_DIRS:
+        if (data_dir / sub).is_dir():
+            _seed_dir(db, data_dir / sub, counts)
 
     missing = (
         db.query(RankingEntries.course_id)
@@ -106,6 +151,15 @@ def seed(db, data_dir: Path) -> dict:
     if missing:
         raise SystemExit(f"{missing} entries point at courses that do not exist")
     return counts
+
+
+def _add_missing_columns(engine) -> None:
+    """create_all never alters existing tables; the app does this at startup, but the
+    seed may run on a database file that has not been started with the new code."""
+    existing = {c["name"] for c in inspect(engine).get_columns("ranking_entries")}
+    if "rank_label" not in existing:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE ranking_entries ADD COLUMN rank_label VARCHAR"))
 
 
 def main():
@@ -124,6 +178,7 @@ def main():
             shutil.copyfile(args.db_path, db_path)
         engine = create_engine(f"sqlite:///{db_path}")
         Base.metadata.create_all(bind=engine)
+        _add_missing_columns(engine)
         with sessionmaker(bind=engine)() as db:
             counts = seed(db, args.data_dir)
             if args.dry_run:

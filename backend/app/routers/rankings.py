@@ -78,6 +78,7 @@ def edition_entries(request: Request, edition_id: int, user: user_dependency, db
         "entries": [
             {
                 "rank": entry.rank,
+                "rank_label": entry.rank_label,
                 "prior_rank": entry.prior_rank,
                 "published_name": entry.published_name,
                 "points": entry.points,
@@ -111,6 +112,7 @@ def course_history(request: Request, course_id: int, user: user_dependency, db: 
             "edition": edition.label,
             "start_year": edition.start_year,
             "rank": entry.rank,
+            "rank_label": entry.rank_label,
             "prior_rank": entry.prior_rank,
             "published_name": entry.published_name,
             "points": entry.points,

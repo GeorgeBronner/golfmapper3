@@ -205,7 +205,10 @@ class RankingEntries(Base):
     id = Column(Integer, primary_key=True)
     edition_id = Column(Integer, ForeignKey("ranking_editions.id"), nullable=False, index=True)
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False, index=True)
+    # Unique per edition. Tied entries get consecutive ranks in list order, and
+    # rank_label keeps what was printed ("T53") so the tie is not lost.
     rank = Column(Integer, nullable=False)
+    rank_label = Column(String, nullable=True)  # only set for ties
     prior_rank = Column(String, nullable=True)  # as printed: "12", "T48", "NEW", "NR"
     # Names change between editions (Longaberger is now The Virtues).
     published_name = Column(String, nullable=False)

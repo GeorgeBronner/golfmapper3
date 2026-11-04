@@ -9,6 +9,9 @@ export function pointsFromCompact(fields, rows) {
     });
 }
 
+// Colors for ranking-list groups on the all-users map, by list order; gold first.
+export const RANKING_COLORS = ['#d4a017', '#0b7285', '#a61e4d', '#5f3dc4'];
+
 // Per-user colors on the all-users map, in user-id order.
 export const USER_COLORS = [
     '#e74c3c',
