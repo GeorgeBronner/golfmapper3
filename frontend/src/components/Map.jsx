@@ -46,7 +46,9 @@ function Map() {
         const unplayedGroups = [];
         const playedGroups = [];
         rankingLayers.groups.forEach(group => {
-            unplayedGroups.push({ ...group, points: group.points.filter(p => !played.has(p.id)) });
+            const unplayed = group.points.filter(p => !played.has(p.id));
+            // A layer the user has fully played has no unplayed dots, so no empty legend entry.
+            if (unplayed.length > 0) unplayedGroups.push({ ...group, points: unplayed });
             const mine = group.points.filter(p => played.has(p.id));
             if (mine.length > 0) playedGroups.push({ name: `${group.name} · played`, color: PLAYED_COLOR, points: mine });
         });

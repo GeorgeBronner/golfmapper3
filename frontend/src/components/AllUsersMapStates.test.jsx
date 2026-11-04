@@ -110,6 +110,26 @@ describe('AllUsersMap best in state', () => {
         expect(screen.getByTestId('course-map')).toHaveAttribute('data-focus', '1');
     });
 
+    it('says so when the chosen state has no list for the chosen edition', async () => {
+        const wyoming = {
+            id: 22, name: 'Best Courses in Wyoming', publisher: 'Golf Digest', scope: 'us-state-WY',
+            editions: [{ id: 221, label: '2025-26' }],  // no 2023-24
+        };
+        api.get.mockImplementation((url, config) => (
+            url === '/rankings' ? Promise.resolve({ data: [...lists, wyoming] }) : mockApi(url, config)
+        ));
+        const user = userEvent.setup();
+        render(<AllUsersMap />);
+        await screen.findByLabelText('Best in State state');
+        await user.selectOptions(screen.getByLabelText('Best in State state'), '22');
+        await user.selectOptions(screen.getByLabelText('Best in State edition'), '2023-24');
+        await user.click(screen.getByLabelText('Best in State'));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('no 2023-24 list for Wyoming');
+        expect(api.get).not.toHaveBeenCalledWith('/map/rankings/22/points', expect.anything());
+        expect(screen.queryByText(/Best Courses in Wyoming/, { selector: 'section' })).toBeNull();
+    });
+
     it('does not re-zoom when another layer is toggled', async () => {
         const user = userEvent.setup();
         render(<AllUsersMap />);

@@ -82,6 +82,21 @@ describe('My Map ranking layers', () => {
         expect(JSON.parse(screen.getByTestId('ranks').textContent)['2'][0]).toMatchObject({ rank: 2, label: 'US Public 2025-26' });
     });
 
+    it('leaves out the unplayed group when every course in a layer has been played', async () => {
+        api.get.mockImplementation((url, config) => (
+            url === '/map/rankings/7/points'
+                ? Promise.resolve({ data: { fields: rankFields, edition: '2025-26', points: [usPublic[0]] } })
+                : mockApi(url, config)
+        ));
+        const user = userEvent.setup();
+        render(<Map />);
+        await screen.findByText(/My courses:/);
+        await user.click(screen.getByLabelText('US Public'));
+        expect(await screen.findByText(/US Public 2025-26 · played: Pebble$/)).toBeInTheDocument();
+        // No empty "US Public 2025-26" group (and so no empty legend entry).
+        expect(screen.queryByText(/^US Public 2025-26:/)).toBeNull();
+    });
+
     it('shows the Best in State layer here too, and zooms to a single state', async () => {
         const user = userEvent.setup();
         render(<Map />);

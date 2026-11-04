@@ -7,7 +7,7 @@ import { ALL_STATES, layerKey, stateName } from '../utils/useRankingLayers';
 function RankingLayersBar({ ui }) {
     const {
         rankingLists, layers, setLayer, stateLists, stateLayer, patchState,
-        selectedState, stateEditions, stateEdition, failed, stateKey,
+        selectedState, stateEditions, stateEdition, stateEditionMissing, failed, stateKey,
     } = ui;
     if (rankingLists.length === 0 && stateLists.length === 0) return null;
 
@@ -70,6 +70,9 @@ function RankingLayersBar({ ui }) {
                         Public only
                     </label>
                     {stateLayer.on && stateKey && failed.has(stateKey) && <span role="alert">⚠ couldn't load</span>}
+                    {stateLayer.on && stateEditionMissing && (
+                        <span role="alert">⚠ no {stateEdition} list for {stateName(selectedState)}</span>
+                    )}
                 </div>
             )}
         </div>

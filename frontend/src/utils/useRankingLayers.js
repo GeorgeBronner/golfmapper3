@@ -92,6 +92,8 @@ export default function useRankingLayers({ firstOn = true } = {}) {
     }, [stateLists]);
     const stateEdition = stateEditions.includes(stateLayer.edition) ? stateLayer.edition : stateEditions[0];
     const selectedState = stateLists.find(l => String(l.id) === String(stateLayer.state)) ?? null;
+    const stateEditionMissing = !!selectedState && !!stateEdition
+        && !selectedState.editions.some(e => e.label === stateEdition);
 
     const refresh = useCallback(async () => {
         const callId = {};
@@ -115,8 +117,9 @@ export default function useRankingLayers({ firstOn = true } = {}) {
             })));
         }
         generation.current += 1;
-        requested.current = new Set();  // a refresh reloads the layers too
-        setLoaded({});
+        // A refresh reloads the layers too. The old layers stay drawn until the new data
+        // replaces them, so the map does not blank out and flicker.
+        requested.current = new Set();
         setFailed(new Set());
         setRefreshCount(n => n + 1);
     }, [firstOn]);
@@ -137,13 +140,14 @@ export default function useRankingLayers({ firstOn = true } = {}) {
         if (stateLayer.on && stateEdition) {
             if (selectedState) {
                 const editionId = selectedState.editions.find(e => e.label === stateEdition)?.id;
-                out.push({
-                    key: layerKey(selectedState.id, editionId),
-                    load: () => (editionId == null
-                        ? Promise.reject(new Error('edition not published for this state'))
-                        : loadLayer(selectedState, STATE_RANKING_COLOR, editionId)),
-                    state: true,
-                });
+                // A state without this edition has nothing to load; the bar says so.
+                if (editionId != null) {
+                    out.push({
+                        key: layerKey(selectedState.id, editionId),
+                        load: () => loadLayer(selectedState, STATE_RANKING_COLOR, editionId),
+                        state: true,
+                    });
+                }
             } else {
                 out.push({
                     key: `states:${stateEdition}`,
@@ -211,6 +215,7 @@ export default function useRankingLayers({ firstOn = true } = {}) {
         selectedState,
         stateEditions,
         stateEdition,
+        stateEditionMissing,
         failed,
         stateKey: stateDef?.key,
     };
