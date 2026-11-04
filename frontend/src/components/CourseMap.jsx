@@ -48,6 +48,7 @@ export function CoursePopupContent({ point, rank }) {
             <div className="course-popup-meta">
                 {point.year ? `${point.year} · ` : ''}#{point.id}
             </div>
+            {point.access && <div className="course-popup-meta">{point.access === 'private' ? 'Private' : 'Public'}</div>}
             {rankings.map(r => (
                 <div key={r.label} className="course-popup-meta">{r.label}: {r.tied || `#${r.rank}`}</div>
             ))}
@@ -106,10 +107,11 @@ function Legend({ groups, hidden, onToggle }) {
  *
  * groups: [{ name, color, points: [{ id, lat, lon, name, year? }] }]
  * cluster: force clustering on/off; defaults to on above AUTO_CLUSTER_THRESHOLD points.
+ * focusPoints: optional array of points to zoom the map to whenever the array changes (pass a stable reference).
  * ranks: optional { [courseId]: { rank, label, tied? } or an array of them } shown in the popup;
  *        `tied` is the printed rank of a tied entry ("T53").
  */
-export default function CourseMap({ groups, cluster, fitToPoints = false, showLegend = false, ranks = null }) {
+export default function CourseMap({ groups, cluster, fitToPoints = false, showLegend = false, ranks = null, focusPoints = null }) {
     const [hidden, setHidden] = useState(() => new Set());
     // A single shared popup rather than one per marker — at 15k markers,
     // per-marker Popup instances are a real memory/mount cost. Leaflet closes
@@ -168,7 +170,7 @@ export default function CourseMap({ groups, cluster, fitToPoints = false, showLe
                         <CoursePopupContent point={selected.point} rank={ranks?.[selected.point.id]} />
                     </Popup>
                 )}
-                {fitToPoints && <FitToPoints points={allPoints} />}
+                {(fitToPoints || focusPoints) && <FitToPoints points={focusPoints ?? allPoints} />}
             </MapContainer>
             {showLegend && groups.length > 0 && <Legend groups={groups} hidden={hidden} onToggle={toggle} />}
         </div>

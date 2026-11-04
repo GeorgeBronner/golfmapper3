@@ -43,6 +43,35 @@ describe('Rankings', () => {
         expect(screen.queryByText('54')).not.toBeInTheDocument();
     });
 
+    it('groups the state lists under one Best in State choice with a state picker', async () => {
+        const withStates = [
+            { ...lists[0], scope: 'us-public' },
+            { id: 3, name: 'Best Courses in Texas', publisher: 'Golf Digest', scope: 'us-state-TX', editions: [{ id: 31, label: '2025-26' }] },
+            { id: 4, name: 'Best Courses in Alabama', publisher: 'Golf Digest', scope: 'us-state-AL', editions: [{ id: 41, label: '2025-26' }] },
+        ];
+        api.get.mockImplementation(url => Promise.resolve({
+            data: url === '/rankings' ? withStates : {
+                label: '2025-26',
+                entries: [{ rank: 1, prior_rank: null, access: 'private', course_id: 10, name: 'Colonial', published_name: 'Colonial', city: 'Fort Worth', state: 'TX', played: false }],
+            },
+        }));
+        render(<Rankings />);
+        await screen.findByText('Colonial');  // starts on the first list
+        const group = screen.getByLabelText('Ranking list');
+        expect([...group.querySelectorAll('option')].map(o => o.textContent)).toEqual(['Top 100 Public', 'Best in State']);
+        expect(screen.queryByLabelText('State')).not.toBeInTheDocument();
+
+        fireEvent.change(group, { target: { value: 'states' } });
+        const state = await screen.findByLabelText('State');
+        expect([...state.querySelectorAll('option')].map(o => o.textContent)).toEqual(['Alabama', 'Texas']);
+        expect(api.get).toHaveBeenCalledWith('/rankings/editions/41');  // alphabetical: Alabama first
+        expect(screen.getByText('private')).toBeInTheDocument();  // the Access column appears
+
+        fireEvent.change(state, { target: { value: '3' } });
+        await screen.findByText('Colonial');
+        expect(api.get).toHaveBeenCalledWith('/rankings/editions/31');
+    });
+
     it('loads another edition when selected', async () => {
         render(<Rankings />);
         await screen.findByText('1 / 2');

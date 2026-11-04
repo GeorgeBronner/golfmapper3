@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 
+// Each state's Best in State list is its own list; the page shows them under one
+// "Best in State" choice with a state picker.
+const isStateList = list => list.scope?.startsWith('us-state-');
+const stateName = list => list.name.replace(/^Best Courses in /, '');
+const STATES = 'states';
+
 function Rankings() {
     const [lists, setLists] = useState([]);
     const [listId, setListId] = useState(null);
@@ -34,6 +40,8 @@ function Rankings() {
     }, [editionId]);
 
     const list = lists.find(l => l.id === listId);
+    const regularLists = lists.filter(l => !isStateList(l));
+    const stateLists = lists.filter(isStateList).sort((a, b) => stateName(a).localeCompare(stateName(b)));
 
     const changeList = (id) => {
         const next = lists.find(l => l.id === id);
@@ -41,6 +49,8 @@ function Rankings() {
         setListId(id);
         setEditionId(next?.editions[0]?.id ?? null);
     };
+
+    const changeGroup = (value) => changeList(value === STATES ? stateLists[0].id : Number(value));
 
     if (loading) return <p className="loading-text">Loading rankings…</p>;
     if (!list) {
@@ -55,6 +65,7 @@ function Rankings() {
 
     const entries = edition?.entries ?? [];
     const played = entries.filter(e => e.played).length;
+    const hasAccess = entries.some(e => e.access);
 
     return (
         <div className="course-list">
@@ -66,8 +77,18 @@ function Rankings() {
                 </div>
                 <div className="page-header-actions">
                     {lists.length > 1 && (
-                        <select aria-label="Ranking list" value={listId} onChange={e => changeList(Number(e.target.value))}>
-                            {lists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        <select
+                            aria-label="Ranking list"
+                            value={isStateList(list) ? STATES : listId}
+                            onChange={e => changeGroup(e.target.value)}
+                        >
+                            {regularLists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                            {stateLists.length > 0 && <option value={STATES}>Best in State</option>}
+                        </select>
+                    )}
+                    {isStateList(list) && (
+                        <select aria-label="State" value={listId} onChange={e => changeList(Number(e.target.value))}>
+                            {stateLists.map(l => <option key={l.id} value={l.id}>{stateName(l)}</option>)}
                         </select>
                     )}
                     <select
@@ -99,6 +120,7 @@ function Rankings() {
                                 <th>Course</th>
                                 <th>City</th>
                                 <th>State</th>
+                                {hasAccess && <th>Access</th>}
                                 <th>Played</th>
                             </tr>
                         </thead>
@@ -110,6 +132,7 @@ function Rankings() {
                                     <td title={e.published_name !== e.name ? e.published_name : undefined}>{e.name}</td>
                                     <td>{e.city}</td>
                                     <td>{e.state}</td>
+                                    {hasAccess && <td>{e.access ?? ''}</td>}
                                     <td>{e.played ? '✓' : ''}</td>
                                 </tr>
                             ))}

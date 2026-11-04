@@ -1,7 +1,7 @@
 """Seed ranking lists, editions and entries from plans/top100-lists.
 
-Reads the us-public files in the folder itself and each list subfolder named in
-LIST_DIRS (us-all, world). best-in-state is not seeded yet.
+Reads the us-public files in the folder itself, each list subfolder named in
+LIST_DIRS (us-all, world), and best-in-state as one list per state.
 
 Safe to re-run: lists match on slug and editions on (list, label) and are
 updated in place; an edition's entries are replaced wholesale, so a corrected
@@ -54,6 +54,62 @@ LISTS = {
 # Folders under the data dir that hold their own editions.csv and course-matches.csv.
 LIST_DIRS = ("us-all", "world")
 
+# best-in-state is one ranking list per state (a unique rank per edition would
+# collide across states otherwise): slug golf-digest-best-in-state-<code>.
+STATE_DIR = "best-in-state"
+STATE_NAMES = {
+    "AL": "Alabama",
+    "AK": "Alaska",
+    "AZ": "Arizona",
+    "AR": "Arkansas",
+    "CA": "California",
+    "CO": "Colorado",
+    "CT": "Connecticut",
+    "DE": "Delaware",
+    "FL": "Florida",
+    "GA": "Georgia",
+    "HI": "Hawaii",
+    "ID": "Idaho",
+    "IL": "Illinois",
+    "IN": "Indiana",
+    "IA": "Iowa",
+    "KS": "Kansas",
+    "KY": "Kentucky",
+    "LA": "Louisiana",
+    "ME": "Maine",
+    "MD": "Maryland",
+    "MA": "Massachusetts",
+    "MI": "Michigan",
+    "MN": "Minnesota",
+    "MS": "Mississippi",
+    "MO": "Missouri",
+    "MT": "Montana",
+    "NE": "Nebraska",
+    "NV": "Nevada",
+    "NH": "New Hampshire",
+    "NJ": "New Jersey",
+    "NM": "New Mexico",
+    "NY": "New York",
+    "NC": "North Carolina",
+    "ND": "North Dakota",
+    "OH": "Ohio",
+    "OK": "Oklahoma",
+    "OR": "Oregon",
+    "PA": "Pennsylvania",
+    "RI": "Rhode Island",
+    "SC": "South Carolina",
+    "SD": "South Dakota",
+    "TN": "Tennessee",
+    "TX": "Texas",
+    "UT": "Utah",
+    "VT": "Vermont",
+    "VA": "Virginia",
+    "WA": "Washington",
+    "WV": "West Virginia",
+    "WI": "Wisconsin",
+    "WY": "Wyoming",
+}
+
 
 def _read(path: Path) -> list[dict]:
     with open(path, newline="", encoding="utf-8") as f:
@@ -73,6 +129,59 @@ def _rank(printed: str, position: int) -> tuple[int, str | None]:
     return position, printed
 
 
+def _state_ranks(rows: list[dict]) -> list[tuple[dict, int, str | None]]:
+    """(row, rank, rank_label) for one state's rows. The state pages print a tie as
+    the same number twice (FL 40, 40, then 42), so the extra entries take the next
+    rank numbers and every entry in the group keeps the label "T40"."""
+    by_rank: dict[int, list[dict]] = {}
+    for row in rows:
+        by_rank.setdefault(int(row["rank"]), []).append(row)
+    out = []
+    for printed, group in sorted(by_rank.items()):
+        for i, row in enumerate(group):
+            out.append((row, printed + i, f"T{printed}" if len(group) > 1 else None))
+    return out
+
+
+def _upsert_list(db, slug: str, meta: dict, counts: dict) -> RankingLists:
+    lst = db.query(RankingLists).filter_by(slug=slug).one_or_none()
+    if lst is None:
+        lst = RankingLists(slug=slug, **meta)
+        db.add(lst)
+        db.flush()
+        counts["lists"] += 1
+    return lst
+
+
+def _upsert_edition(db, lst: RankingLists, label: str, ed: dict, counts: dict) -> RankingEditions:
+    edition = db.query(RankingEditions).filter_by(list_id=lst.id, label=label).one_or_none()
+    if edition is None:
+        edition = RankingEditions(list_id=lst.id, label=label)
+        db.add(edition)
+        counts["editions"] += 1
+    edition.start_year = int(ed["start_year"])
+    edition.published_on = ed["published_on"] or None
+    edition.source_url = ed["source_url"] or None
+    edition.notes = ed["notes"] or None
+    db.flush()
+    return edition
+
+
+def _replace_entries(db, edition: RankingEditions, entries: list[dict], counts: dict) -> None:
+    """Replace an edition's entries wholesale. Each dict holds the RankingEntries fields."""
+    db.query(RankingEntries).filter_by(edition_id=edition.id).delete()
+    seen_ranks: set[int] = set()
+    for entry in entries:
+        if entry["rank"] in seen_ranks:
+            raise SystemExit(
+                f"{edition.label}: rank {entry['rank']} used twice ({entry['published_name']}); check the ties"
+            )
+        seen_ranks.add(entry["rank"])
+        db.add(RankingEntries(edition_id=edition.id, **entry))
+        counts["entries"] += 1
+    db.flush()
+
+
 def _seed_dir(db, data_dir: Path, counts: dict) -> None:
     for name in ("course-matches.csv", "editions.csv"):
         if not (data_dir / name).is_file():
@@ -87,26 +196,10 @@ def _seed_dir(db, data_dir: Path, counts: dict) -> None:
         meta = LISTS.get(ed["list"])
         if meta is None:
             raise SystemExit(f"editions.csv: unknown list slug {ed['list']!r}; add it to LISTS")
-        lst = db.query(RankingLists).filter_by(slug=ed["list"]).one_or_none()
-        if lst is None:
-            lst = RankingLists(slug=ed["list"], **meta)
-            db.add(lst)
-            db.flush()
-            counts["lists"] += 1
+        lst = _upsert_list(db, ed["list"], meta, counts)
+        edition = _upsert_edition(db, lst, ed["edition"], ed, counts)
 
-        edition = db.query(RankingEditions).filter_by(list_id=lst.id, label=ed["edition"]).one_or_none()
-        if edition is None:
-            edition = RankingEditions(list_id=lst.id, label=ed["edition"])
-            db.add(edition)
-            counts["editions"] += 1
-        edition.start_year = int(ed["start_year"])
-        edition.published_on = ed["published_on"] or None
-        edition.source_url = ed["source_url"] or None
-        edition.notes = ed["notes"] or None
-        db.flush()
-
-        db.query(RankingEntries).filter_by(edition_id=edition.id).delete()
-        seen_ranks: set[int] = set()
+        entries = []
         for position, row in enumerate(_read(data_dir / ed["file"]), start=1):
             course = row["course"].strip()
             if not course:
@@ -117,22 +210,63 @@ def _seed_dir(db, data_dir: Path, counts: dict) -> None:
             if course_id is None:
                 raise SystemExit(f"course-matches.csv has no match for {ed['edition']} rank {printed} ({course})")
             rank, rank_label = _rank(printed, position)
-            if rank in seen_ranks:
-                raise SystemExit(f"{ed['edition']}: rank {rank} used twice (at {printed!r}, {course}); check the ties")
-            seen_ranks.add(rank)
-            db.add(
-                RankingEntries(
-                    edition_id=edition.id,
-                    rank=rank,
-                    rank_label=rank_label,
-                    course_id=course_id,
-                    prior_rank=row["prior_rank"].strip() or None,
-                    published_name=course,
-                    points=_float(row.get("points") or ""),
-                )
+            entries.append(
+                {
+                    "rank": rank,
+                    "rank_label": rank_label,
+                    "course_id": course_id,
+                    "prior_rank": row["prior_rank"].strip() or None,
+                    "published_name": course,
+                    "points": _float(row.get("points") or ""),
+                    "access": (row.get("access") or "").strip() or None,
+                }
             )
-            counts["entries"] += 1
-        db.flush()
+        _replace_entries(db, edition, entries, counts)
+
+
+def _seed_states(db, data_dir: Path, counts: dict) -> None:
+    """Golf Digest Best in State: one file per edition holding every state, one list per state."""
+    matches = {
+        (m["edition"], m["group"], m["rank"].strip(), m["published_course"].strip()): int(m["course_id"])
+        for m in _read(data_dir / "course-matches.csv")
+    }
+    for editions_csv in sorted(data_dir.glob("editions-*.csv")):
+        for ed in _read(editions_csv):
+            label = ed["edition"].split(" ")[0]  # "2025-26 (25th)" -> "2025-26"
+            by_state: dict[str, list[dict]] = {}
+            for row in _read(data_dir / ed["file"]):
+                by_state.setdefault(row["state"], []).append(row)
+            for code in sorted(by_state):
+                if code not in STATE_NAMES:
+                    raise SystemExit(f"{ed['file']}: unknown state {code!r}")
+                meta = {
+                    "name": f"Best Courses in {STATE_NAMES[code]}",
+                    "publisher": "Golf Digest",
+                    "scope": f"us-state-{code}",
+                    "size": None,
+                }
+                lst = _upsert_list(db, f"golf-digest-best-in-state-{code.lower()}", meta, counts)
+                edition = _upsert_edition(db, lst, label, ed, counts)
+                entries = []
+                for row, rank, rank_label in _state_ranks(by_state[code]):
+                    course = row["course"].strip()
+                    course_id = matches.get((label, code, row["rank"].strip(), course))
+                    if course_id is None:
+                        raise SystemExit(
+                            f"course-matches.csv has no match for {label} {code} rank {row['rank']} ({course})"
+                        )
+                    entries.append(
+                        {
+                            "rank": rank,
+                            "rank_label": rank_label,
+                            "course_id": course_id,
+                            "prior_rank": row["prior_rank"].strip() or None,
+                            "published_name": course,
+                            "points": None,
+                            "access": row["access"].strip() or None,
+                        }
+                    )
+                _replace_entries(db, edition, entries, counts)
 
 
 def seed(db, data_dir: Path) -> dict:
@@ -141,6 +275,8 @@ def seed(db, data_dir: Path) -> dict:
     for sub in LIST_DIRS:
         if (data_dir / sub).is_dir():
             _seed_dir(db, data_dir / sub, counts)
+    if (data_dir / STATE_DIR).is_dir():
+        _seed_states(db, data_dir / STATE_DIR, counts)
 
     missing = (
         db.query(RankingEntries.course_id)
@@ -157,9 +293,10 @@ def _add_missing_columns(engine) -> None:
     """create_all never alters existing tables; the app does this at startup, but the
     seed may run on a database file that has not been started with the new code."""
     existing = {c["name"] for c in inspect(engine).get_columns("ranking_entries")}
-    if "rank_label" not in existing:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE ranking_entries ADD COLUMN rank_label VARCHAR"))
+    for name in ("rank_label", "access"):
+        if name not in existing:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE ranking_entries ADD COLUMN {name} VARCHAR"))
 
 
 def main():
