@@ -79,6 +79,7 @@ def edition_entries(request: Request, edition_id: int, user: user_dependency, db
             {
                 "rank": entry.rank,
                 "rank_label": entry.rank_label,
+                "access": entry.access,
                 "prior_rank": entry.prior_rank,
                 "published_name": entry.published_name,
                 "points": entry.points,

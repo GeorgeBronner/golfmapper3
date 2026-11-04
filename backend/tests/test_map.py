@@ -91,26 +91,6 @@ def test_all_points_groups_active_users(points_data):
     ]
 
 
-def test_all_points_skips_legacy_top100_user(points_data):
-    db = TestingSessionLocal()
-    db.add(
-        Users(
-            id=9,
-            email="t@mail.com",
-            username="top100",
-            first_name="t",
-            last_name="t",
-            hashed_password="x",
-            is_active=True,
-            role="user",
-        )
-    )
-    db.add(UserCourses(id=9, course_id=402, user_id=9, year=2025))
-    db.commit()
-    data = client.get("/api/v1/map/all_points").json()
-    assert [u["username"] for u in data["users"]] == ["alice", "bob"]
-
-
 @pytest.fixture
 def ranking_data(points_data):
     db = TestingSessionLocal()
@@ -122,7 +102,7 @@ def ranking_data(points_data):
             RankingEditions(id=2, list_id=1, label="2025-26", start_year=2025),
             # Old edition: must not appear. 403 has no coordinates: must be left out.
             RankingEntries(edition_id=1, course_id=401, rank=1, published_name="Old"),
-            RankingEntries(edition_id=2, course_id=402, rank=1, published_name="West"),
+            RankingEntries(edition_id=2, course_id=402, rank=1, access="public", published_name="West"),
             RankingEntries(edition_id=2, course_id=401, rank=2, rank_label="T2", published_name="Xss"),
             RankingEntries(edition_id=2, course_id=403, rank=3, published_name="Nowhere"),
         ]
@@ -140,13 +120,13 @@ def test_ranking_points_newest_edition_in_rank_order(ranking_data):
     response = client.get("/api/v1/map/rankings/1/points")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
-        "fields": ["id", "lat", "lon", "name", "year", "rank", "rank_label"],
+        "fields": ["id", "lat", "lon", "name", "year", "rank", "rank_label", "access"],
         "list": "Test List",
         "edition_id": 2,
         "edition": "2025-26",
         "points": [
-            [402, 31.0, -87.0, "Club - West", 2025, 1, None],
-            [401, 30.7405, -88.20578, XSS_NAME, 2025, 2, "T2"],
+            [402, 31.0, -87.0, "Club - West", 2025, 1, None, "public"],
+            [401, 30.7405, -88.20578, XSS_NAME, 2025, 2, "T2", None],
         ],
     }
 
@@ -154,7 +134,7 @@ def test_ranking_points_newest_edition_in_rank_order(ranking_data):
 def test_ranking_points_for_a_chosen_edition(ranking_data):
     data = client.get("/api/v1/map/rankings/1/points?edition_id=1").json()
     assert data["edition"] == "2023-24"
-    assert data["points"] == [[401, 30.7405, -88.20578, XSS_NAME, 2023, 1, None]]
+    assert data["points"] == [[401, 30.7405, -88.20578, XSS_NAME, 2023, 1, None, None]]
 
 
 def test_ranking_points_edition_of_another_list_is_404(ranking_data):
@@ -169,6 +149,62 @@ def test_ranking_points_list_without_editions(ranking_data):
 
 def test_ranking_points_unknown_list_is_404(ranking_data):
     assert client.get("/api/v1/map/rankings/99/points").status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.fixture
+def state_data(points_data):
+    """Two state lists (TX, AL) with 2023-24 and 2025-26 editions, plus a non-state list that must be ignored."""
+    db = TestingSessionLocal()
+    db.add_all(
+        [
+            RankingLists(id=10, slug="bis-tx", name="Best Courses in Texas", publisher="GD", scope="us-state-TX"),
+            RankingLists(id=11, slug="bis-al", name="Best Courses in Alabama", publisher="GD", scope="us-state-AL"),
+            RankingLists(id=12, slug="world", name="World", publisher="GD", scope="world", size=100),
+            RankingEditions(id=10, list_id=10, label="2023-24", start_year=2023),
+            RankingEditions(id=11, list_id=10, label="2025-26", start_year=2025),
+            RankingEditions(id=12, list_id=11, label="2025-26", start_year=2025),
+            RankingEditions(id=13, list_id=12, label="2026-27", start_year=2026),
+            RankingEntries(edition_id=10, course_id=401, rank=1, published_name="Old"),
+            RankingEntries(edition_id=11, course_id=401, rank=2, access="private", published_name="Xss"),
+            RankingEntries(edition_id=11, course_id=403, rank=1, published_name="Nowhere"),
+            RankingEntries(edition_id=12, course_id=402, rank=1, rank_label="T1", access="public", published_name="W"),
+            RankingEntries(edition_id=13, course_id=402, rank=5, published_name="World"),
+        ]
+    )
+    db.commit()
+    yield
+    with engine.connect() as con:
+        for table in ("ranking_entries", "ranking_editions", "ranking_lists"):
+            con.execute(text(f"DELETE FROM {table};"))
+        con.commit()
+
+
+def test_state_ranking_points_newest_edition_across_states(state_data):
+    response = client.get("/api/v1/map/rankings/states/points")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["fields"] == ["id", "lat", "lon", "name", "year", "rank", "rank_label", "access", "list"]
+    assert data["edition"] == "2025-26"  # the world list's 2026-27 is not a state list
+    # Ordered by state list name, then rank; 403 has no coordinates.
+    assert data["points"] == [
+        [402, 31.0, -87.0, "Club - West", 2025, 1, "T1", "public", "Best Courses in Alabama"],
+        [401, 30.7405, -88.20578, XSS_NAME, 2025, 2, None, "private", "Best Courses in Texas"],
+    ]
+
+
+def test_state_ranking_points_for_an_older_edition(state_data):
+    data = client.get("/api/v1/map/rankings/states/points?edition=2023-24").json()
+    assert data["edition"] == "2023-24"
+    assert [p[0] for p in data["points"]] == [401]
+
+
+def test_state_ranking_points_unknown_edition_is_404(state_data):
+    assert client.get("/api/v1/map/rankings/states/points?edition=1999-00").status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_state_ranking_points_without_state_lists(points_data):
+    data = client.get("/api/v1/map/rankings/states/points").json()
+    assert data["edition"] is None and data["points"] == []
 
 
 def test_dedupe_keeps_one_point_per_course_with_latest_year():

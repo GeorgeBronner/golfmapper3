@@ -51,6 +51,16 @@ describe('CoursePopupContent', () => {
         expect(screen.getByText('Golf Digest 2025-26: #12')).toBeInTheDocument();
     });
 
+    it('shows whether a ranked course is public or private when the list says', () => {
+        const { rerender } = render(<CoursePopupContent point={{ id: 7, lat: 1, lon: 2, name: 'A', access: 'private' }} />);
+        expect(screen.getByText('Private')).toBeInTheDocument();
+        rerender(<CoursePopupContent point={{ id: 7, lat: 1, lon: 2, name: 'A', access: 'public' }} />);
+        expect(screen.getByText('Public')).toBeInTheDocument();
+        rerender(<CoursePopupContent point={{ id: 7, lat: 1, lon: 2, name: 'A', access: null }} />);
+        expect(screen.queryByText('Public')).toBeNull();
+        expect(screen.queryByText('Private')).toBeNull();
+    });
+
     it('shows a tied rank as printed and one line per ranking', () => {
         render(
             <CoursePopupContent

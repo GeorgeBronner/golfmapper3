@@ -209,6 +209,7 @@ class RankingEntries(Base):
     # rank_label keeps what was printed ("T53") so the tie is not lost.
     rank = Column(Integer, nullable=False)
     rank_label = Column(String, nullable=True)  # only set for ties
+    access = Column(String, nullable=True)  # "public" | "private" as printed; blank when not stated
     prior_rank = Column(String, nullable=True)  # as printed: "12", "T48", "NEW", "NR"
     # Names change between editions (Longaberger is now The Virtues).
     published_name = Column(String, nullable=False)

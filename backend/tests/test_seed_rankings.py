@@ -110,6 +110,83 @@ def test_add_missing_columns_upgrades_a_legacy_table():
         conn.execute(text("INSERT INTO ranking_entries (id, rank) VALUES (1, 5)"))
     _add_missing_columns(engine)
     _add_missing_columns(engine)  # idempotent
-    assert "rank_label" in {c["name"] for c in inspect(engine).get_columns("ranking_entries")}
+    assert {"rank_label", "access"} <= {c["name"] for c in inspect(engine).get_columns("ranking_entries")}
     with engine.connect() as conn:
-        assert conn.execute(text("SELECT rank, rank_label FROM ranking_entries")).one() == (5, None)
+        assert conn.execute(text("SELECT rank, rank_label, access FROM ranking_entries")).one() == (5, None, None)
+
+
+# ── best-in-state ─────────────────────────────────────────────────────────────
+
+STATE_HEADER = "state,rank,prior_rank,course,city,city_state,access,panelists\n"
+
+
+def _state_dir(tmp_path: Path) -> Path:
+    state = tmp_path / "best-in-state"
+    state.mkdir()
+    _write(
+        state / "editions-2025-26.csv",
+        EDITIONS_HEADER + "golf-digest-best-in-state,2025-26 (25th),2025,2025-05-29,http://x,states.csv,\n",
+    )
+    # TX prints rank 2 twice (no 3) and is not in rank order; AL has one row with no access label.
+    _write(
+        state / "states.csv",
+        STATE_HEADER
+        + "TX,2,NR,Second,x,x,private,\n"
+        + "TX,1,1,First,x,x,public,\n"
+        + "TX,2,3,Also Second,x,x,private,\n"
+        + "TX,4,4,Fourth,x,x,private,\n"
+        + "AL,1,NEW,Alone,x,x,,\n",
+    )
+    names = {
+        ("TX", "2", "Second"): 1,
+        ("TX", "1", "First"): 2,
+        ("TX", "2", "Also Second"): 3,
+        ("TX", "4", "Fourth"): 4,
+        ("AL", "1", "Alone"): 1,
+    }
+    _write(
+        state / "course-matches.csv",
+        "edition,group,rank,published_course,city,state,country,course_id\n"
+        + "".join(f"2025-26,{g},{r},{c},,,,{cid}\n" for (g, r, c), cid in names.items()),
+    )
+    return state
+
+
+def test_seed_states_creates_a_list_per_state_with_tie_labels_and_access(db, tmp_path):
+    data_dir = _data_dir(tmp_path)
+    _state_dir(tmp_path)
+    counts = seed(db, data_dir)
+    assert counts["lists"] == 4  # us-public, world, TX, AL
+
+    tx = db.query(RankingLists).filter_by(slug="golf-digest-best-in-state-tx").one()
+    assert (tx.name, tx.scope, tx.size) == ("Best Courses in Texas", "us-state-TX", None)
+    [edition] = tx.editions
+    assert (edition.label, edition.start_year) == ("2025-26", 2025)  # "(25th)" dropped
+    entries = db.query(RankingEntries).filter_by(edition_id=edition.id).order_by(RankingEntries.rank).all()
+    # The second printed "2" takes rank 3 and both keep the label; rank 4 is untouched.
+    assert [(e.rank, e.rank_label, e.published_name, e.access) for e in entries] == [
+        (1, None, "First", "public"),
+        (2, "T2", "Second", "private"),
+        (3, "T2", "Also Second", "private"),
+        (4, None, "Fourth", "private"),
+    ]
+    al = db.query(RankingLists).filter_by(slug="golf-digest-best-in-state-al").one()
+    [only] = db.query(RankingEntries).filter_by(edition_id=al.editions[0].id).all()
+    assert only.access is None
+
+
+def test_seed_states_is_idempotent(db, tmp_path):
+    data_dir = _data_dir(tmp_path)
+    _state_dir(tmp_path)
+    seed(db, data_dir)
+    counts = seed(db, data_dir)
+    assert counts["lists"] == 0 and counts["editions"] == 0
+    assert db.query(RankingEntries).count() == 5 + 5  # 5 from the main fixture, 5 state rows
+
+
+def test_seed_states_fails_on_unmatched_row(db, tmp_path):
+    data_dir = _data_dir(tmp_path)
+    state = _state_dir(tmp_path)
+    _write(state / "course-matches.csv", "edition,group,rank,published_course,city,state,country,course_id\n")
+    with pytest.raises(SystemExit, match="no match"):
+        seed(db, data_dir)

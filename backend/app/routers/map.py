@@ -15,11 +15,6 @@ from app.models import (
 
 router = APIRouter(prefix="/map", tags=["map"])
 
-# The old stand-in for Golf Digest's list: a fake user holding the ranked courses.
-# The rankings tables replace it, so the all-users map skips it. Remove this
-# (and the user) together.
-LEGACY_TOP100_USERNAME = "top100"
-
 
 def _point(course_id, lat, lon, club, name, year) -> list:
     return [course_id, round(lat, 5), round(lon, 5), course_display_name(club, name), year]
@@ -76,7 +71,7 @@ def all_users_points(request: Request, user: user_dependency, db: db_dependency)
         _points_query(db)
         .add_columns(Users.username)
         .join(Users, Users.id == UserCourses.user_id)
-        .filter(Users.is_active.is_(True), Users.username != LEGACY_TOP100_USERNAME)
+        .filter(Users.is_active.is_(True))
         .order_by(Users.id, Courses.id)
     )
     users: dict[str, list] = {}
@@ -86,6 +81,69 @@ def all_users_points(request: Request, user: user_dependency, db: db_dependency)
         "fields": ["id", "lat", "lon", "name", "year"],
         "users": [{"username": name, "points": _dedupe(user_rows)} for name, user_rows in users.items()],
     }
+
+
+# Each state's Best in State list is its own ranking list with this scope prefix.
+STATE_SCOPE_PREFIX = "us-state-"
+
+
+# Declared before /rankings/{list_id}/points so "states" is not parsed as a list id.
+@router.get("/rankings/states/points", status_code=status.HTTP_200_OK)
+@limiter.limit("60/minute")
+def state_ranking_points(request: Request, user: user_dependency, db: db_dependency, edition: str | None = None):
+    """Every state's list for one edition label (the newest unless `edition` is given), as one set of
+    points for the all-users map: {"fields": [...], "edition": label,
+    "points": [[id, lat, lon, name, year, rank, rank_label, access, list], ...]}.
+    `list` is the state list's name ("Best Courses in Texas"). Courses without coordinates are left out.
+    """
+    labels = (
+        db.query(RankingEditions.label, RankingEditions.start_year)
+        .join(RankingLists, RankingLists.id == RankingEditions.list_id)
+        .filter(RankingLists.scope.like(f"{STATE_SCOPE_PREFIX}%"))
+        .distinct()
+        .order_by(RankingEditions.start_year.desc())
+        .all()
+    )
+    if edition is None:
+        if not labels:
+            return {"fields": _STATE_FIELDS, "edition": None, "points": []}
+        edition, start_year = labels[0]
+    else:
+        match = [start_year for label, start_year in labels if label == edition]
+        if not match:
+            raise HTTPException(status_code=404, detail="Edition not found")
+        start_year = match[0]
+    rows = (
+        db.query(
+            Courses.id,
+            Courses.latitude,
+            Courses.longitude,
+            Courses.club_name,
+            Courses.course_name,
+            RankingEntries.rank,
+            RankingEntries.rank_label,
+            RankingEntries.access,
+            RankingLists.name,
+        )
+        .join(RankingEntries, RankingEntries.course_id == Courses.id)
+        .join(RankingEditions, RankingEditions.id == RankingEntries.edition_id)
+        .join(RankingLists, RankingLists.id == RankingEditions.list_id)
+        .filter(
+            RankingLists.scope.like(f"{STATE_SCOPE_PREFIX}%"),
+            RankingEditions.label == edition,
+            Courses.latitude.isnot(None),
+            Courses.longitude.isnot(None),
+        )
+        .order_by(RankingLists.name, RankingEntries.rank)
+    )
+    return {
+        "fields": _STATE_FIELDS,
+        "edition": edition,
+        "points": [[*_point(*row[:5], start_year), *row[5:]] for row in rows],
+    }
+
+
+_STATE_FIELDS = ["id", "lat", "lon", "name", "year", "rank", "rank_label", "access", "list"]
 
 
 @router.get("/rankings/{list_id}/points", status_code=status.HTTP_200_OK)
@@ -99,8 +157,9 @@ def ranking_points(
 ):
     """One edition of a ranking list (the newest unless `edition_id` is given), for the all-users map:
     {"fields": [...], "list": name, "edition_id": id, "edition": label,
-     "points": [[id, lat, lon, name, year, rank, rank_label], ...]} in rank order.
-    `year` is the edition's start year and `rank_label` is set only for ties ("T53").
+     "points": [[id, lat, lon, name, year, rank, rank_label, access], ...]} in rank order.
+    `year` is the edition's start year, `rank_label` is set only for ties ("T53") and `access` is
+    "public" or "private" when the list says so.
     Ranked courses without coordinates are left out.
     """
     lst = db.get(RankingLists, list_id)
@@ -124,6 +183,7 @@ def ranking_points(
                 Courses.course_name,
                 RankingEntries.rank,
                 RankingEntries.rank_label,
+                RankingEntries.access,
             )
             .join(RankingEntries, RankingEntries.course_id == Courses.id)
             .filter(
@@ -133,9 +193,9 @@ def ranking_points(
             )
             .order_by(RankingEntries.rank)
         )
-        points = [[*_point(*row[:5], edition.start_year), row[5], row[6]] for row in rows]
+        points = [[*_point(*row[:5], edition.start_year), *row[5:]] for row in rows]
     return {
-        "fields": ["id", "lat", "lon", "name", "year", "rank", "rank_label"],
+        "fields": ["id", "lat", "lon", "name", "year", "rank", "rank_label", "access"],
         "list": lst.name,
         "edition_id": edition.id if edition else None,
         "edition": edition.label if edition else None,
