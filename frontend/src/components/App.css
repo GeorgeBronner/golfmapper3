@@ -646,6 +646,27 @@
   padding: 0 0 16px;
 }
 
+.map-rankings-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.map-rankings-layer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-rankings-layer select {
+  font-size: 13px;
+  max-width: 120px;
+}
+
 .map-title-chip {
   display: flex;
   align-items: center;

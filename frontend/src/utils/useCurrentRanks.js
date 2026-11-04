@@ -12,7 +12,7 @@ async function loadRanks() {
     const { data } = await api.get(`/rankings/editions/${edition.id}`);
     if (!Array.isArray(data?.entries)) return null;
     const label = `${list.publisher} ${edition.label}`;
-    return Object.fromEntries(data.entries.map(e => [e.course_id, { rank: e.rank, label }]));
+    return Object.fromEntries(data.entries.map(e => [e.course_id, { rank: e.rank, label, tied: e.rank_label }]));
 }
 
 // Rank of each course in the newest edition of the first ranking list, as
