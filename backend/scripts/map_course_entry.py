@@ -472,7 +472,11 @@ HTML_TEMPLATE = """
         }
 
         async function onMapClick(e) {
-            const { lat, lng } = e.latlng;
+            // Panning across the antimeridian gives longitudes beyond +/-180
+            // (wrapped world copies). The marker stays where the user clicked;
+            // the form, geocode and submitted value use the wrapped longitude.
+            const { lat, lng: clickedLng } = e.latlng;
+            const lng = e.latlng.wrap().lng;
 
             // Remove previous marker if exists
             if (currentMarker) {
@@ -480,7 +484,7 @@ HTML_TEMPLATE = """
             }
 
             // Add new marker
-            currentMarker = L.marker([lat, lng]).addTo(map);
+            currentMarker = L.marker([lat, clickedLng]).addTo(map);
 
             // Create popup content
             const popupContent = createPopupForm(lat, lng);
@@ -489,7 +493,7 @@ HTML_TEMPLATE = """
                 autoClose: false,
                 closeOnClick: false
             })
-                .setLatLng([lat, lng])
+                .setLatLng([lat, clickedLng])
                 .setContent(popupContent)
                 .openOn(map);
 

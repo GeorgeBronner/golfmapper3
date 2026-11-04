@@ -131,6 +131,23 @@ describe('AllUsersMap', () => {
         expect(api.get).toHaveBeenCalledWith('/map/rankings/7/points', { params: { edition_id: 71 } });
     });
 
+    it('reloads the selected layers on Refresh even when the rankings call fails', async () => {
+        const points = { 7: { 71: [[2, 31, -87, 'Pebble', 2025, 1, null]] } };
+        api.get.mockImplementation(mockApi(points));
+        const user = userEvent.setup();
+        render(<AllUsersMap />);
+        await screen.findByText(/US Public 2025-26: Pebble/);
+
+        const working = mockApi(points);
+        api.get.mockClear();
+        api.get.mockImplementation((url, config) => (
+            url === '/rankings' ? Promise.reject(new Error('boom')) : working(url, config)
+        ));
+        await user.click(screen.getByText(/Refresh Map/));
+        expect(await screen.findByText(/US Public 2025-26: Pebble/)).toBeInTheDocument();
+        expect(api.get).toHaveBeenCalledWith('/map/rankings/7/points', { params: { edition_id: 71 } });
+    });
+
     it('shows an error when loading fails', async () => {
         api.get.mockImplementation(() => Promise.reject(new Error('boom')));
         render(<AllUsersMap />);

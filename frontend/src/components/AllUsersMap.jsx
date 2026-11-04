@@ -30,6 +30,9 @@ function AllUsersMap() {
     // `${listId}:${editionId}` -> { group, ranks } once loaded.
     const [loaded, setLoaded] = useState({});
     const requested = useRef(new Set());
+    // Bumped on every refresh so the layer effect runs again even when the
+    // rankings call failed and `lists`/`layers` therefore did not change.
+    const [refreshCount, setRefreshCount] = useState(0);
     // Bumped on every (re)load so a layer response from before a refresh is ignored.
     const generation = useRef(0);
     // Keys of layers whose last fetch failed, so the bar can say so.
@@ -67,6 +70,7 @@ function AllUsersMap() {
             requested.current = new Set();  // a refresh reloads the layers too
             setLoaded({});
             setFailed(new Set());
+            setRefreshCount(n => n + 1);
             setStatus('loaded');
         } catch {
             if (isCurrent()) setStatus('error');
@@ -93,7 +97,7 @@ function AllUsersMap() {
                     setFailed(prev => new Set(prev).add(key));
                 });
         });
-    }, [lists, layers]);
+    }, [lists, layers, refreshCount]);
 
     const { groups, ranks } = useMemo(() => {
         const rankingGroups = [];
