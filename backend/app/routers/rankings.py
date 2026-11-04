@@ -24,6 +24,12 @@ def _played_years(rows) -> dict[int, int | None]:
     return played
 
 
+def _is_us(course: Courses) -> bool:
+    """True for a US course. Only then is `state` a US state code: other countries store regional
+    codes there (KY = County Kerry, CA = Cadiz, ...) that collide with US states."""
+    return (course.country or "").strip().upper() == "USA"
+
+
 def _edition_dict(edition: RankingEditions) -> dict:
     return {
         "id": edition.id,
@@ -65,7 +71,9 @@ def edition_entries(request: Request, edition_id: int, user: user_dependency, db
     edition = db.get(RankingEditions, edition_id)
     if edition is None:
         raise HTTPException(status_code=404, detail="Edition not found")
-    played = {row[0] for row in db.query(UserCourses.course_id).filter(UserCourses.user_id == user.get("id"))}
+    played = _played_years(
+        db.query(UserCourses.course_id, UserCourses.year).filter(UserCourses.user_id == user.get("id"))
+    )
     rows = (
         db.query(RankingEntries, Courses)
         .join(Courses, Courses.id == RankingEntries.course_id)
@@ -87,11 +95,60 @@ def edition_entries(request: Request, edition_id: int, user: user_dependency, db
                 "name": course_display_name(course.club_name, course.course_name),
                 "city": course.city,
                 "state": course.state,
+                "country": course.country,
                 "played": course.id in played,
+                "year": played.get(course.id),
             }
             for entry, course in rows
         ],
     }
+
+
+@router.get("/states/progress", status_code=status.HTTP_200_OK)
+@limiter.limit("60/minute")
+def states_progress(request: Request, user: user_dependency, db: db_dependency):
+    """Best in State for the stats page: every state's newest edition, each entry flagged with
+    whether the current user has played it (and the year). Keyed by the two-letter state code.
+    """
+    lists = db.query(RankingLists).filter(RankingLists.scope.like("us-state-%")).all()
+    code_of = {lst.id: lst.scope[len("us-state-") :].upper() for lst in lists}
+    newest: dict[int, RankingEditions] = {}
+    for edition in (
+        db.query(RankingEditions)
+        .filter(RankingEditions.list_id.in_(code_of))
+        .order_by(RankingEditions.start_year.desc())
+        .all()
+    ):
+        newest.setdefault(edition.list_id, edition)
+    played = _played_years(
+        db.query(UserCourses.course_id, UserCourses.year).filter(UserCourses.user_id == user.get("id"))
+    )
+    states: dict[str, dict] = {
+        code_of[list_id]: {**_edition_dict(edition), "list_id": list_id, "entries": []}
+        for list_id, edition in newest.items()
+    }
+    rows = (
+        db.query(RankingEntries, Courses, RankingEditions.list_id)
+        .join(Courses, Courses.id == RankingEntries.course_id)
+        .join(RankingEditions, RankingEditions.id == RankingEntries.edition_id)
+        .filter(RankingEntries.edition_id.in_([e.id for e in newest.values()]))
+        .order_by(RankingEntries.rank)
+        .all()
+    )
+    for entry, course, list_id in rows:
+        states[code_of[list_id]]["entries"].append(
+            {
+                "rank": entry.rank,
+                "rank_label": entry.rank_label,
+                "access": entry.access,
+                "course_id": course.id,
+                "name": course_display_name(course.club_name, course.course_name),
+                "city": course.city,
+                "played": course.id in played,
+                "year": played.get(course.id),
+            }
+        )
+    return {"states": states}
 
 
 @router.get("/courses/{course_id}", status_code=status.HTTP_200_OK)
@@ -128,7 +185,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
     """The current user's progress on one ranking list, for the stats page.
 
     `ever_listed` is how many distinct courses have appeared in any edition.
-    `current` covers the newest edition (totals, plus ranked/played per state).
+    `current` covers the newest edition (totals, plus ranked/played per US state and per country).
     `editions` gives played/total for every edition. `courses` is every course
     the user has played that appeared in any edition, with the year they played
     it and its rank in each edition, so the client can split rounds by whether
@@ -169,6 +226,7 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
                 "name": course_display_name(course.club_name, course.course_name),
                 "city": course.city,
                 "state": course.state,
+                "country": course.country,
                 "year": played[course.id],
                 "current_rank": None,
                 "ranks": {},
@@ -181,16 +239,22 @@ def list_progress(request: Request, list_id: int, user: user_dependency, db: db_
     current = None
     if editions:
         by_state: dict[str, dict] = {}
+        by_country: dict[str, dict] = {}
         for entry, course in rows:
             if entry.edition_id != editions[0].id:
                 continue
-            bucket = by_state.setdefault((course.state or "").strip().upper(), {"ranked": 0, "played": 0})
-            bucket["ranked"] += 1
-            bucket["played"] += course.id in played
+            groups = [(by_country, (course.country or "").strip().upper())]
+            if _is_us(course):
+                groups.append((by_state, (course.state or "").strip().upper()))
+            for group, key in groups:
+                bucket = group.setdefault(key, {"ranked": 0, "played": 0})
+                bucket["ranked"] += 1
+                bucket["played"] += course.id in played
         current = {
             **_edition_dict(editions[0]),
             **totals[editions[0].id],
             "by_state": by_state,
+            "by_country": by_country,
         }
 
     return {

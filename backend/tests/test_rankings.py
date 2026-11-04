@@ -18,9 +18,14 @@ def rankings_data():
     db.add_all(
         [
             Courses(
-                id=1, club_name="Pebble Beach", course_name="Pebble Beach Golf Links", city="Pebble Beach", state="CA"
+                id=1,
+                club_name="Pebble Beach",
+                course_name="Pebble Beach Golf Links",
+                city="Pebble Beach",
+                state="CA",
+                country="USA",
             ),
-            Courses(id=2, club_name="Erin Hills", course_name="Erin Hills", city="Erin", state="WI"),
+            Courses(id=2, club_name="Erin Hills", course_name="Erin Hills", city="Erin", state="WI", country="USA"),
             RankingLists(id=1, slug="gd-pub", name="Top Public", publisher="Golf Digest", scope="us-public", size=100),
             RankingEditions(id=1, list_id=1, label="2023-24", start_year=2023),
             RankingEditions(id=2, list_id=1, label="2025-26", start_year=2025),
@@ -55,6 +60,9 @@ def test_edition_entries_flags_played_courses(rankings_data):
     assert [e["played"] for e in body["entries"]] == [False, True]
     assert body["entries"][1]["prior_rank"] == "T5"
     assert body["entries"][0]["name"] == "Pebble Beach - Pebble Beach Golf Links"
+    # The play year comes with the played flag, and the country with the state.
+    assert [e["year"] for e in body["entries"]] == [None, 2024]
+    assert [e["country"] for e in body["entries"]] == ["USA", "USA"]
 
 
 def test_edition_not_found(rankings_data):
@@ -98,6 +106,7 @@ def test_progress_by_state_and_current_rank(rankings_data):
 
     body = client.get("/api/v1/rankings/lists/1/progress").json()
     assert body["current"]["by_state"] == {"CA": {"ranked": 1, "played": 1}}
+    assert body["current"]["by_country"] == {"USA": {"ranked": 1, "played": 1}}
     # Ranked courses come first, in current-rank order; dropped ones follow.
     assert [c["course_id"] for c in body["courses"]] == [1, 2]
     assert body["courses"][0]["current_rank"] == 1
@@ -166,3 +175,101 @@ def test_progress_by_state_normalizes_state_text(rankings_data):
 
     body = client.get("/api/v1/rankings/lists/1/progress").json()
     assert body["current"]["by_state"] == {"CA": {"ranked": 1, "played": 1}}
+
+
+def test_progress_by_state_ignores_non_us_courses_with_colliding_state_codes():
+    # Non-US courses store regional codes in `state` (KY = County Kerry): they must not count as Kentucky.
+    db = TestingSessionLocal()
+    db.add_all(
+        [
+            Courses(id=1, club_name="Ballybunion", course_name="Old", city="Ballybunion", state="KY", country="IRL"),
+            Courses(
+                id=2, club_name="Valderrama", course_name="Valderrama", city="Sotogrande", state="CA", country="ESP"
+            ),
+            Courses(id=3, club_name="Valhalla", course_name="Valhalla", city="Louisville", state="KY", country="USA"),
+            RankingLists(id=1, slug="world", name="World", publisher="Golf Digest", scope="world", size=100),
+            RankingEditions(id=1, list_id=1, label="2026-27", start_year=2026),
+            RankingEntries(edition_id=1, course_id=1, rank=1, published_name="Ballybunion"),
+            RankingEntries(edition_id=1, course_id=2, rank=2, published_name="Valderrama"),
+            RankingEntries(edition_id=1, course_id=3, rank=3, published_name="Valhalla"),
+            UserCourses(course_id=1, user_id=1, year=2024),
+        ]
+    )
+    db.commit()
+    db.close()
+    try:
+        current = client.get("/api/v1/rankings/lists/1/progress").json()["current"]
+        assert current["by_state"] == {"KY": {"ranked": 1, "played": 0}}
+        assert current["by_country"] == {
+            "IRL": {"ranked": 1, "played": 1},
+            "ESP": {"ranked": 1, "played": 0},
+            "USA": {"ranked": 1, "played": 0},
+        }
+    finally:
+        with engine.connect() as con:
+            for table in ("user_courses", "ranking_entries", "ranking_editions", "ranking_lists", "courses"):
+                con.execute(text(f"DELETE FROM {table};"))
+            con.commit()
+
+
+@pytest.fixture
+def state_lists():
+    db = TestingSessionLocal()
+    db.add_all(
+        [
+            Courses(
+                id=1, club_name="Kiawah Island", course_name="Ocean Course", city="Kiawah", state="SC", country="USA"
+            ),
+            Courses(id=2, club_name="Congaree", course_name="Congaree", city="Ridgeland", state="SC", country="USA"),
+            Courses(
+                id=3, club_name="Pebble Beach", course_name="Links", city="Pebble Beach", state="CA", country="USA"
+            ),
+            RankingLists(
+                id=1, slug="bis-sc", name="Best Courses in South Carolina", publisher="GD", scope="us-state-SC"
+            ),
+            RankingLists(id=2, slug="bis-ca", name="Best Courses in California", publisher="GD", scope="us-state-CA"),
+            RankingLists(id=3, slug="pub", name="Top Public", publisher="GD", scope="us-public", size=100),
+            RankingEditions(id=1, list_id=1, label="2023-24", start_year=2023),
+            RankingEditions(id=2, list_id=1, label="2025-26", start_year=2025),
+            RankingEditions(id=3, list_id=2, label="2025-26", start_year=2025),
+            RankingEditions(id=4, list_id=3, label="2025-26", start_year=2025),
+            RankingEntries(edition_id=1, course_id=2, rank=1, published_name="Congaree"),
+            RankingEntries(edition_id=2, course_id=2, rank=1, published_name="Congaree", access="private"),
+            RankingEntries(
+                edition_id=2, course_id=1, rank=2, published_name="Kiawah", access="public", rank_label="T2"
+            ),
+            RankingEntries(edition_id=3, course_id=3, rank=1, published_name="Pebble", access="public"),
+            RankingEntries(edition_id=4, course_id=3, rank=1, published_name="Pebble"),
+            UserCourses(course_id=1, user_id=1, year=2021),
+            UserCourses(course_id=3, user_id=2, year=2020),
+        ]
+    )
+    db.commit()
+    db.close()
+    yield
+    with engine.connect() as con:
+        for table in ("user_courses", "ranking_entries", "ranking_editions", "ranking_lists", "courses"):
+            con.execute(text(f"DELETE FROM {table};"))
+        con.commit()
+
+
+def test_states_progress_uses_each_states_newest_edition(state_lists):
+    res = client.get("/api/v1/rankings/states/progress")
+    assert res.status_code == status.HTTP_200_OK
+    states = res.json()["states"]
+    # Only the state lists, keyed by code; the US Public list is not included.
+    assert sorted(states) == ["CA", "SC"]
+    assert states["SC"]["label"] == "2025-26"
+    assert [(e["rank"], e["name"]) for e in states["SC"]["entries"]] == [
+        (1, "Congaree"),
+        (2, "Kiawah Island - Ocean Course"),
+    ]
+
+
+def test_states_progress_flags_played_courses_for_the_current_user_only(state_lists):
+    states = client.get("/api/v1/rankings/states/progress").json()["states"]
+    sc = {e["course_id"]: e for e in states["SC"]["entries"]}
+    assert (sc[1]["played"], sc[1]["year"], sc[1]["rank_label"]) == (True, 2021, "T2")
+    assert (sc[2]["played"], sc[2]["year"], sc[2]["access"]) == (False, None, "private")
+    # User 2 played the California course, not user 1.
+    assert states["CA"]["entries"][0]["played"] is False

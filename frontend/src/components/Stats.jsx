@@ -1,40 +1,81 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../services/api';
-import { buildStats } from '../utils/statsData';
-import { STATE_CODES } from '../utils/usStates';
-import { StatCard, StatTile, Ring, HBar, StateMap, YearColumns } from './StatsParts';
+import { buildStats, isStateList, isWorldList, listShortName } from '../utils/statsData';
+import { Tabs } from './StatsParts';
+import StatsOverview from './StatsOverview';
+import StatsJourney from './StatsJourney';
+import StatsBestInState from './StatsBestInState';
 import './Stats.css';
-
-// Shorten "Club - Course" display names to the course part for tight rows.
-const shortName = (name) => {
-    const i = name.indexOf(' - ');
-    return i >= 0 ? name.slice(i + 3).trim() : name;
-};
 
 function Stats() {
     const [courses, setCourses] = useState(null);
-    const [progress, setProgress] = useState(null);
+    const [lists, setLists] = useState(null);          // the ranking lists that have a Top N (not Best in State)
+    const [listId, setListId] = useState(null);
+    const [progress, setProgress] = useState({});      // list id -> /rankings/lists/{id}/progress
+    const [editions, setEditions] = useState({});      // list id -> newest edition's entries
+    const [bis, setBis] = useState(null);              // /rankings/states/progress
+    const [bisRequested, setBisRequested] = useState(false);
     const [error, setError] = useState('');
-    const [layer, setLayer] = useState('courses');
+    const [tab, setTab] = useState('overview');
 
     useEffect(() => {
         let cancelled = false;
         api.get('/user_courses/readall_ids_w_year', { params: { include_unmapped: true } })
             .then(res => { if (!cancelled) setCourses(res.data); })
             .catch(() => { if (!cancelled) setError('Failed to load your stats. Please try again.'); });
-        // The Top 100 parts are decoration: without rankings the rest still works.
+        // The ranking parts are decoration: without rankings the rest still works.
         api.get('/rankings')
-            .then(({ data: lists }) => {
-                // The copy below says "Top 100", so prefer the 100-course list over whatever comes first.
-                const list = Array.isArray(lists) ? (lists.find(l => l.size === 100) ?? lists[0]) : null;
-                return list ? api.get(`/rankings/lists/${list.id}/progress`) : null;
+            .then(({ data }) => {
+                if (cancelled || !Array.isArray(data)) return;
+                const top = data.filter(l => !isStateList(l));
+                setLists(top);
+                // Open on the US Public list (the 100-course list) when there is one.
+                setListId((top.find(l => l.scope === 'us-public') ?? top.find(l => l.size === 100) ?? top[0])?.id ?? null);
             })
-            .then(res => { if (res && !cancelled) setProgress(res.data); })
-            .catch(() => { /* leave progress null */ });
+            .catch(() => { /* leave lists null */ });
         return () => { cancelled = true; };
     }, []);
 
-    const stats = useMemo(() => (courses ? buildStats(courses, progress) : null), [courses, progress]);
+    // Load the chosen list's progress and its current edition, once per list. A ref (not the
+    // `progress` state) records what was requested, so storing the result does not cancel the
+    // follow-up request for the edition's entries.
+    const requested = useRef(new Set());
+    const mounted = useRef(true);
+    useEffect(() => {
+        mounted.current = true; // set again on mount: StrictMode runs the cleanup once in development
+        return () => { mounted.current = false; };
+    }, []);
+    useEffect(() => {
+        if (listId == null || requested.current.has(listId)) return;
+        requested.current.add(listId);
+        api.get(`/rankings/lists/${listId}/progress`)
+            .then(async ({ data }) => {
+                if (!mounted.current) return;
+                setProgress(prev => ({ ...prev, [listId]: data }));
+                if (data.current?.id != null) {
+                    const res = await api.get(`/rankings/editions/${data.current.id}`);
+                    if (mounted.current) setEditions(prev => ({ ...prev, [listId]: res.data.entries }));
+                }
+            })
+            .catch(() => { requested.current.delete(listId); });
+    }, [listId]);
+
+    const needBis = useCallback(() => setBisRequested(true), []);
+    useEffect(() => {
+        if (tab === 'bis') setBisRequested(true);
+    }, [tab]);
+    useEffect(() => {
+        if (!bisRequested || bis) return undefined;
+        let cancelled = false;
+        api.get('/rankings/states/progress')
+            .then(res => { if (!cancelled) setBis(res.data); })
+            .catch(() => { if (!cancelled) setBis({ states: {} }); });
+        return () => { cancelled = true; };
+    }, [bisRequested, bis]);
+
+    const list = lists?.find(l => l.id === listId) ?? null;
+    const listProgress = listId != null ? progress[listId] ?? null : null;
+    const stats = useMemo(() => (courses ? buildStats(courses, listProgress) : null), [courses, listProgress]);
 
     if (error) return <div className="course-list"><div className="alert-danger" role="alert">{error}</div></div>;
     if (!stats) return <p className="loading-text">Loading stats…</p>;
@@ -47,94 +88,48 @@ function Stats() {
         );
     }
 
-    const t = stats.top100;
-    const maxStateRanked = t ? Math.max(...t.topStates.map(s => s.ranked), 1) : 1;
+    const hasRankings = !!(lists && lists.length);
+    const listName = list ? listShortName(list) : '';
+    const showPicker = hasRankings && tab !== 'bis';
+    // The Journey tab needs the list's progress; fall back to Overview if it never loads.
+    const activeTab = hasRankings ? tab : 'overview';
 
     return (
         <div className="stats-page">
             <div className="page-header">
                 <div>
                     <div className="page-title">My Stats</div>
-                    <div className="page-subtitle">Where you've played and how you're tracking on the Top 100</div>
+                    <div className="page-subtitle">Where you've played and how you're tracking on Golf Digest's lists</div>
                 </div>
-            </div>
-
-            <div className="stats-grid stats-g4">
-                <StatTile value={stats.total} label="Courses played" sub={`at ${stats.clubs} ${stats.clubs === 1 ? 'club' : 'clubs'}`} />
-                <StatTile
-                    value={`${stats.states}/${STATE_CODES.length}`}
-                    label="States"
-                    sub={`${stats.countries} ${stats.countries === 1 ? 'country' : 'countries'}`}
-                />
-                {t && (
-                    <>
-                        <StatTile
-                            value={<>{t.played}<span className="stats-of">/{t.size}</span></>}
-                            label="On today's Top 100"
-                            sub={`${t.label} edition`}
-                        />
-                        <StatTile value={t.everPlayed} label="Ranked at some point" sub={`of ${t.everListed} courses ever listed`} />
-                    </>
-                )}
-            </div>
-
-            <div className="stats-grid stats-wide">
-                <StatCard
-                    title="Where you've played"
-                    aside={t && (
-                        <span className="stats-seg" role="group" aria-label="Map layer">
-                            <button type="button" className={layer === 'courses' ? 'on' : ''} onClick={() => setLayer('courses')}>Courses</button>
-                            <button type="button" className={layer === 'top100' ? 'on' : ''} onClick={() => setLayer('top100')}>Top 100</button>
-                        </span>
-                    )}
-                >
-                    <StateMap layer={layer} byState={stats.byState} top100={t} />
-                    <div className="stats-legend">
-                        {layer === 'courses'
-                            ? <><span>Darker = more courses</span>{t && <span><b className="stats-gold">★</b> = Top 100 courses played</span>}</>
-                            : <span>Gold = Top 100 courses played / ranked in state · outlined = none yet</span>}
-                    </div>
-                </StatCard>
-
-                {t && (
-                    <div className="stats-stack">
-                        <StatCard title="Top 100 progress">
-                            <div className="stats-row">
-                                <Ring pct={t.size ? t.played / t.size : 0}>
-                                    <b>{t.played}</b><small>of {t.size}</small>
-                                </Ring>
-                                <div className="stats-best">
-                                    <div className="stats-muted">HIGHEST RANKED PLAYED</div>
-                                    {t.highest.length === 0 && <div className="stats-muted">None yet</div>}
-                                    {t.highest.map(c => (
-                                        <div key={c.course_id} className="stats-best-row" title={c.name}>
-                                            <b className="stats-gold">#{c.current_rank}</b>
-                                            <span>{shortName(c.name)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </StatCard>
-                        <StatCard title="Top 100 courses by state" aside="played / ranked">
-                            {t.topStates.map(s => (
-                                <HBar key={s.code} label={s.code} value={s.played} max={maxStateRanked} right={`${s.played}/${s.ranked}`} />
-                            ))}
-                        </StatCard>
+                {showPicker && (
+                    <div className="stats-picker" role="group" aria-label="Ranking list">
+                        {lists.map(l => (
+                            <button key={l.id} type="button" className={l.id === listId ? 'on' : ''} aria-pressed={l.id === listId} onClick={() => setListId(l.id)}>{listShortName(l)}</button>
+                        ))}
                     </div>
                 )}
             </div>
 
-            {stats.years.length > 0 && (
-                <StatCard title="Courses per year" aside={stats.undated ? `${stats.undated} with no year set` : undefined}>
-                    <div className="stats-cols-wrap"><YearColumns rows={stats.years} /></div>
-                    {t && (
-                        <div className="stats-legend">
-                            <span><i className="stats-dot stats-dot-gold" />Top 100 courses (any edition)</span>
-                            <span><i className="stats-dot" />Everything else</span>
-                        </div>
-                    )}
-                </StatCard>
+            {hasRankings && (
+                <Tabs value={activeTab} onChange={setTab} options={[['overview', 'Overview'], ['journey', 'Journey'], ['bis', 'Best in State']]} />
             )}
+
+            {activeTab === 'overview' && (
+                <StatsOverview
+                    stats={stats}
+                    courses={courses}
+                    list={list}
+                    listName={listName}
+                    entries={listId != null ? editions[listId] : undefined}
+                    world={isWorldList(list)}
+                    bis={bis && Object.keys(bis.states).length ? bis : null}
+                    onNeedBis={needBis}
+                />
+            )}
+            {activeTab === 'journey' && (stats.list
+                ? <StatsJourney stats={stats} progress={listProgress} listName={listName} />
+                : <p className="loading-text">Loading…</p>)}
+            {activeTab === 'bis' && <StatsBestInState stats={stats} data={bis} />}
         </div>
     );
 }

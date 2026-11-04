@@ -43,6 +43,18 @@ describe('Rankings', () => {
         expect(screen.queryByText('54')).not.toBeInTheDocument();
     });
 
+    it('shows the country, not a regional code, for a course outside the US', async () => {
+        api.get.mockImplementation(url => Promise.resolve({
+            data: url === '/rankings' ? lists : {
+                label: '2025-26',
+                entries: [{ rank: 10, prior_rank: '9', course_id: 10, name: 'Ballybunion', published_name: 'Ballybunion', city: 'Ballybunion', state: 'KY', country: 'IRL', played: false }],
+            },
+        }));
+        render(<Rankings />);
+        expect(await screen.findByText('Ireland')).toBeInTheDocument();
+        expect(screen.queryByText('KY')).not.toBeInTheDocument();
+    });
+
     it('groups the state lists under one Best in State choice with a state picker', async () => {
         const withStates = [
             { ...lists[0], scope: 'us-public' },
