@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ALL_STATES, layerKey, stateName } from '../utils/useRankingLayers';
 
 // The controls for the ranking layers: a checkbox and edition picker per list, and one
@@ -9,10 +9,18 @@ function RankingLayersBar({ ui }) {
         rankingLists, layers, setLayer, stateLists, stateLayer, patchState,
         selectedState, stateEditions, stateEdition, stateEditionMissing, failed, stateKey,
     } = ui;
+    // On phones the controls collapse behind a "Rankings" button (CSS only; desktop always shows them).
+    const [open, setOpen] = useState(false);
     if (rankingLists.length === 0 && stateLists.length === 0) return null;
+    const active = rankingLists.filter(l => layers[l.id]?.on).length + (stateLists.length > 0 && stateLayer.on ? 1 : 0);
 
     return (
-        <div className="map-rankings-bar">
+        <div className={`map-rankings-bar${open ? ' open' : ''}`}>
+            <button type="button" className="map-rankings-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+                <span>Rankings{active > 0 && <span className="map-rankings-badge">{active} on</span>}</span>
+                <span aria-hidden="true">{open ? '▴' : '▾'}</span>
+            </button>
+            <div className="map-rankings-body">
             <strong>Rankings</strong>
             {rankingLists.map(list => (
                 <div key={list.id} className="map-rankings-layer">
@@ -75,6 +83,7 @@ function RankingLayersBar({ ui }) {
                     )}
                 </div>
             )}
+            </div>
         </div>
     );
 }
