@@ -129,6 +129,15 @@ describe('Stats overview', () => {
         expect(screen.getByText('2019')).toBeInTheDocument();
     });
 
+    it('lists Best in State courses when a state is clicked on the Best in State map layer', async () => {
+        mockApi();
+        render(<Stats />);
+        fireEvent.click(await screen.findByRole('button', { name: 'Best in State' }));
+        const state = await screen.findByTitle(/^South Carolina: \d+ of \d+ Best in State courses played/);
+        fireEvent.click(state);
+        expect(await screen.findByText('Congaree')).toBeInTheDocument();
+    });
+
     it('shows countries, not US states, for the World list', async () => {
         mockApi();
         render(<Stats />);
