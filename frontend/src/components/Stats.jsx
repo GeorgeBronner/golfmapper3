@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../services/api';
-import { buildStats, isStateList, isWorldList, listShortName } from '../utils/statsData';
+import { buildBestInState, buildStats, isStateList, isWorldList, listShortName } from '../utils/statsData';
 import { Tabs } from './StatsParts';
 import StatsOverview from './StatsOverview';
 import StatsJourney from './StatsJourney';
@@ -73,6 +73,7 @@ function Stats() {
         return () => { cancelled = true; };
     }, [bisRequested, bis]);
 
+    const bisAll = useMemo(() => (bis && Object.keys(bis.states).length ? buildBestInState(bis.states, false) : null), [bis]);
     const list = lists?.find(l => l.id === listId) ?? null;
     const listProgress = listId != null ? progress[listId] ?? null : null;
     const stats = useMemo(() => (courses ? buildStats(courses, listProgress) : null), [courses, listProgress]);
@@ -122,7 +123,7 @@ function Stats() {
                     listName={listName}
                     entries={listId != null ? editions[listId] : undefined}
                     world={isWorldList(list)}
-                    bis={bis && Object.keys(bis.states).length ? bis : null}
+                    bis={bisAll}
                     onNeedBis={needBis}
                 />
             )}
