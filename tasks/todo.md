@@ -1,3 +1,51 @@
+# Rankings and stats: remaining work (2026-11-09)
+
+Carried over from the retired `plans/top100-lists/todos.md` and `plans/stats-refresh/todos.md`. Everything else in
+those two plans is done and deployed (PRs #35-#41). The CSVs in `plans/top100-lists/` are still the seed input for
+`backend/scripts/seed_rankings.py` (`plans/` is gitignored): back that folder up.
+
+Audit 2026-11-09, `course.state` read as a US state: **no code change needed.** Checked against the local DB
+(identical to production): every `country` is a 3-letter upper-case ISO code (82 values), every USA state is 2 letters,
+all 3,000+ ranked US entries sit in USA, no course lacks coordinates, and each Best in State entry's state equals its
+list's state. Every reader checks country first (`rankings.py` `_is_us`, `statsData.js`, `Rankings.jsx`,
+admin `course_regions`); map popups and `mapPoints.js` do not use state. Non-US courses do reuse US codes (335 courses),
+so keep country in any new filter. Notes:
+- US territories (GU, MP, PR, VI: 53 courses, 1 played) are `USA` but not on the state tile map, so they count in
+  country totals only. No ranked course is in one. Fine unless one is ranked later.
+
+Worth doing
+- [ ] Check the stats page in the running app (`run` skill): World country map, Best in State chart styles, phone layout.
+- [ ] Back up `plans/top100-lists/` (or commit the CSVs somewhere): the seed script reads them from the gitignored folder.
+
+Data checks (optional)
+- [ ] Low-confidence matches: Hartford Red/Blue (29492), Cantigny (24328), Hawk Hollow (28802), UNM Championship (21967,
+      coordinates look about 3 km off).
+- [ ] Confirm Pinehurst No. 10 coordinates (30358: 35.151159, -79.456848; one listing only).
+- [ ] Spot-check OSM-geocoded world rows: Naruo, Spring City, Kinloch (NZ), Ocean Dunes, Emirates; Te Arai North and
+      South share one coordinate.
+- [ ] Approximate coordinates (town or resort level; decided good enough 2026-11-02): Ladera, Riverton Pointe, The Trophy
+      Club, White Oak Dye course, Ba Na Hills, Ho Tram, Cabot Saint Lucia.
+- [ ] `readall_ids_w_year` omits courses without coordinates, so stats totals could differ slightly from the course list
+      (no course lacks coordinates today).
+- [ ] Source gaps, only if a better source appears: Circling Raven (2015-16 #96) has no yards, par or points; 2021-22 has
+      only rank, course and state; 2019-20 prior ranks mostly blank; 2023-24 and 2025-26 have no yards or par; 2025-26
+      has no points; 2013-14 Crosswater (#49) has no printed rank, kept as 49. Cosmetic: sheet headers say `2021/22`.
+      Settled: 2021-22 has no rank 54 (Point O'Woods was removed as private); leave it blank.
+
+Features (backlog, build together with the frontend that uses them)
+- [ ] Next up / gaps: unplayed ranked courses, best rank first, nearest the user's usual states.
+- [ ] Rank movement for played courses (up, down, new, dropped) from edition history.
+- [ ] Share card, public vs private split, top clubs.
+- [ ] Admin way to add new editions (CSV import using the formats in `plans/top100-lists/`); needed when the next Golf
+      Digest editions (2026-27) come out.
+- [ ] Best in State 2021-22 and older editions (state pages probably not archived).
+- [ ] Other lists, never requested: GOLF Magazine (golf.com free tables), Golfweek (golfweek.usatoday.com), Second 100.
+
+Production and DB (kept from the plans)
+- Ask before touching production or pushing the DB; back up first. Recipe: `golfmapper_db_check` skill; prod deploy
+  needs nvm Node 22 over SSH (see the `oracle-prod-deploy` memory). Local DB:
+  `E:\Documents\Coding\myProjects\keys\golfMapperDB\golf_mapper.db`, equal to production (sha256 `e21a645e...`).
+
 # Courses sharing one coordinate (2026-10-20)
 
 Context: the 2026-10-20 location audit fixed courses in the wrong country/state/region, but not courses placed at a

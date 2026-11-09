@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 if sentry_sdk_available and settings.SENTRY_DSN:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
         traces_sample_rate=settings.TRACES_SAMPLE_RATE,
         profiles_sample_rate=0.0,
     )

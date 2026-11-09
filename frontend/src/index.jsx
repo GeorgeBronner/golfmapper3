@@ -9,6 +9,8 @@ import * as Sentry from "@sentry/react";
 import { API_BASE_URL } from './config';
 
 Sentry.init({
+    // Built bundles keep Sentry's default environment; only the Vite dev server is tagged.
+    environment: import.meta.env.DEV ? "development" : undefined,
     dsn: import.meta.env.VITE_SENTRY_DSN,
     integrations: [
         Sentry.browserTracingIntegration(),

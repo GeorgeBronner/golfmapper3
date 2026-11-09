@@ -29,6 +29,7 @@ SQLite (default) or PostgreSQL.
 - `FROM_EMAIL` / `FROM_NAME`: Password-reset email sender (defaults: `noreply@bronnerapp.com` / `GolfMapper`)
 - `SENTRY_DSN`: Sentry DSN (default: disabled)
 - `TRACES_SAMPLE_RATE`: Sentry traces sample rate (default: `0.1`)
+- `ENVIRONMENT`: Sentry environment tag (default: `development`; compose sets `production` / `staging`)
 
 Variables can also be set in `app/.env`.
 
