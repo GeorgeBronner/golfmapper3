@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     FROM_EMAIL: str = "noreply@bronnerapp.com"
     FROM_NAME: str = "GolfMapper"
     TRACES_SAMPLE_RATE: float = 0.1
+    # Sentry environment tag. The compose files set production / staging; anything else (a local
+    # run) reports as development so it does not show up as production.
+    ENVIRONMENT: str = "development"
     TOKEN_EXPIRE_MINUTES: int = 90
     # Overridable per deployment without a code change via the CORS_ORIGINS
     # env var (JSON list), e.g. CORS_ORIGINS='["https://golf.bronnerapp.com"]'
