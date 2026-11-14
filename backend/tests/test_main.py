@@ -28,6 +28,11 @@ def test_api_docs_only_in_development():
     assert {"/docs", "/redoc", "/openapi.json"} <= doc_paths("development")
     assert doc_paths("production") == set()
     assert doc_paths("staging") == set()
+    # The real app must be built from the same switch.
+    serves_docs = main.settings.ENVIRONMENT == "development"
+    assert (app.openapi_url is not None) == serves_docs
+    assert (app.docs_url is not None) == serves_docs
+    assert (app.redoc_url is not None) == serves_docs
 
 
 def test_csp_is_static_with_no_script_exceptions():
