@@ -56,7 +56,16 @@ if sentry_sdk_available and settings.SENTRY_DSN:
         profiles_sample_rate=0.0,
     )
 
-app = FastAPI()
+
+# The interactive API docs are a development aid. On deployed environments
+# they would hand anyone the full route map, admin routes included.
+def _docs_config(environment: str) -> dict:
+    if environment == "development":
+        return {}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+
+
+app = FastAPI(**_docs_config(settings.ENVIRONMENT))
 Base.metadata.create_all(bind=engine)
 ensure_columns("users", {"token_version": "INTEGER NOT NULL DEFAULT 0"})
 ensure_columns("ranking_entries", {"rank_label": "VARCHAR", "access": "VARCHAR"})
@@ -126,6 +135,16 @@ async def limit_body_size(request: Request, call_next):
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > MAX_BODY_BYTES:
         return JSONResponse(status_code=413, content={"detail": "Request body too large."})
+    return await call_next(request)
+
+
+# Prometheus scrapes /metrics directly over the Docker network. Anything that
+# arrives through the reverse proxy carries X-Forwarded-For (the proxy adds it
+# and a client cannot remove it), so those requests are the public ones.
+@app.middleware("http")
+async def hide_public_metrics(request: Request, call_next):
+    if request.url.path == "/metrics" and "x-forwarded-for" in request.headers:
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
     return await call_next(request)
 
 

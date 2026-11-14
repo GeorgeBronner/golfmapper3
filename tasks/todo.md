@@ -1,3 +1,14 @@
+# Security sweep (2026-11-14)
+
+Findings and fixes are in `tasks/security-sweep-11-14-26.md`: 2 high, 7 medium, 8 low, plus one broken-Sentry note.
+Nothing critical.
+
+- [x] High: lock down the self-hosted runner on the public repo (#1) and close public `/metrics`, `/docs` and
+      `/openapi.json` (#2). Confirm #2 on production after the next deploy.
+- [ ] Medium: items 3-9 (rate-limit client IP, session lifetime, password-change limit, shared-map exposure,
+      registration field limits, body-size limit, container hardening).
+- [ ] Low: items 10-17, and allow Sentry in the CSP `connect-src`.
+
 # Rankings and stats: remaining work (2026-11-09)
 
 Carried over from the retired `plans/top100-lists/todos.md` and `plans/stats-refresh/todos.md`. Everything else in
