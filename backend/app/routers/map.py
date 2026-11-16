@@ -66,21 +66,30 @@ def user_points(request: Request, user: user_dependency, db: db_dependency):
 def all_users_points(request: Request, user: user_dependency, db: db_dependency):
     """Every active user's courses, grouped by user in user-id order:
     {"fields": [...], "users": [{"username": ..., "points": [[id, lat, lon, name, year], ...]}, ...]}.
+
+    "username" is a display name (first name + last initial), not the login name,
+    so this endpoint does not hand every account a list of login names.
     """
     rows = (
         _points_query(db)
-        .add_columns(Users.username)
+        .add_columns(Users.id, Users.first_name, Users.last_name)
         .join(Users, Users.id == UserCourses.user_id)
         .filter(Users.is_active.is_(True))
         .order_by(Users.id, Courses.id)
     )
-    users: dict[str, list] = {}
-    for *row, username in rows:
-        users.setdefault(username, []).append(row)
-    return {
-        "fields": ["id", "lat", "lon", "name", "year"],
-        "users": [{"username": name, "points": _dedupe(user_rows)} for name, user_rows in users.items()],
-    }
+    users: dict[int, tuple[str, list]] = {}
+    for *row, user_id, first_name, last_name in rows:
+        label = f"{first_name or ''} {(last_name or '')[:1]}".strip()
+        label = f"{label}." if last_name else label
+        users.setdefault(user_id, (label or "User", []))[1].append(row)
+    # The frontend keys legend entries by this name, so it must be unique.
+    seen: dict[str, int] = {}
+    result = []
+    for label, user_rows in users.values():
+        seen[label] = seen.get(label, 0) + 1
+        name = label if seen[label] == 1 else f"{label} ({seen[label]})"
+        result.append({"username": name, "points": _dedupe(user_rows)})
+    return {"fields": ["id", "lat", "lon", "name", "year"], "users": result}
 
 
 # Each state's Best in State list is its own ranking list with this scope prefix.

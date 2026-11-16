@@ -147,3 +147,86 @@ async def test_get_current_user_deleted_user_rejected():
     with pytest.raises(HTTPException) as e:
         await get_current_user(token, TestingSessionLocal())
     assert e.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.fixture
+def clean_users():
+    yield
+    with engine.connect() as con:
+        con.execute(text("DELETE FROM users;"))
+        con.commit()
+
+
+def _register(**overrides):
+    body = {
+        "username": "newuser",
+        "email": "newuser@example.com",
+        "first_name": "New",
+        "last_name": "User",
+        "password": "password123",
+    }
+    body.update(overrides)
+    return client.post("/api/v1/auth/", json=body)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"username": "ab"},
+        {"username": "x" * 31},
+        {"username": "has space"},
+        {"username": "<script>"},
+        {"first_name": "x" * 51},
+        {"last_name": "   "},
+    ],
+)
+def test_create_user_rejects_bad_fields(overrides):
+    assert _register(**overrides).status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+def test_create_user_is_case_insensitive_for_username_and_email(clean_users):
+    assert _register().status_code == status.HTTP_201_CREATED
+    assert _register(username="NewUser", email="other@example.com").status_code == status.HTTP_409_CONFLICT
+    assert _register(username="another", email="NewUser@Example.com").status_code == status.HTTP_409_CONFLICT
+
+
+def test_email_is_stored_lowercase(clean_users):
+    assert _register(email="MiXed@Example.com").status_code == status.HTTP_201_CREATED
+    with engine.connect() as con:
+        assert con.execute(text("SELECT email FROM users")).scalar() == "mixed@example.com"
+
+
+def test_login_username_is_case_insensitive(test_user):
+    db = TestingSessionLocal()
+    assert authenticate_user(test_user.username.upper(), "password", db).id == test_user.id
+
+
+def test_refresh_keeps_original_auth_time_and_caps_session(test_user):
+    from datetime import datetime, timezone
+
+    from app.routers.auth import MAX_SESSION_DAYS
+
+    # Exercise the real token path rather than the suite-wide auth override.
+    saved = app.dependency_overrides.pop(get_current_user, None)
+    now = datetime.now(timezone.utc)
+
+    def token_from(auth_time):
+        return create_access_token(
+            test_user.username, test_user.id, test_user.role, timedelta(minutes=15), test_user.token_version, auth_time
+        )
+
+    try:
+        headers = lambda t: {"Authorization": f"Bearer {t}"}  # noqa: E731
+        old = now - timedelta(days=MAX_SESSION_DAYS - 1)
+        ok = client.post("/api/v1/auth/refresh", headers=headers(token_from(old)))
+        assert ok.status_code == status.HTTP_200_OK
+        new_claims = jwt.decode(ok.json()["access_token"], SECRET_KEY, algorithms=[ALGORITHM])
+        assert new_claims["auth_time"] == int(old.timestamp())
+
+        expired = client.post(
+            "/api/v1/auth/refresh", headers=headers(token_from(now - timedelta(days=MAX_SESSION_DAYS + 1)))
+        )
+        assert expired.status_code == status.HTTP_401_UNAUTHORIZED
+    finally:
+        if saved is not None:
+            app.dependency_overrides[get_current_user] = saved

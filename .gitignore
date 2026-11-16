@@ -208,3 +208,6 @@ plans/
 # Coordinate review tool: local data and DB path
 tools/coord_review/data/
 tools/coord_review/.env
+
+# Local databases (any name, e.g. the compose default backend/golf_mapper.db)
+*.db

@@ -1,4 +1,4 @@
-from fastapi import status
+from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 
 from app import main
@@ -11,6 +11,28 @@ def test_return_health_check():
     response = client.get("/healthy")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"message": "I'm healthy"}
+
+
+def test_metrics_served_to_direct_scrape_only():
+    assert client.get("/metrics").status_code == status.HTTP_200_OK
+    proxied = client.get("/metrics", headers={"X-Forwarded-For": "203.0.113.7"})
+    assert proxied.status_code == status.HTTP_404_NOT_FOUND
+    assert "http_request" not in proxied.text
+
+
+def test_api_docs_only_in_development():
+    def doc_paths(environment):
+        built = FastAPI(**main._docs_config(environment))
+        return {route.path for route in built.routes}
+
+    assert {"/docs", "/redoc", "/openapi.json"} <= doc_paths("development")
+    assert doc_paths("production") == set()
+    assert doc_paths("staging") == set()
+    # The real app must be built from the same switch.
+    serves_docs = main.settings.ENVIRONMENT == "development"
+    assert (app.openapi_url is not None) == serves_docs
+    assert (app.docs_url is not None) == serves_docs
+    assert (app.redoc_url is not None) == serves_docs
 
 
 def test_csp_is_static_with_no_script_exceptions():
@@ -30,3 +52,19 @@ def test_spa_shell_is_served_unmodified_and_uncached(monkeypatch):
     response = client.get("/some/client/route")
     assert response.text == shell
     assert response.headers["Cache-Control"] == "no-cache, no-store, must-revalidate"
+
+
+def test_body_limit_applies_to_chunked_requests():
+    def chunks():
+        for _ in range(3):
+            yield b"x" * (512 * 1024)
+
+    # A generator body is sent with Transfer-Encoding: chunked, so no Content-Length.
+    response = client.post("/api/v1/auth/", content=chunks())
+    assert response.status_code == status.HTTP_413_CONTENT_TOO_LARGE
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert client.post("/api/v1/auth/", content=b"x" * (main.MAX_BODY_BYTES + 1)).status_code == 413
+
+
+def test_hsts_covers_subdomains():
+    assert "includeSubDomains" in client.get("/healthy").headers["Strict-Transport-Security"]

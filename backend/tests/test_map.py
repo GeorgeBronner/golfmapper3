@@ -26,8 +26,8 @@ def points_data():
                 id=1,
                 email="a@mail.com",
                 username="alice",
-                first_name="a",
-                last_name="a",
+                first_name="Alice",
+                last_name="Smith",
                 hashed_password="x",
                 is_active=True,
                 role="user",
@@ -36,8 +36,8 @@ def points_data():
                 id=2,
                 email="b@mail.com",
                 username="bob",
-                first_name="b",
-                last_name="b",
+                first_name="Bob",
+                last_name="Jones",
                 hashed_password="x",
                 is_active=True,
                 role="user",
@@ -86,8 +86,8 @@ def test_all_points_groups_active_users(points_data):
     data = response.json()
     assert data["fields"] == ["id", "lat", "lon", "name", "year"]
     assert data["users"] == [
-        {"username": "alice", "points": [[401, 30.7405, -88.20578, XSS_NAME, 2024]]},
-        {"username": "bob", "points": [[402, 31.0, -87.0, "Club - West", None]]},
+        {"username": "Alice S.", "points": [[401, 30.7405, -88.20578, XSS_NAME, 2024]]},
+        {"username": "Bob J.", "points": [[402, 31.0, -87.0, "Club - West", None]]},
     ]
 
 
@@ -217,3 +217,26 @@ def test_dedupe_keeps_one_point_per_course_with_latest_year():
         (402, 31.0, -87.0, "Other", None, None),
     ]
     assert _dedupe(rows) == [[401, 30.0, -88.0, "Club", 2024], [402, 31.0, -87.0, "Other", None]]
+
+
+def test_all_points_display_names_are_unique(points_data):
+    db = TestingSessionLocal()
+    # Same first name and last initial as alice ("Alice S."), plus a user with no names.
+    db.add_all(
+        [
+            Users(
+                id=5,
+                email="d@mail.com",
+                username="d",
+                first_name="Alice",
+                last_name="Stone",
+                hashed_password="x",
+                is_active=True,
+                role="user",
+            ),
+            UserCourses(id=5, course_id=402, user_id=5, year=2021),
+        ]
+    )
+    db.commit()
+    names = [u["username"] for u in client.get("/api/v1/map/all_points").json()["users"]]
+    assert names == ["Alice S.", "Bob J.", "Alice S. (2)"]
