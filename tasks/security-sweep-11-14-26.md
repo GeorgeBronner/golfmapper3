@@ -106,7 +106,7 @@ High items are worth fixing soon; the rest is hardening.
       Done 2026-11-16: `certifi` 2026.10.23, `dnspython` 2.9.2, `opentelemetry-api` 1.45.2; `npm audit fix` leaves 0.
 - [x] **15. Unthrottled full-table read.** `GET /garmin_courses/readall`
       (`backend/app/routers/garmin_courses.py:29-31`) returns every course with no rate limit.
-      Done 2026-11-16: `/garmin_courses/readall` is limited to 10/minute.
+      Done 2026-11-16: `/garmin_courses/readall` is limited to 30/minute.
 - [x] **16. Dev server exposure.** `frontend/vite.config.js:27-32` binds `0.0.0.0` with `allowedHosts: true`, which
       disables Vite's host check. Local dev only.
       Dismissed 2026-11-16: local dev only.

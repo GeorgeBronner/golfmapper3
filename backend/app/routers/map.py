@@ -79,12 +79,17 @@ def all_users_points(request: Request, user: user_dependency, db: db_dependency)
     )
     users: dict[int, tuple[str, list]] = {}
     for *row, user_id, first_name, last_name in rows:
-        label = f"{first_name} {last_name[:1]}.".strip() if last_name else first_name
-        users.setdefault(user_id, (label, []))[1].append(row)
-    return {
-        "fields": ["id", "lat", "lon", "name", "year"],
-        "users": [{"username": label, "points": _dedupe(user_rows)} for label, user_rows in users.values()],
-    }
+        label = f"{first_name or ''} {(last_name or '')[:1]}".strip()
+        label = f"{label}." if last_name else label
+        users.setdefault(user_id, (label or "User", []))[1].append(row)
+    # The frontend keys legend entries by this name, so it must be unique.
+    seen: dict[str, int] = {}
+    result = []
+    for label, user_rows in users.values():
+        seen[label] = seen.get(label, 0) + 1
+        name = label if seen[label] == 1 else f"{label} ({seen[label]})"
+        result.append({"username": name, "points": _dedupe(user_rows)})
+    return {"fields": ["id", "lat", "lon", "name", "year"], "users": result}
 
 
 # Each state's Best in State list is its own ranking list with this scope prefix.

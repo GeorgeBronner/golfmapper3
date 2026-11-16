@@ -28,7 +28,7 @@ class CourseBase(BaseModel):
 
 
 @router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def readall(request: Request, user: user_dependency, db: db_dependency):
     return db.query(Courses).all()
 
