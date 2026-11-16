@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict
 
 from app.dependencies import db_dependency, user_dependency
+from app.limiter import limiter
 from app.models import Users
 from app.security import NewPassword, hash_password, verify_password
 
@@ -38,7 +39,10 @@ async def user_info(user: user_dependency, db: db_dependency):
 
 
 @router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
-async def update_password(user: user_dependency, db: db_dependency, user_verification: UserVerification):
+@limiter.limit("5/minute")
+async def update_password(
+    request: Request, user: user_dependency, db: db_dependency, user_verification: UserVerification
+):
     user_model = db.query(Users).filter(Users.id == user.get("id")).first()
     if user_model is None:
         raise HTTPException(status_code=404, detail="User not found")

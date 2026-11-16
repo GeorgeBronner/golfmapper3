@@ -10,6 +10,7 @@ from typing import Annotated
 import mailtrap as mt
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -17,7 +18,7 @@ from app.config import settings
 from app.database import get_db
 from app.limiter import limiter
 from app.models import PasswordResetToken, Users
-from app.security import BCRYPT_MAX_PASSWORD_BYTES, hash_password
+from app.security import NewPassword, hash_password
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str
+    new_password: NewPassword
 
 
 MIN_RESPONSE_SECONDS = 0.2
@@ -109,7 +110,7 @@ async def forgot_password(
     start = time.monotonic()
 
     # Always return success to avoid user enumeration
-    user = db.query(Users).filter(Users.email == body.email).first()
+    user = db.query(Users).filter(func.lower(Users.email) == body.email.lower()).first()
     if user:
         # Invalidate any existing unused tokens for this user
         db.query(PasswordResetToken).filter(
@@ -161,17 +162,6 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: db_de
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset link.",
-        )
-
-    if len(body.new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Password must be at least 8 characters.",
-        )
-    if len(body.new_password.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} characters.",
         )
 
     user = db.query(Users).filter(Users.id == reset_token.user_id).first()

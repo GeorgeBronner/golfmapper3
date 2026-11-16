@@ -3,11 +3,18 @@
 Findings and fixes are in `tasks/security-sweep-11-14-26.md`: 2 high, 7 medium, 8 low, plus one broken-Sentry note.
 Nothing critical.
 
-- [x] High: lock down the self-hosted runner on the public repo (#1) and close public `/metrics`, `/docs` and
-      `/openapi.json` (#2). Confirm #2 on production after the next deploy.
-- [ ] Medium: items 3-9 (rate-limit client IP, session lifetime, password-change limit, shared-map exposure,
-      registration field limits, body-size limit, container hardening).
-- [ ] Low: items 10-17, and allow Sentry in the CSP `connect-src`.
+- [x] High: lock down the self-hosted runner on the public repo (#1) and make the `/metrics`, `/docs` and
+      `/openapi.json` code changes (#2).
+- [ ] Confirm #2 on production after the next deploy (`/metrics`, `/docs`, `/openapi.json` not served publicly).
+- [x] Staging port 8005 (checked against the homelab docs): it is published on docker31's LAN address only
+      (`192.168.1.31`), not the internet. Both the docker21 Traefik route (`golf-stage`) and the docker31 Prometheus
+      job (`gm3-stage`) reach the backend through that host port, so do NOT bind it to `127.0.0.1`. Residual risk is
+      LAN clients reading `/metrics` and spoofing `X-Forwarded-For` for rate limits (item 3).
+- [x] Items 4, 5, 6, 7, 8, 11, 14, 15, 17 and the Sentry CSP fix; 10, 12 and 16 dismissed (2026-11-16).
+- [ ] Item 3 (rate-limit client IP): confirm what the live NPM/Cloudflare proxy forwards before changing `limiter.py`.
+- [ ] Item 9 (container hardening): check DB ownership, then test on staging first.
+- [ ] Item 13 (CORS): set `CORS_ORIGINS` in the compose files and drop `allow_credentials`.
+- [ ] Delete the stale `frontend/nginx.conf` and `frontend/Dockerfile` if unused (item 17).
 
 # Rankings and stats: remaining work (2026-11-09)
 

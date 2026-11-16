@@ -115,7 +115,7 @@ CSP = (
     "font-src 'self' https://fonts.gstatic.com; "
     "img-src 'self' data: https://*.tile.openstreetmap.org https://tile.openstreetmap.org "
     "https://server.arcgisonline.com; "
-    "connect-src 'self' https://nominatim.openstreetmap.org; "
+    "connect-src 'self' https://nominatim.openstreetmap.org https://*.sentry.io; "
     "object-src 'none'; "
     "base-uri 'self'; "
     "frame-ancestors 'none'"
@@ -130,12 +130,62 @@ CSP = (
 MAX_BODY_BYTES = 1 * 1024 * 1024
 
 
-@app.middleware("http")
-async def limit_body_size(request: Request, call_next):
-    content_length = request.headers.get("content-length")
-    if content_length and int(content_length) > MAX_BODY_BYTES:
-        return JSONResponse(status_code=413, content={"detail": "Request body too large."})
-    return await call_next(request)
+class _BodyTooLarge(Exception):
+    pass
+
+
+class BodySizeLimitMiddleware:
+    """Reject request bodies over MAX_BODY_BYTES, counting bytes as they stream
+    in so a chunked request (no Content-Length) cannot skip the limit."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        too_large = JSONResponse(status_code=413, content={"detail": "Request body too large."})
+        declared = dict(scope["headers"]).get(b"content-length")
+        if declared and declared.isdigit() and int(declared) > MAX_BODY_BYTES:
+            await too_large(scope, receive, send)
+            return
+
+        received = 0
+        exceeded = False
+        response_started = False
+
+        async def counting_receive():
+            nonlocal received, exceeded
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > MAX_BODY_BYTES:
+                    exceeded = True
+                    raise _BodyTooLarge
+            return message
+
+        async def tracking_send(message):
+            nonlocal response_started
+            # FastAPI turns an error raised while reading the body into its own
+            # 400; once the limit is hit, drop whatever the app answers with.
+            if exceeded and not response_started:
+                return
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, counting_receive, tracking_send)
+        except _BodyTooLarge:
+            if response_started:
+                raise
+        if exceeded and not response_started:
+            await too_large(scope, receive, send)
+
+
+app.add_middleware(BodySizeLimitMiddleware)
 
 
 # Prometheus scrapes /metrics directly over the Docker network. Anything that
@@ -155,7 +205,7 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Content-Security-Policy"] = CSP
-    response.headers["Strict-Transport-Security"] = "max-age=63072000; preload"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     return response
 
 

@@ -42,3 +42,10 @@ def test_password_change_over_72_bytes_returns_422(test_user):
     request_body = {"password": "password", "new_password": "x" * 100}
     response = client.put("/api/v1/user/password", json=request_body)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+def test_password_change_is_rate_limited(test_user):
+    body = {"password": "wrong_password", "new_password": "newpassword"}
+    codes = [client.put("/api/v1/user/password", json=body).status_code for _ in range(6)]
+    assert codes[:5] == [status.HTTP_401_UNAUTHORIZED] * 5
+    assert codes[5] == status.HTTP_429_TOO_MANY_REQUESTS

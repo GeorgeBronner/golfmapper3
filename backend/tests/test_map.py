@@ -26,8 +26,8 @@ def points_data():
                 id=1,
                 email="a@mail.com",
                 username="alice",
-                first_name="a",
-                last_name="a",
+                first_name="Alice",
+                last_name="Smith",
                 hashed_password="x",
                 is_active=True,
                 role="user",
@@ -36,8 +36,8 @@ def points_data():
                 id=2,
                 email="b@mail.com",
                 username="bob",
-                first_name="b",
-                last_name="b",
+                first_name="Bob",
+                last_name="Jones",
                 hashed_password="x",
                 is_active=True,
                 role="user",
@@ -86,8 +86,8 @@ def test_all_points_groups_active_users(points_data):
     data = response.json()
     assert data["fields"] == ["id", "lat", "lon", "name", "year"]
     assert data["users"] == [
-        {"username": "alice", "points": [[401, 30.7405, -88.20578, XSS_NAME, 2024]]},
-        {"username": "bob", "points": [[402, 31.0, -87.0, "Club - West", None]]},
+        {"username": "Alice S.", "points": [[401, 30.7405, -88.20578, XSS_NAME, 2024]]},
+        {"username": "Bob J.", "points": [[402, 31.0, -87.0, "Club - West", None]]},
     ]
 
 

@@ -52,3 +52,19 @@ def test_spa_shell_is_served_unmodified_and_uncached(monkeypatch):
     response = client.get("/some/client/route")
     assert response.text == shell
     assert response.headers["Cache-Control"] == "no-cache, no-store, must-revalidate"
+
+
+def test_body_limit_applies_to_chunked_requests():
+    def chunks():
+        for _ in range(3):
+            yield b"x" * (512 * 1024)
+
+    # A generator body is sent with Transfer-Encoding: chunked, so no Content-Length.
+    response = client.post("/api/v1/auth/", content=chunks())
+    assert response.status_code == status.HTTP_413_CONTENT_TOO_LARGE
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert client.post("/api/v1/auth/", content=b"x" * (main.MAX_BODY_BYTES + 1)).status_code == 413
+
+
+def test_hsts_covers_subdomains():
+    assert "includeSubDomains" in client.get("/healthy").headers["Strict-Transport-Security"]

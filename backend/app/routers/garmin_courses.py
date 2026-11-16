@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Request
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from pydantic import BaseModel, ConfigDict
@@ -6,6 +6,7 @@ from sqlalchemy import select
 from starlette import status
 
 from app.dependencies import db_dependency, user_dependency
+from app.limiter import limiter
 from app.models import Courses
 
 router = APIRouter(prefix="/garmin_courses", tags=["garmin_courses"])
@@ -27,7 +28,8 @@ class CourseBase(BaseModel):
 
 
 @router.get("/readall", status_code=status.HTTP_200_OK, response_model=list[CourseBase])
-async def readall(user: user_dependency, db: db_dependency):
+@limiter.limit("10/minute")
+async def readall(request: Request, user: user_dependency, db: db_dependency):
     return db.query(Courses).all()
 
 

@@ -38,69 +38,93 @@ High items are worth fixing soon; the rest is hardening.
       that hop is a Cloudflare edge address: users share buckets and an attacker gets a fresh bucket per edge.
       Unconfirmed (proxy config is not in the repo). On staging, `docker-compose-stage.yml:8` publishes 8005 on all
       interfaces, so anyone who can reach the port can spoof the header and bypass the limits.
-      Fix: key on `CF-Connecting-IP` when the request comes from the proxy; bind staging to `127.0.0.1:8005:8005`.
-- [ ] **4. Sessions never expire and cannot be revoked.** `/auth/refresh` (`backend/app/routers/auth.py:136-147`)
+      Fix: key on `CF-Connecting-IP` only when the TCP peer is the trusted proxy, and confirm that the proxy overwrites
+      that header or accepts only Cloudflare traffic; bind staging to `127.0.0.1:8005:8005`.
+      Left open 2026-11-16: needs the live proxy behaviour confirmed first (see the unverified note below). Staging port 8005
+      must stay as is: Traefik and Prometheus both reach it over the LAN.
+- [x] **4. Sessions never expire and cannot be revoked.** `/auth/refresh` (`backend/app/routers/auth.py:136-147`)
       reissues a 90-minute token from any valid token with no absolute cap. The token is in `localStorage`, logout is
       client-side only, and a password change is the only revocation.
       Fix: carry the original login time through refreshes and refuse after 7-30 days; add a "log out everywhere"
       endpoint that bumps `token_version`.
-- [ ] **5. Password change has no rate limit.** `PUT /user/password` (`backend/app/routers/users.py:40`) is the only
+      Done 2026-11-16: refresh is capped at 30 days from login (`auth_time` claim, `MAX_SESSION_DAYS`). Tokens from
+      before this change restart the clock once. A "log out everywhere" endpoint was not added; a password change
+      already revokes.
+- [x] **5. Password change has no rate limit.** `PUT /user/password` (`backend/app/routers/users.py:40`) is the only
       password-checking endpoint without `@limiter.limit`. With a stolen token, the current password can be
       brute-forced and the owner locked out.
       Fix: `@limiter.limit("5/minute")` like the other auth routes.
-- [ ] **6. Any registered user can read every user's username and play history.** `GET /map/all_points`
+      Done 2026-11-16: `PUT /user/password` is limited to 5/minute.
+- [x] **6. Any registered user can read every user's username and play history.** `GET /map/all_points`
       (`backend/app/routers/map.py:64-83`) returns this for all active users; registration is open with no email
       verification. The usernames are login names, so this is also a credential-stuffing list. If this is the intended
       shared map, the fix is a product decision.
       Fix: opt-in flag, or show display names instead of login names.
-- [ ] **7. Registration fields are unbounded and unnormalised.** `CreateUserRequest`
+      Done 2026-11-16: `/map/all_points` now returns first name + last initial instead of the login name.
+- [x] **7. Registration fields are unbounded and unnormalised.** `CreateUserRequest`
       (`backend/app/routers/auth.py:74-79`) has no length or character limits on `username`, `first_name` or
       `last_name`. Uniqueness is case-sensitive, so `Admin` and `admin` can both exist and both appear on the shared
       map. Emails are matched case-sensitively too (`auth.py:90-93`, `password_reset.py:112`).
       Fix: length and pattern limits; lowercase usernames and emails on write and lookup.
-- [ ] **8. The 1 MB body limit only checks `Content-Length`.** A chunked request skips the check in
+      Done 2026-11-16: username 3-30 chars of `[A-Za-z0-9_.-]`, names 1-50 chars; emails lowercased on write. Username and
+      email uniqueness and lookups are case-insensitive. No migration: the production DB has no case collisions and
+      no uppercase emails (one existing username, `DDavidian`, keeps its capitals and can still log in).
+- [x] **8. The 1 MB body limit only checks `Content-Length`.** A chunked request skips the check in
       `backend/app/main.py:124-129`, leaving the proxy as the only backstop (its limit is unknown).
       Fix: count bytes while streaming, or set `client_max_body_size` at the proxy.
+      Done 2026-11-16: `BodySizeLimitMiddleware` counts streamed bytes, so chunked requests are capped too.
 - [ ] **9. The container runs as root on floating images.** `backend/Dockerfile` has no `USER`, uses the unpinned
       `python:3.14-slim` tag and an unpinned `uv`, and `uv run` re-syncs at start. Code execution in the app would be
       root with write access to the bind-mounted database.
       Fix: non-root user, pin both, run `.venv/bin/uvicorn` directly.
 
+      Left open 2026-11-16: check DB file ownership on oracle and docker31, then test on staging first.
 ## Low
 
-- [ ] **10. Account enumeration.** Login returns faster for unknown usernames because bcrypt is skipped
+- [x] **10. Account enumeration.** Login returns faster for unknown usernames because bcrypt is skipped
       (`backend/app/routers/auth.py:32-40`); registration returns 409 for an existing email (`auth.py:96-99`). Item 6
       already leaks usernames, so the email leak is the part that matters.
-- [ ] **11. Login throttling is per IP only.** No per-account lockout; the only password rule is 8 characters. The
+      Dismissed 2026-11-16: usernames were already visible via item 6 (now display names), and a 409 on registration
+      is accepted UX.
+- [x] **11. Login throttling is per IP only.** No per-account lockout; the only password rule is 8 characters. The
       reset flow re-implements the length check by hand (`backend/app/routers/password_reset.py:166-175`) instead of
       using `NewPassword`.
-- [ ] **12. Reset-email flooding.** `forgot-password` has no per-email cooldown, and each request invalidates the
+      Done 2026-11-16: the reset flow now uses `NewPassword`. Per-account lockout not added.
+- [x] **12. Reset-email flooding.** `forgot-password` has no per-email cooldown, and each request invalidates the
       previous link, so a victim's reset can be kept from working.
+      Dismissed 2026-11-16: low impact for a small app.
 - [ ] **13. CORS defaults are too broad.** `backend/app/config.py:30-55` allows localhost, a LAN IP, a public IP and
       plain-`http://` versions of the production hosts, with `allow_credentials=True` (not needed: auth is a bearer
       header). The 2026-07-23 review kept the dev hosts on purpose (#15); the smaller fix is to set `CORS_ORIGINS` in
       the production and staging compose files and drop `allow_credentials`.
-- [ ] **14. Dependency advisories.** Backend (`pip-audit`): `certifi` 2026.7.22, `dnspython` 2.9.0 and
+      Left open 2026-11-16 to address later.
+- [x] **14. Dependency advisories.** Backend (`pip-audit`): `certifi` 2026.7.22, `dnspython` 2.9.0 and
       `opentelemetry-api` 1.45.1 each have a patch release. Frontend (`npm audit`): `follow-redirects` via axios (not
       used by the browser build) and `happy-dom` (test-only).
       Fix: `uv lock --upgrade-package certifi --upgrade-package dnspython --upgrade-package opentelemetry-api` and
       `npm audit fix`.
-- [ ] **15. Unthrottled full-table read.** `GET /garmin_courses/readall`
+      Done 2026-11-16: `certifi` 2026.10.23, `dnspython` 2.9.2, `opentelemetry-api` 1.45.2; `npm audit fix` leaves 0.
+- [x] **15. Unthrottled full-table read.** `GET /garmin_courses/readall`
       (`backend/app/routers/garmin_courses.py:29-31`) returns every course with no rate limit.
-- [ ] **16. Dev server exposure.** `frontend/vite.config.js:27-32` binds `0.0.0.0` with `allowedHosts: true`, which
+      Done 2026-11-16: `/garmin_courses/readall` is limited to 10/minute.
+- [x] **16. Dev server exposure.** `frontend/vite.config.js:27-32` binds `0.0.0.0` with `allowedHosts: true`, which
       disables Vite's host check. Local dev only.
-- [ ] **17. Smaller hardening gaps.**
+      Dismissed 2026-11-16: local dev only.
+- [x] **17. Smaller hardening gaps.**
       - HSTS has `preload` without `includeSubDomains` (`backend/app/main.py:139`), so it does not qualify for preload.
       - `.gitignore` lists database files by name rather than `*.db`; the compose default `backend/golf_mapper.db` is
         not covered.
       - `SECRET_KEY_AUTH` has no minimum-length check (`backend/app/routers/auth.py:22`).
       - `frontend/nginx.conf` and `frontend/Dockerfile` are stale and would ship without security headers if deployed.
 
+      Done 2026-11-16: HSTS `includeSubDomains`, `*.db` in `.gitignore`, `SECRET_KEY_AUTH` must be 32+ characters (prod and
+      staging keys are 64). `frontend/nginx.conf` and `frontend/Dockerfile` are still stale; delete them if unused.
 ## Not a vulnerability, but broken
 
-- [ ] **Browser Sentry is blocked by the CSP.** `connect-src` (`backend/app/main.py:109`) allows only `'self'` and
+- [x] **Browser Sentry is blocked by the CSP.** `connect-src` (`backend/app/main.py:109`) allows only `'self'` and
       Nominatim, so frontend Sentry events and replays are dropped in production whenever a DSN is set. Add the Sentry
       ingest host or use a tunnel.
+      Done 2026-11-16: `connect-src` allows `https://*.sentry.io`.
 
 ## Checked and clean
 

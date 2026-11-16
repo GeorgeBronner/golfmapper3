@@ -66,20 +66,24 @@ def user_points(request: Request, user: user_dependency, db: db_dependency):
 def all_users_points(request: Request, user: user_dependency, db: db_dependency):
     """Every active user's courses, grouped by user in user-id order:
     {"fields": [...], "users": [{"username": ..., "points": [[id, lat, lon, name, year], ...]}, ...]}.
+
+    "username" is a display name (first name + last initial), not the login name,
+    so this endpoint does not hand every account a list of login names.
     """
     rows = (
         _points_query(db)
-        .add_columns(Users.username)
+        .add_columns(Users.id, Users.first_name, Users.last_name)
         .join(Users, Users.id == UserCourses.user_id)
         .filter(Users.is_active.is_(True))
         .order_by(Users.id, Courses.id)
     )
-    users: dict[str, list] = {}
-    for *row, username in rows:
-        users.setdefault(username, []).append(row)
+    users: dict[int, tuple[str, list]] = {}
+    for *row, user_id, first_name, last_name in rows:
+        label = f"{first_name} {last_name[:1]}.".strip() if last_name else first_name
+        users.setdefault(user_id, (label, []))[1].append(row)
     return {
         "fields": ["id", "lat", "lon", "name", "year"],
-        "users": [{"username": name, "points": _dedupe(user_rows)} for name, user_rows in users.items()],
+        "users": [{"username": label, "points": _dedupe(user_rows)} for label, user_rows in users.values()],
     }
 
 
